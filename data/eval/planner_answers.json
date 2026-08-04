@@ -1,0 +1,122 @@
+[
+  {
+    "qid": 1,
+    "expected": 208253.201298,
+    "unit": "million_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions.md#L1.1"
+  },
+  {
+    "qid": 17,
+    "expected": 713942.0,
+    "unit": "million_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L1.2"
+  },
+  {
+    "qid": 40,
+    "expected": 4642334.0,
+    "unit": "million_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L2.1"
+  },
+  {
+    "qid": 44,
+    "expected": 332023043.0,
+    "unit": "million_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L1.1"
+  },
+  {
+    "qid": 55,
+    "expected": 1.32267349,
+    "unit": "trillion_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L2.2"
+  },
+  {
+    "qid": 100,
+    "expected": 700886434.0,
+    "unit": "shares",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions.md#L1.2"
+  },
+  {
+    "qid": 363,
+    "expected": 3.319357071984094,
+    "unit": "ratio",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L6.1"
+  },
+  {
+    "qid": 524,
+    "expected": 102.424213974,
+    "unit": "billion_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L6.2"
+  },
+  {
+    "qid": 582,
+    "expected": 13.749823657566318,
+    "unit": "percent",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L3.2"
+  },
+  {
+    "qid": 605,
+    "expected": -20.73399031126013,
+    "unit": "percent",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L3.1"
+  },
+  {
+    "qid": 674,
+    "expected": 5.275890245889255,
+    "unit": "percent",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions.md#L2.1"
+  },
+  {
+    "qid": 752,
+    "expected": -3903526.0,
+    "unit": "million_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L4.1"
+  },
+  {
+    "qid": 754,
+    "expected": 116644397.0,
+    "unit": "million_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L4.2"
+  },
+  {
+    "qid": 818,
+    "expected": 145.134,
+    "unit": "million_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L5.1"
+  },
+  {
+    "qid": 820,
+    "expected": 4.069037099374,
+    "unit": "hundred_billion_vnd",
+    "abs_tolerance": 0.000001,
+    "rel_tolerance": 0.000001,
+    "source": "manual_solutions/solutions_batch2.md#L5.2"
+  }
+]

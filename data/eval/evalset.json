@@ -1,0 +1,726 @@
+[
+  {
+    "qid": 1,
+    "level": "L1.1",
+    "source": "solutions.md",
+    "question": "Lãi tiền gửi năm 2018 của công ty mẹ CTCP Hàng không Vietjet (VJC) là bao nhiêu triệu đồng?",
+    "tickers": [
+      "VJC"
+    ],
+    "years": [
+      2018
+    ],
+    "doc_type": "separate",
+    "gt_reports": [
+      [
+        "VJC_financial_statements_2018_separate"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "VJC_financial_statements_2018_separate|50"
+      ]
+    ]
+  },
+  {
+    "qid": 17,
+    "level": "L1.2",
+    "source": "solutions_batch2.md",
+    "question": "Lãi thuần từ hoạt động dịch vụ của Ngân hàng TMCP Sài Gòn - Hà Nội (SHB) năm 2018 là bao nhiêu triệu đồng?",
+    "tickers": [
+      "SHB"
+    ],
+    "years": [
+      2018
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "SHB_financial_statements_2018_consolidated"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "SHB_financial_statements_2018_consolidated|5"
+      ]
+    ]
+  },
+  {
+    "qid": 40,
+    "level": "L2.1",
+    "source": "solutions_batch2.md",
+    "question": "Lợi nhuận sau thuế của VIB năm 2020 là bao nhiêu triệu đồng?",
+    "tickers": [
+      "VIB"
+    ],
+    "years": [
+      2020
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "VIB_financial_statements_2020_consolidated"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "VIB_financial_statements_2020_consolidated|10"
+      ]
+    ]
+  },
+  {
+    "qid": 44,
+    "level": "L1.1",
+    "source": "solutions_batch2.md",
+    "question": "Tổng tài sản của STB là bao nhiêu triệu đồng vào cuối năm 2016?",
+    "tickers": [
+      "STB"
+    ],
+    "years": [
+      2016
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "STB_financial_statements_2016_consolidated"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "STB_financial_statements_2016_consolidated|4"
+      ]
+    ]
+  },
+  {
+    "qid": 55,
+    "level": "L2.2",
+    "source": "solutions_batch2.md",
+    "question": "Vốn cổ phần của FTS cuối năm 2020 là bao nhiêu nghìn tỷ đồng?",
+    "tickers": [
+      "FTS"
+    ],
+    "years": [
+      2020
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "FTS_financial_statements_2020"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "FTS_financial_statements_2020|11"
+      ]
+    ]
+  },
+  {
+    "qid": 100,
+    "level": "L1.2",
+    "source": "solutions.md",
+    "question": "Tổng số lượng cổ phần của Tập đoàn Bảo Việt (BVH) vào cuối năm 2018 là bao nhiêu cổ phần?",
+    "tickers": [
+      "BVH"
+    ],
+    "years": [
+      2018
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "BVH_financial_statements_2018_consolidated"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "BVH_financial_statements_2018_consolidated|16",
+        "BVH_financial_statements_2018_consolidated|15"
+      ]
+    ]
+  },
+  {
+    "qid": 363,
+    "level": "L6.1",
+    "source": "solutions_batch2.md",
+    "question": "Trong giai đoạn 2016-2020, vào năm KBC có tỷ số D/E cao nhất, hệ số khả năng thanh toán lãi vay là bao nhiêu lần?",
+    "tickers": [
+      "KBC"
+    ],
+    "years": [
+      2016,
+      2020,
+      2017,
+      2018,
+      2019
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "KBC_financial_statements_2016_consolidated"
+      ],
+      [
+        "KBC_financial_statements_2018_consolidated"
+      ],
+      [
+        "KBC_financial_statements_2020_consolidated"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "KBC_financial_statements_2016_consolidated|6"
+      ],
+      [
+        "KBC_financial_statements_2016_consolidated|7"
+      ],
+      [
+        "KBC_financial_statements_2018_consolidated|6"
+      ],
+      [
+        "KBC_financial_statements_2018_consolidated|7"
+      ],
+      [
+        "KBC_financial_statements_2020_consolidated|7"
+      ],
+      [
+        "KBC_financial_statements_2020_consolidated|8"
+      ],
+      [
+        "KBC_financial_statements_2020_consolidated|9"
+      ]
+    ]
+  },
+  {
+    "qid": 440,
+    "level": "L6.1",
+    "source": "solutions.md",
+    "question": "Trong giai đoạn 2021–2024 của DIG, năm mà có tỷ lệ nợ phải trả trên vốn chủ sở hữu cao nhất, lợi nhuận trước lãi vay và thuế trong năm đó gấp bao nhiêu lần chi phí lãi vay?",
+    "tickers": [
+      "DIG"
+    ],
+    "years": [
+      2021,
+      2024,
+      2022,
+      2023
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "DIG_financial_statements_2021_consolidated"
+      ],
+      [
+        "DIG_financial_statements_2022_consolidated"
+      ],
+      [
+        "DIG_financial_statements_2023_consolidated"
+      ],
+      [
+        "DIG_financial_statements_2024_consolidated"
+      ]
+    ],
+    "gt_tables": null
+  },
+  {
+    "qid": 501,
+    "level": "L6.2",
+    "source": "solutions.md",
+    "question": "Trong các năm 2015, 2020, 2021 và 2023, năm nào có tổng giá gốc nợ phải thu quá hạn của công ty mẹ CTCP Đường Quảng Ngãi (QNS) lớn nhất trong số các năm mà giá gốc khoản đầu tư của QNS vào Công ty TNHH MTV Thương mại Thành Phát đạt mức cao nhất?",
+    "tickers": [
+      "QNS"
+    ],
+    "years": [
+      2015,
+      2020,
+      2021,
+      2023
+    ],
+    "doc_type": "separate",
+    "gt_reports": [
+      [
+        "QNS_financial_statements_2015_separate"
+      ],
+      [
+        "QNS_financial_statements_2020_separate"
+      ],
+      [
+        "QNS_financial_statements_2021_separate"
+      ],
+      [
+        "QNS_financial_statements_2023_separate"
+      ]
+    ],
+    "gt_tables": null
+  },
+  {
+    "qid": 524,
+    "level": "L6.2",
+    "source": "solutions_batch2.md",
+    "question": "Trong các năm 2017, 2018, 2021 và 2022, số dư cuối năm quỹ khen thưởng và phúc lợi của Ngân hàng TMCP Phương Đông tại năm có giá trị cho vay các tổ chức kinh tế và cá nhân trong nước lớn nhất là bao nhiêu tỷ đồng?",
+    "tickers": [
+      "OCB"
+    ],
+    "years": [
+      2017,
+      2018,
+      2021,
+      2022
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "OCB_financial_statements_2017_consolidated"
+      ],
+      [
+        "OCB_financial_statements_2018_consolidated"
+      ],
+      [
+        "OCB_financial_statements_2021_consolidated"
+      ],
+      [
+        "OCB_financial_statements_2022_consolidated_1",
+        "OCB_financial_statements_2022_consolidated_2"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "OCB_financial_statements_2017_consolidated|25"
+      ],
+      [
+        "OCB_financial_statements_2018_consolidated|21"
+      ],
+      [
+        "OCB_financial_statements_2021_consolidated|31"
+      ],
+      [
+        "OCB_financial_statements_2022_consolidated_1|30",
+        "OCB_financial_statements_2022_consolidated_2|30"
+      ],
+      [
+        "OCB_financial_statements_2022_consolidated_1|68",
+        "OCB_financial_statements_2022_consolidated_2|68"
+      ]
+    ]
+  },
+  {
+    "qid": 582,
+    "level": "L3.2",
+    "source": "solutions_batch2.md",
+    "question": "Tăng trưởng khoản vay ngắn hạn của MCH từ cuối năm 2021 đến cuối năm 2023 là bao nhiêu %?",
+    "tickers": [
+      "MCH"
+    ],
+    "years": [
+      2021,
+      2023
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "MCH_financial_statements_2021_consolidated"
+      ],
+      [
+        "MCH_financial_statements_2023_consolidated"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "MCH_financial_statements_2021_consolidated|4"
+      ],
+      [
+        "MCH_financial_statements_2023_consolidated|4"
+      ]
+    ]
+  },
+  {
+    "qid": 605,
+    "level": "L3.1",
+    "source": "solutions_batch2.md",
+    "question": "Tỷ lệ tăng trưởng khoản người mua trả tiền trước ngắn hạn của Công ty CP Đầu tư Nam Long (NLG) từ cuối năm 2023 đến cuối năm 2024 là bao nhiêu %?",
+    "tickers": [
+      "NLG"
+    ],
+    "years": [
+      2023,
+      2024
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "NLG_financial_statements_2024_consolidated"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "NLG_financial_statements_2024_consolidated|7"
+      ]
+    ]
+  },
+  {
+    "qid": 612,
+    "level": "L3.1",
+    "source": "solutions.md",
+    "question": "Tổng dư nợ vay ngắn hạn ngân hàng của công ty mẹ CTCP Thép Nam Kim (NKG) vào cuối năm 2021 tăng so với cuối năm 2020 là bao nhiêu phần trăm?",
+    "tickers": [
+      "NKG"
+    ],
+    "years": [
+      2021,
+      2020
+    ],
+    "doc_type": "separate",
+    "gt_reports": [
+      [
+        "NKG_financial_statements_2020_separate"
+      ],
+      [
+        "NKG_financial_statements_2021_separate"
+      ]
+    ],
+    "gt_tables": null
+  },
+  {
+    "qid": 656,
+    "level": "L2.2",
+    "source": "solutions.md",
+    "question": "Tỷ trọng các khoản tương đương tiền trên tổng tài sản của CTCP Viễn thông FPT cuối năm 2024 là bao nhiêu %?",
+    "tickers": [
+      "FOX",
+      "FPT"
+    ],
+    "years": [
+      2024
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "FOX_financial_statements_2024_consolidated"
+      ]
+    ],
+    "gt_tables": null
+  },
+  {
+    "qid": 674,
+    "level": "L2.1",
+    "source": "solutions.md",
+    "question": "Tỷ suất lợi nhuận ròng của HBC năm 2016 là bao nhiêu %?",
+    "tickers": [
+      "HBC"
+    ],
+    "years": [
+      2016
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "HBC_financial_statements_2016_consolidated"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "HBC_financial_statements_2016_consolidated|8"
+      ]
+    ]
+  },
+  {
+    "qid": 751,
+    "level": "L4.2",
+    "source": "solutions.md",
+    "question": "Dư nợ cho vay cá nhân cuối năm 2023 của Ngân hàng TMCP Phương Đông chênh lệch bao nhiêu triệu đồng so với Ngân hàng TMCP Nam Á ?",
+    "tickers": [
+      "OCB",
+      "NAB"
+    ],
+    "years": [
+      2023
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "OCB_financial_statements_2023_consolidated"
+      ],
+      [
+        "NAB_financial_statements_2023_consolidated_1",
+        "NAB_financial_statements_2023_consolidated_2"
+      ]
+    ],
+    "gt_tables": null
+  },
+  {
+    "qid": 752,
+    "level": "L4.1",
+    "source": "solutions_batch2.md",
+    "question": "Chênh lệch lãi thuần từ hoạt động dịch vụ giữa Ngân hàng TMCP An Bình và Ngân hàng TMCP Quân đội năm 2022 là bao nhiêu triệu đồng?",
+    "tickers": [
+      "ABB",
+      "MBB"
+    ],
+    "years": [
+      2022
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "ABB_financial_statements_2022_consolidated"
+      ],
+      [
+        "MBB_financial_statements_2022_consolidated"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "ABB_financial_statements_2022_consolidated|8"
+      ],
+      [
+        "MBB_financial_statements_2022_consolidated|8"
+      ]
+    ]
+  },
+  {
+    "qid": 754,
+    "level": "L4.2",
+    "source": "solutions_batch2.md",
+    "question": "Tính chênh lệch quy mô dư nợ cho vay khách hàng nội địa của công ty mẹ Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh so với công ty mẹ Ngân hàng TMCP An Bình vào năm 2021 theo đơn vị triệu đồng.",
+    "tickers": [
+      "HDB",
+      "ABB"
+    ],
+    "years": [
+      2021
+    ],
+    "doc_type": "separate",
+    "gt_reports": [
+      [
+        "HDB_financial_statements_2021_separate"
+      ],
+      [
+        "ABB_financial_statements_2021_separate"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "HDB_financial_statements_2021_separate|33"
+      ],
+      [
+        "ABB_financial_statements_2021_separate|32"
+      ]
+    ]
+  },
+  {
+    "qid": 793,
+    "level": "L4.1",
+    "source": "solutions.md",
+    "question": "Cuối năm 2025, số lượng cổ phiếu phổ thông đang lưu hành của GEE chênh lệch bao nhiêu so với GEX (đơn vị triệu cổ phiếu)?",
+    "tickers": [
+      "GEE",
+      "GEX"
+    ],
+    "years": [
+      2025
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "GEE_financial_statements_2025_consolidated"
+      ],
+      [
+        "GEX_financial_statements_2025_consolidated"
+      ]
+    ],
+    "gt_tables": null
+  },
+  {
+    "qid": 818,
+    "level": "L5.1",
+    "source": "solutions_batch2.md",
+    "question": "Giá trị trung bình của tổng số dư dự phòng phải thu khó đòi cuối kỳ của FTS tại các mốc cuối năm 2018, 2020, 2021, 2023 và 2024 là bao nhiêu triệu đồng?",
+    "tickers": [
+      "FTS"
+    ],
+    "years": [
+      2018,
+      2020,
+      2021,
+      2023,
+      2024
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "FTS_financial_statements_2018"
+      ],
+      [
+        "FTS_financial_statements_2020"
+      ],
+      [
+        "FTS_financial_statements_2021"
+      ],
+      [
+        "FTS_financial_statements_2023"
+      ],
+      [
+        "FTS_financial_statements_2024"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "FTS_financial_statements_2018|22"
+      ],
+      [
+        "FTS_financial_statements_2020|28"
+      ],
+      [
+        "FTS_financial_statements_2021|27"
+      ],
+      [
+        "FTS_financial_statements_2023|26"
+      ],
+      [
+        "FTS_financial_statements_2024|22"
+      ]
+    ]
+  },
+  {
+    "qid": 820,
+    "level": "L5.2",
+    "source": "solutions_batch2.md",
+    "question": "Tổng doanh thu hoạt động tài chính trung bình của Tổng Công ty cổ phần Phát triển Khu Công nghiệp công ty mẹ trong các năm 2018, 2019, 2020, 2021 và 2022 là mấy trăm tỷ đồng?",
+    "tickers": [
+      "SNZ"
+    ],
+    "years": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022
+    ],
+    "doc_type": "separate",
+    "gt_reports": [
+      [
+        "SNZ_financial_statements_2018_separate"
+      ],
+      [
+        "SNZ_financial_statements_2019_separate"
+      ],
+      [
+        "SNZ_financial_statements_2020_separate"
+      ],
+      [
+        "SNZ_financial_statements_2021_separate"
+      ],
+      [
+        "SNZ_financial_statements_2022_separate"
+      ]
+    ],
+    "gt_tables": [
+      [
+        "SNZ_financial_statements_2018_separate|7"
+      ],
+      [
+        "SNZ_financial_statements_2019_separate|10"
+      ],
+      [
+        "SNZ_financial_statements_2020_separate|9"
+      ],
+      [
+        "SNZ_financial_statements_2021_separate|7"
+      ],
+      [
+        "SNZ_financial_statements_2022_separate|8"
+      ]
+    ]
+  },
+  {
+    "qid": 904,
+    "level": "L3.2",
+    "source": "solutions.md",
+    "question": "Năm nào trong các năm 2020, 2023 và 2024 có tổng doanh thu hoạt động tài chính lớn nhất đối với CTCP Tập đoàn Hà Đô?",
+    "tickers": [
+      "HDG"
+    ],
+    "years": [
+      2020,
+      2023,
+      2024
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "HDG_financial_statements_2020_consolidated"
+      ],
+      [
+        "HDG_financial_statements_2023_consolidated"
+      ],
+      [
+        "HDG_financial_statements_2024_consolidated"
+      ]
+    ],
+    "gt_tables": null
+  },
+  {
+    "qid": 924,
+    "level": "L5.2",
+    "source": "solutions.md",
+    "question": "Tổng chi phí khấu hao bất động sản đầu tư của DXG ở mức công ty mẹ trong giai đoạn từ 2021 đến 2025 là bao nhiêu tỷ đồng?",
+    "tickers": [
+      "DXG"
+    ],
+    "years": [
+      2021,
+      2025,
+      2022,
+      2023,
+      2024
+    ],
+    "doc_type": "separate",
+    "gt_reports": [
+      [
+        "DXG_financial_statements_2021_separate"
+      ],
+      [
+        "DXG_financial_statements_2022_separate"
+      ],
+      [
+        "DXG_financial_statements_2023_separate"
+      ],
+      [
+        "DXG_financial_statements_2024_separate"
+      ],
+      [
+        "DXG_financial_statements_2025_separate"
+      ]
+    ],
+    "gt_tables": null
+  },
+  {
+    "qid": 937,
+    "level": "L5.1",
+    "source": "solutions.md",
+    "question": "Tính trung bình cộng giá trị chứng khoán nợ vào ngày 31 tháng 12 của các năm 2017, 2018, 2019 và 2020 của Ngân hàng TMCP Công thương Việt Nam (CTG) là bao nhiêu triệu đồng?",
+    "tickers": [
+      "CTG"
+    ],
+    "years": [
+      2017,
+      2018,
+      2019,
+      2020
+    ],
+    "doc_type": "unknown",
+    "gt_reports": [
+      [
+        "CTG_financial_statements_2017_consolidated"
+      ],
+      [
+        "CTG_financial_statements_2018_consolidated"
+      ],
+      [
+        "CTG_financial_statements_2019_consolidated"
+      ],
+      [
+        "CTG_financial_statements_2020_consolidated"
+      ]
+    ],
+    "gt_tables": null
+  }
+]

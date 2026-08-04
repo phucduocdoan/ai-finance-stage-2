@@ -1,0 +1,1668 @@
+<!doctype html>
+<html lang="vi" data-theme="corporate">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ViFinQA: metadata 3 tầng và câu chuyện thiết kế</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :where(.grid, .flex) > * { min-width: 0; }
+  :where(p, h1, h2, h3, h4, li, td, th, .badge) { overflow-wrap: anywhere; }
+
+  html { scroll-behavior: smooth; }
+  body { font-family: "Inter", "Segoe UI", system-ui, sans-serif; line-height: 1.65; }
+
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+  .prose-lead { font-size: 1.08rem; line-height: 1.75; color: color-mix(in oklch, currentColor 82%, transparent); }
+  .prose p + p { margin-top: .8em; }
+  .prose p { line-height: 1.72; }
+  .prose strong { color: var(--color-primary); font-weight: 600; }
+
+  .sec-eyebrow { font-size: .72rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--color-primary); opacity: .85; }
+  .sec-title { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.01em; margin-top: .25rem; }
+  .sec-sub { color: color-mix(in oklch, currentColor 65%, transparent); font-size: 1rem; margin-top: .5rem; max-width: 62ch; }
+
+  .layer-1 { --tint: #0d9488; --tint-soft: #ccfbf1; }
+  .layer-2 { --tint: #2563eb; --tint-soft: #dbeafe; }
+  .layer-3 { --tint: #d97706; --tint-soft: #fef3c7; }
+  .layer-card { border-top: 4px solid var(--tint); }
+  .layer-card .layer-num { color: var(--tint); font-weight: 700; }
+  .layer-badge { background: var(--tint-soft); color: var(--tint); font-weight: 600; padding: .2rem .6rem; border-radius: 999px; font-size: .75rem; }
+
+  .field-row { display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr; gap: .75rem; padding: .45rem 0; border-bottom: 1px dashed rgba(0,0,0,.08); align-items: baseline; }
+  .field-row:last-child { border-bottom: 0; }
+  .field-name { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .78rem; color: #0f172a; word-break: break-all; }
+  .field-desc { font-size: .82rem; color: #475569; line-height: 1.55; }
+
+  .mermaid { background: #fff; border-radius: 1rem; padding: 1.5rem; border: 1px solid rgba(0,0,0,.08); }
+
+  .verdict-yes { color: #0d9488; font-weight: 600; }
+  .verdict-no { color: #94a3b8; }
+  .verdict-partial { color: #d97706; font-weight: 600; }
+
+  .story-box { background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border-left: 4px solid #2563eb; padding: 1.25rem 1.5rem; border-radius: .5rem; }
+  .story-box p { margin: 0; color: #334155; font-size: .95rem; line-height: 1.7; }
+  .story-box p + p { margin-top: .6rem; }
+
+  .milestone { position: relative; padding-left: 1.75rem; }
+  .milestone::before { content: ""; position: absolute; left: .3rem; top: .55rem; width: .65rem; height: .65rem; border-radius: 999px; background: #0d9488; box-shadow: 0 0 0 4px #ccfbf1; }
+  .milestone.pending::before { background: #94a3b8; box-shadow: 0 0 0 4px #e2e8f0; }
+  .milestone.pending .milestone-title { color: #64748b; }
+  .milestone-title { font-weight: 600; color: #0f172a; font-size: .95rem; }
+  .milestone-desc { font-size: .85rem; color: #475569; line-height: 1.6; margin-top: .15rem; }
+
+  .anchor-nav { position: sticky; top: .5rem; z-index: 20; }
+  .anchor-nav a { padding: .4rem .8rem; border-radius: 999px; font-size: .8rem; color: #475569; background: #fff; border: 1px solid rgba(0,0,0,.08); text-decoration: none; white-space: nowrap; }
+  .anchor-nav a:hover { background: #f1f5f9; color: #0f172a; }
+
+  main > section { scroll-margin-top: 4rem; }
+
+  pre code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .mockup-code { background: #0f172a; }
+
+  .qlevel-card { border-left: 4px solid var(--qtint, #64748b); background: #fff; padding: 1rem 1.15rem; border-radius: .5rem; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .qlevel-1 { --qtint: #059669; }
+  .qlevel-2 { --qtint: #0891b2; }
+  .qlevel-3 { --qtint: #2563eb; }
+  .qlevel-4 { --qtint: #7c3aed; }
+  .qlevel-5 { --qtint: #db2777; }
+  .qlevel-6 { --qtint: #dc2626; }
+  .qlevel-pill { display: inline-block; padding: .15rem .55rem; border-radius: .35rem; font-size: .72rem; font-weight: 700; color: #fff; background: var(--qtint); letter-spacing: .04em; }
+
+  .align-box { border: 1px solid #cbd5e1; border-radius: .6rem; background: #fff; }
+  .align-row { display: grid; grid-template-columns: 8rem 1fr; gap: 1rem; padding: .75rem 1rem; border-bottom: 1px solid #e2e8f0; }
+  .align-row:last-child { border-bottom: 0; }
+  .align-key { font-weight: 700; color: #0f172a; font-size: .82rem; }
+  .align-key .sub { display: block; font-weight: 500; color: #64748b; font-size: .72rem; margin-top: .1rem; }
+  .align-val { font-size: .85rem; color: #334155; line-height: 1.55; }
+
+  .schema { border: 1px solid #e2e8f0; border-radius: .6rem; overflow: hidden; background: #fff; }
+  .schema-tier { border-bottom: 1px solid #e2e8f0; }
+  .schema-tier:last-child { border-bottom: 0; }
+  .schema-tier-head { display: flex; align-items: center; gap: .5rem; padding: .5rem .85rem; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .schema-tier-head .dot { width: .55rem; height: .55rem; border-radius: 999px; }
+  .schema-tier-1 .schema-tier-head { background: #f0fdfa; color: #0f766e; }
+  .schema-tier-1 .schema-tier-head .dot { background: #0d9488; }
+  .schema-tier-2 .schema-tier-head { background: #eff6ff; color: #1d4ed8; }
+  .schema-tier-2 .schema-tier-head .dot { background: #2563eb; }
+  .schema-tier-3 .schema-tier-head { background: #fef3c7; color: #b45309; }
+  .schema-tier-3 .schema-tier-head .dot { background: #d97706; }
+  .schema-tier-head .tier-note { margin-left: auto; font-weight: 500; text-transform: none; letter-spacing: 0; font-size: .68rem; opacity: .75; }
+  .schema-row { display: grid; grid-template-columns: minmax(9rem, 12rem) 1fr; gap: 0; align-items: baseline; }
+  .schema-row + .schema-row { border-top: 1px dashed #f1f5f9; }
+  .schema-row .k { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .74rem; color: #64748b; padding: .4rem .85rem; background: #fafbfc; }
+  .schema-row .v { font-size: .82rem; color: #0f172a; padding: .4rem .85rem; word-break: break-word; line-height: 1.5; }
+  .schema-row .v.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .76rem; }
+  .schema-row .v .muted { color: #94a3b8; }
+  .schema-row .v .null { color: #e11d48; font-style: italic; font-size: .72rem; }
+  .schema-row .v .conf { display: inline-block; margin-left: .35rem; padding: 0 .35rem; border-radius: .25rem; background: #fef3c7; color: #b45309; font-size: .68rem; font-weight: 600; }
+  .schema-row .v .tag { display: inline-block; margin: 0 .2rem .15rem 0; padding: .1rem .4rem; border-radius: .25rem; background: #e2e8f0; color: #334155; font-size: .7rem; }
+
+  .case { border: 1px solid #e2e8f0; border-radius: .75rem; background: #fff; overflow: hidden; }
+  .case-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1.15rem; border-bottom: 1px solid #e2e8f0; background: #fafbfc; flex-wrap: wrap; }
+  .case-title { font-weight: 700; color: #0f172a; font-size: 1rem; }
+  .case-subtitle { font-size: .76rem; color: #64748b; margin-top: .1rem; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .case-chip { padding: .3rem .7rem; border-radius: 999px; font-size: .72rem; font-weight: 700; white-space: nowrap; letter-spacing: .02em; }
+  .chip-high { background: #ccfbf1; color: #0d9488; }
+  .chip-bonus { background: #fef3c7; color: #b45309; }
+  .chip-none { background: #e2e8f0; color: #64748b; }
+  .case-body { padding: 1rem 1.15rem 1.15rem; display: grid; gap: .95rem; }
+  .case-step { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+  @media (max-width: 640px) { .case-step { grid-template-columns: 1fr; gap: .25rem; } }
+  .case-step-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; padding-top: .5rem; }
+  .case-step-label .num { display: inline-block; width: 1.2rem; height: 1.2rem; line-height: 1.2rem; text-align: center; background: #e2e8f0; color: #334155; border-radius: 999px; font-size: .68rem; margin-right: .3rem; }
+  .case-step-body { min-width: 0; font-size: .84rem; color: #334155; line-height: 1.6; }
+  .evidence { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #94a3b8; border-radius: .35rem; padding: .55rem .75rem; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .74rem; color: #334155; line-height: 1.6; overflow-x: auto; }
+  .evidence.hi { border-left-color: #d97706; background: #fffbeb; }
+  .evidence .row-lbl { display: inline-block; color: #64748b; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; margin-right: .35rem; }
+  .pill-ok { display: inline-block; padding: .08rem .45rem; border-radius: .3rem; background: #dcfce7; color: #15803d; font-size: .68rem; font-weight: 700; letter-spacing: .02em; }
+  .pill-miss { display: inline-block; padding: .08rem .45rem; border-radius: .3rem; background: #fee2e2; color: #b91c1c; font-size: .68rem; font-weight: 700; letter-spacing: .02em; }
+  .pill-add { display: inline-block; padding: .08rem .45rem; border-radius: .3rem; background: #fef3c7; color: #b45309; font-size: .68rem; font-weight: 700; letter-spacing: .02em; }
+  .case-conclusion { border-top: 1px dashed #e2e8f0; padding-top: .7rem; font-size: .85rem; color: #0f172a; line-height: 1.6; }
+  .case-conclusion b { color: #0f172a; }
+  .kv-line { margin: .15rem 0; }
+  .kv-line .k { color: #64748b; margin-right: .35rem; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+<main class="mx-auto max-w-6xl p-6 lg:p-12 space-y-16">
+
+  <!-- HERO -->
+  <header class="space-y-4">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="badge badge-primary">ViFinQA · Stage 2</span>
+      <span class="badge badge-ghost mono text-xs">1,965 báo cáo · 146,246 bảng · 1,012 câu hỏi</span>
+      <span class="badge badge-outline text-xs">Cập nhật 03/08/2026</span>
+    </div>
+    <h1 class="text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">Metadata bảng: kể lại thiết kế 3 tầng</h1>
+    <p class="prose-lead max-w-3xl">
+      Ghi chép giải thích vì sao phần metadata cho từng bảng được chia thành ba lớp riêng, thay vì dồn hết vào một record phẳng.
+      Viết cho người đọc lần đầu: có bối cảnh, có ví dụ thật, có link mở raw data để tự kiểm tra.
+    </p>
+
+    <!-- VIEWER LINK CALLOUT -->
+    <div class="alert bg-slate-900 text-white max-w-3xl mt-4 border-0">
+      <div class="w-full">
+        <div class="text-xs font-semibold uppercase tracking-wider text-teal-300 mb-1">Xem raw data trước khi đọc tiếp</div>
+        <div class="text-sm">Mở HTTP viewer để duyệt 1,965 báo cáo OCR gốc và 146k bảng đã tách:</div>
+        <div class="mono text-xs mt-2 bg-black/40 rounded p-2">python3 output/viewer/server.py --port 8899</div>
+        <div class="text-sm mt-2">Rồi mở <a href="http://localhost:8899/" class="text-teal-300 underline font-semibold">http://localhost:8899/</a> để xem từng report và bảng.</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ANCHOR NAV -->
+  <nav class="anchor-nav flex flex-wrap gap-2 py-2 bg-slate-50/95 backdrop-blur">
+    <a href="#context">1 · Bối cảnh</a>
+    <a href="#story">2 · Câu chuyện</a>
+    <a href="#questions">3 · Loại câu hỏi</a>
+    <a href="#three-layers">4 · Ba tầng</a>
+    <a href="#done">5 · Đã làm được</a>
+    <a href="#fields">6 · Field-by-field</a>
+    <a href="#examples">7 · Ví dụ record</a>
+    <a href="#pipeline">8 · Pipeline</a>
+    <a href="#dry-run">9 · Dry-run 7 mẫu</a>
+    <a href="#alignment">10 · Bám sát v0</a>
+    <a href="#decisions">11 · Quyết định</a>
+  </nav>
+
+  <!-- 1 · CONTEXT -->
+  <section id="context" class="space-y-4">
+    <div>
+      <div class="sec-eyebrow">1 · Bối cảnh</div>
+      <h2 class="sec-title">Vì sao lại cần metadata cho bảng?</h2>
+      <p class="sec-sub">Trước khi thiết kế schema, hãy xem cuộc thi đang bắt mình làm gì và đâu là chỗ khó.</p>
+    </div>
+
+    <div class="prose max-w-3xl text-slate-700 space-y-3">
+      <p>
+        Cuộc thi đưa cho mình <b>1,965 báo cáo tài chính</b> đã được số hoá sẵn, và <b>1,012 câu hỏi tiếng Việt</b>.
+        Mỗi câu cần trả về một con số cụ thể. Ví dụ: "Lãi tiền gửi của VJC năm 2018 là bao nhiêu?"
+        hay "Nợ vay ngân hàng của NKG năm 2016 tăng bao nhiêu % so với 2015?".
+        Không được đoán, phải tra đúng bảng và đúng ô.
+      </p>
+      <p>
+        Khi bóc từng báo cáo ra, ra được <b>146,246 bảng</b>. Đủ loại: bảng cân đối, kết quả kinh doanh,
+        lưu chuyển tiền tệ, và rất nhiều <b>thuyết minh chi tiết</b>. Vấn đề nằm ở chỗ:
+      </p>
+      <ul class="list-disc pl-6 space-y-1 text-slate-700">
+        <li>Bản số hoá có chỗ sai lệch. Có bảng bị cắt sang trang khác, có báo cáo mất phần tiêu đề mẫu.</li>
+        <li>Ngân hàng và doanh nghiệp thường không dùng cùng tên chỉ tiêu, không cùng cấu trúc bảng.</li>
+        <li>Một số công ty đổi tên chỉ tiêu qua các năm (cùng ý nghĩa, khác câu chữ).</li>
+      </ul>
+      <p>
+        Nghĩa là: mỗi bảng có <b>một số thông tin chắc chắn</b>, <b>một số là chữ nguyên bản</b> để tìm kiếm,
+        và <b>một số phải nhờ đoán</b> khi thông tin gốc thiếu. Ba nhóm này tin cậy khác nhau, nếu trộn vào một chỗ thì lúc tra không biết đâu tin được, đâu chỉ là gợi ý.
+      </p>
+    </div>
+
+    <div class="story-box max-w-3xl">
+      <p>
+        <b>Ví dụ cụ thể.</b> Với câu "Nợ vay ngân hàng của NKG năm 2016 tăng bao nhiêu % so với 2015?", máy phải:
+        (a) tìm đúng báo cáo NKG 2016, (b) tìm bảng thuyết minh nợ vay ngân hàng, (c) đọc đúng hai cột số đầu năm và cuối năm, (d) tính tăng trưởng.
+        Bước (a) và (c) tra thẳng được. Bước (b) mới cần tìm kiếm theo chữ, vì "nợ vay ngân hàng" có thể nằm ở nhiều bảng khác nhau.
+        Ba tầng metadata sinh ra là để phục vụ đúng ba kiểu truy vấn này.
+      </p>
+    </div>
+  </section>
+
+  <!-- 2 · STORY (NEW) -->
+  <section id="story" class="space-y-4">
+    <div>
+      <div class="sec-eyebrow">2 · Câu chuyện</div>
+      <h2 class="sec-title">Giải tay 24 câu để hiểu data trước khi thiết kế storage</h2>
+      <p class="sec-sub">Thiết kế 3 tầng không nảy ra từ giấy trắng. Nó là kết quả của một chuỗi thử-sai có ghi chép, bắt đầu từ việc mở raw data ra xem.</p>
+    </div>
+
+    <div class="prose max-w-3xl text-slate-700 space-y-3">
+      <p>
+        Việc đầu tiên là <b>tách 146,246 bảng ra khỏi 1,965 báo cáo</b>, mỗi bảng thành một file riêng.
+        Xong xuôi mà vẫn không biết bảng nào chứa gì, nên dựng một trang xem báo cáo đơn giản
+        (<a href="http://localhost:8899/" class="text-blue-600 underline">localhost:8899</a> khi bật viewer) để mở từng cái ra đọc bằng mắt.
+      </p>
+      <p>
+        Sau khi xem bằng mắt vài chục báo cáo, bước tiếp theo là <b>tự tay giải 24 câu hỏi</b> đại diện,
+        mỗi mức khó lấy 4 câu. Có LLM hỗ trợ đọc, nhưng vẫn phải mở viewer, xác định báo cáo, click qua từng bảng,
+        chép số, và bấm máy tính. Mục tiêu không phải giải nhanh, mà là <em>hiểu</em> mình đang phải đi qua những bước gì.
+      </p>
+      <p>Vài phát hiện gọn từ 24 lời giải tay:</p>
+      <ul class="list-disc pl-6 space-y-1 text-sm">
+        <li>Câu như "Lãi tiền gửi của VJC năm 2018" chỉ cần 1 lần tra đúng ô. Nhưng phải biết chắc báo cáo nào, bảng nào.</li>
+        <li>Câu như "Tỷ suất lợi nhuận ròng HBC 2016" cần 2 ô rồi chia. Không tính được nếu tra nhầm bảng.</li>
+        <li>"Nợ vay ngân hàng NKG tăng bao nhiêu %" phải tìm đúng thuyết minh nợ vay. Từ khóa "vay ngân hàng" xuất hiện ở rất nhiều bảng khác nhau.</li>
+        <li>Có công ty ngân hàng không có cột "Mã số", có công ty doanh nghiệp thì có. Cùng một chỉ tiêu, hai kiểu bảng khác nhau.</li>
+        <li>Có bảng bị cắt qua trang, mất chữ "Thuyết minh 12" ở đầu bảng, chỉ còn "(Tiếp theo)".</li>
+      </ul>
+      <p>
+        Sau đó thử phân loại 1,012 câu hỏi theo <em>phép tính cần dùng</em> (lookup, tăng trưởng, tỷ suất, so sánh...).
+        Kết quả bề mặt đẹp, nhưng kiểm lại thì rule sai lung tung: "tỷ suất" bị gộp cả tỷ lệ sở hữu và margin lợi nhuận,
+        "tăng trưởng" chứa cả những câu điều kiện phức tạp. Bỏ hướng phân template theo phép tính.
+      </p>
+      <p>
+        <b>Bước ngoặt.</b> Không cần phân loại phép tính để chọn template. Cứ để mô hình đọc rồi tự viết công thức.
+        Vấn đề còn lại chỉ là: đưa cho mô hình đúng những bảng cần đọc, đừng đưa nhầm 146k bảng. Vậy nên storage phải phục vụ việc <em>chọn bảng</em>, không phục vụ việc <em>chọn công thức</em>.
+      </p>
+      <p>
+        Câu hỏi lúc đó trở thành: metadata nào chắc chắn đủ để làm bộ lọc cứng, metadata nào chỉ là gợi ý?
+        Trả lời: chỉ những thứ suy được từ tên file hoặc tiêu đề mẫu pháp lý (B 01 - DN, B 05 - TCTD...) mới đủ chắc.
+        Còn lại là gợi ý. Đây là ranh giới giữa Tầng 1 và Tầng 3. Tầng 2 sinh ra như một kho chữ nguyên bản để tìm kiếm trực tiếp, kể cả khi hai tầng kia sai vẫn còn cửa cứu.
+      </p>
+      <p>
+        Kịch bản 3 tầng này đã kiểm được một phần: chạy rule trên toàn 146k bảng bắt được mẫu pháp lý cho <b>81.7%</b>,
+        tìm được số thuyết minh cho <b>57.9%</b>. Khoảng 10% còn "không biết loại" chính là chỗ cần Tầng 3 lấp.
+      </p>
+    </div>
+
+    <div class="story-box max-w-3xl">
+      <p>
+        <b>Tóm tắt dòng thời gian.</b>
+        (1) Tách 146k bảng khỏi báo cáo. →
+        (2) Dựng trang xem báo cáo bằng mắt. →
+        (3) Tự tay giải 24 câu, ghi lại từng bước phải làm. →
+        (4) Chốt danh sách thông tin tối thiểu cần lưu cho mỗi bảng. →
+        (5) Thử phân loại câu hỏi theo phép tính, không ổn, bỏ. →
+        (6) Đổi hướng: mô hình tự viết công thức, storage lo chọn bảng. →
+        (7) Chia metadata thành 3 tầng theo mức tin cậy. →
+        (8) Chạy rule xong Tầng 1 và 2, Tầng 3 (nhờ mô hình gợi ý) đang chờ chạy.
+      </p>
+    </div>
+  </section>
+
+  <!-- 3 · QUESTION TYPES (NEW) -->
+  <section id="questions" class="space-y-4">
+    <div>
+      <div class="sec-eyebrow">3 · Câu hỏi</div>
+      <h2 class="sec-title">Sáu loại câu hỏi, từ dễ đến khó</h2>
+      <p class="sec-sub">Chia theo hai chiều: hỏi bao nhiêu công ty và kỳ, có phải tính toán gì thêm không. Mỗi loại đòi hỏi cách tra khác nhau.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <div class="qlevel-card qlevel-1">
+        <div class="flex items-center justify-between mb-1">
+          <span class="qlevel-pill">L1 · Tra thẳng 1 ô</span>
+          <span class="text-sm font-semibold text-emerald-700">~506 câu <span class="text-xs text-slate-500 font-normal">(50%)</span></span>
+        </div>
+        <div class="text-sm text-slate-600 mt-1">1 công ty, 1 kỳ, đọc đúng 1 ô số. Không tính toán, có khi đổi đơn vị.</div>
+        <div class="text-xs text-slate-500 mt-2 italic">
+          "Lãi tiền gửi năm 2018 của công ty mẹ VJC là bao nhiêu triệu đồng?"
+        </div>
+      </div>
+
+      <div class="qlevel-card qlevel-2">
+        <div class="flex items-center justify-between mb-1">
+          <span class="qlevel-pill">L2 · 1 tỷ số trong 1 báo cáo</span>
+          <span class="text-sm font-semibold text-cyan-700">~51 câu <span class="text-xs text-slate-500 font-normal">(5%)</span></span>
+        </div>
+        <div class="text-sm text-slate-600 mt-1">1 công ty, 1 kỳ, cần ≥2 ô rồi chia (tỷ suất, tỷ lệ, biên lợi nhuận).</div>
+        <div class="text-xs text-slate-500 mt-2 italic">
+          "Tỷ suất lợi nhuận ròng của HBC năm 2016 là bao nhiêu %?"
+        </div>
+      </div>
+
+      <div class="qlevel-card qlevel-3">
+        <div class="flex items-center justify-between mb-1">
+          <span class="qlevel-pill">L3 · So giữa các năm</span>
+          <span class="text-sm font-semibold text-blue-700">~152 câu <span class="text-xs text-slate-500 font-normal">(15%)</span></span>
+        </div>
+        <div class="text-sm text-slate-600 mt-1">1 công ty, nhiều kỳ. Tăng trưởng, chênh lệch, năm nào cao nhất.</div>
+        <div class="text-xs text-slate-500 mt-2 italic">
+          "Tổng dư nợ vay ngắn hạn ngân hàng của NKG cuối năm 2021 tăng bao nhiêu % so với cuối 2020?"
+        </div>
+      </div>
+
+      <div class="qlevel-card qlevel-4">
+        <div class="flex items-center justify-between mb-1">
+          <span class="qlevel-pill">L4 · So giữa các công ty</span>
+          <span class="text-sm font-semibold text-violet-700">~81 câu <span class="text-xs text-slate-500 font-normal">(8%)</span></span>
+        </div>
+        <div class="text-sm text-slate-600 mt-1">Nhiều công ty, 1 kỳ. So sánh, chênh lệch giữa 2 công ty.</div>
+        <div class="text-xs text-slate-500 mt-2 italic">
+          "Dư nợ cho vay cá nhân cuối 2023 của Phương Đông chênh bao nhiêu triệu so với Nam Á?"
+        </div>
+      </div>
+
+      <div class="qlevel-card qlevel-5">
+        <div class="flex items-center justify-between mb-1">
+          <span class="qlevel-pill">L5 · Cộng gộp, trung bình</span>
+          <span class="text-sm font-semibold text-pink-700">~101 câu <span class="text-xs text-slate-500 font-normal">(10%)</span></span>
+        </div>
+        <div class="text-sm text-slate-600 mt-1">Nhiều công ty hoặc nhiều năm, cần tổng, trung bình, tối đa. Không có điều kiện lọc.</div>
+        <div class="text-xs text-slate-500 mt-2 italic">
+          "Tổng chi phí khấu hao bất động sản đầu tư của DXG công ty mẹ giai đoạn 2021 đến 2025?"
+        </div>
+      </div>
+
+      <div class="qlevel-card qlevel-6">
+        <div class="flex items-center justify-between mb-1">
+          <span class="qlevel-pill">L6 · Có điều kiện lồng</span>
+          <span class="text-sm font-semibold text-red-700">~121 câu <span class="text-xs text-slate-500 font-normal">(12%)</span></span>
+        </div>
+        <div class="text-sm text-slate-600 mt-1">Nhiều công ty, nhiều điều kiện lọc, chỉ tiêu phái sinh. Cần chia nhỏ câu hỏi mới giải được.</div>
+        <div class="text-xs text-slate-500 mt-2 italic">
+          "Trong nhóm MSN, MCH, DBC, ASM, OGC, các công ty duy trì OCF dương cả 2024 và 2025 nhưng doanh thu 2025 giảm..."
+        </div>
+      </div>
+
+    </div>
+
+    <div class="story-box max-w-4xl">
+      <p>
+        <b>Ba loại giữa cùng chia sẻ một khó khăn.</b> L3, L4, L5 (khoảng 334 câu, hơn 1/3 tổng số) đều phải ghép dữ liệu từ <em>nhiều báo cáo khác nhau</em>.
+        Nghĩa là kho lưu phải cho phép hỏi kiểu "cho tôi giá trị này của công ty này qua các năm", không chỉ hỏi từng bảng riêng lẻ.
+        Đây là lý do sau này phải làm thêm một bảng dữ liệu tổng đã "melt" phẳng, song song với metadata.
+      </p>
+      <p>
+        <b>Con số tỷ lệ trên là ước tính</b> dựa trên đợt phân loại thử ban đầu. Ba loại đầu (L1-L3) chiếm khoảng 70% câu, nên nếu làm tốt phần dễ và trung bình đã có sản lượng lớn.
+        L6 chỉ 12% nhưng khó nhất, để dành sau khi mấy phần kia chạy ổn.
+      </p>
+    </div>
+
+    <div class="mermaid">
+flowchart TD
+    Start(["Câu hỏi"]) --> HasFilter{"Có điều kiện lồng<br/>hay 'trong nhóm/trong các'?"}
+    HasFilter -->|"có"| L6["<b>L6</b> Filtered analytics"]
+    HasFilter -->|"không"| Ent{"Số entity"}
+
+    Ent -->|"1 công ty × 1 kỳ"| Deriv1{"Có tỷ suất<br/>/tỷ trọng /margin?"}
+    Deriv1 -->|"có"| L2["<b>L2</b> Single-entity ratio"]
+    Deriv1 -->|"không"| L1["<b>L1</b> Single lookup"]
+
+    Ent -->|"1 công ty × N kỳ"| YearOp{"Thao tác gì?"}
+    YearOp -->|"chênh lệch / tăng trưởng / năm nào"| L3["<b>L3</b> Temporal comparison"]
+    YearOp -->|"trung bình / tổng / max value"| L5a["<b>L5</b> Multi-year aggregation"]
+
+    Ent -->|"N công ty × 1 kỳ"| CompOp{"Thao tác gì?"}
+    CompOp -->|"chênh lệch giữa 2 công ty"| L4["<b>L4</b> Cross-company"]
+    CompOp -->|"trung bình / tổng N công ty"| L5b["<b>L5</b> Multi-company aggregation"]
+
+    Ent -->|"N công ty × N kỳ"| L6
+
+    classDef simple fill:#dcfce7,stroke:#059669,color:#064e3b
+    classDef medium fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef hard fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class L1,L2 simple
+    class L3,L4,L5a,L5b medium
+    class L6 hard
+    </div>
+  </section>
+
+  <!-- 4 · THREE LAYERS -->
+  <section id="three-layers" class="space-y-6">
+    <div>
+      <div class="sec-eyebrow">4 · Kiến trúc</div>
+      <h2 class="sec-title">Ba tầng, mỗi tầng một nhiệm vụ</h2>
+      <p class="sec-sub">Đọc từ trái sang phải: tầng 1 là lọc thô, tầng 2 là vật liệu tìm kiếm, tầng 3 là gợi ý mềm để rerank.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+      <!-- LAYER 1 -->
+      <div class="layer-1 layer-card card bg-white shadow-sm">
+        <div class="card-body space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="layer-badge">Tầng 1</span>
+            <span class="layer-num text-2xl mono">01</span>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900">Chắc chắn 100%</h3>
+          <p class="text-sm text-slate-600">
+            Chỉ ghi lại những gì đọc thẳng ra được: từ tên file, hoặc từ dòng "Mẫu B 01 - DN" in sẵn trong báo cáo.
+            Không đoán. Dùng để lọc thô, kiểu "chỉ lấy báo cáo VJC năm 2018". Đã lọc là không sót.
+          </p>
+
+          <div class="mt-2 rounded-md bg-emerald-50/60 border border-emerald-100 px-2 py-1.5">
+            <div class="text-[.68rem] uppercase tracking-wide text-emerald-700 font-semibold">Ghi 1 lần cho cả báo cáo</div>
+            <div class="text-[.7rem] text-slate-500 italic">(1,965 báo cáo → 1,965 dòng)</div>
+          </div>
+          <div>
+            <div class="field-row"><span class="field-name">report_id</span><span class="field-desc">Tên file, ví dụ <code>VJC_2018_consolidated</code></span></div>
+            <div class="field-row"><span class="field-name">ticker</span><span class="field-desc">Mã chứng khoán, cắt từ tên file</span></div>
+            <div class="field-row"><span class="field-name">year</span><span class="field-desc">Năm báo cáo (2015 - 2025)</span></div>
+            <div class="field-row"><span class="field-name">doc_type</span><span class="field-desc">Hợp nhất hay riêng lẻ</span></div>
+            <div class="field-row"><span class="field-name">industry</span><span class="field-desc">Ngân hàng / Chứng khoán / Doanh nghiệp / Bảo hiểm, tra từ <code>code_stock.csv</code></span></div>
+            <div class="field-row"><span class="field-name">filename_raw</span><span class="field-desc">Tên file HTML gốc, để tra ngược khi cần</span></div>
+            <div class="field-row"><span class="field-name">n_tables</span><span class="field-desc">Bao nhiêu bảng đã tách được trong báo cáo (trung bình ~74)</span></div>
+          </div>
+
+          <div class="mt-2 rounded-md bg-teal-50/60 border border-teal-100 px-2 py-1.5">
+            <div class="text-[.68rem] uppercase tracking-wide text-teal-700 font-semibold">Ghi 1 lần cho mỗi bảng</div>
+            <div class="text-[.7rem] text-slate-500 italic">(146,246 bảng → 146,246 dòng)</div>
+          </div>
+          <div>
+            <div class="field-row"><span class="field-name">table_id</span><span class="field-desc"><code>report_id</code> + số thứ tự bảng, ví dụ <code>VJC_2018_consolidated__t42</code></span></div>
+            <div class="field-row"><span class="field-name">table_pos</span><span class="field-desc">Bảng thứ mấy trong file (0, 1, 2, ...)</span></div>
+            <div class="field-row"><span class="field-name">page_number</span><span class="field-desc">Nằm ở trang PDF nào</span></div>
+            <div class="field-row"><span class="field-name">n_rows, n_cols</span><span class="field-desc">Kích thước bảng, để phát hiện bảng bị cắt</span></div>
+            <div class="field-row"><span class="field-name">mau_tag</span><span class="field-desc">"B 01 - DN", "B 05 - TCTD"... chỉ khi thấy dòng "Mẫu ..." in trong file</span></div>
+            <div class="field-row"><span class="field-name">statement_type_certain</span><span class="field-desc">Suy thẳng từ <code>mau_tag</code>. Không có mẫu thì để trống, không đoán.</span></div>
+            <div class="field-row"><span class="field-name">has_ma_so_column</span><span class="field-desc">Bảng có cột "Mã số" không (dấu hiệu BS/PL/CF)</span></div>
+            <div class="field-row"><span class="field-name">period_columns_raw</span><span class="field-desc">Danh sách kỳ, ví dụ ["2018", "2017"] hay ["31/12/2018", ...]</span></div>
+          </div>
+
+          <div class="alert alert-info alert-soft text-xs mt-2">
+            <span>Nguyên tắc: lọc cứng chỉ được nhìn tầng này. Sai ở đây là mất bảng đúng thật sự. Nên giữ tuyệt đối sạch.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 2 -->
+      <div class="layer-2 layer-card card bg-white shadow-sm">
+        <div class="card-body space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="layer-badge">Tầng 2</span>
+            <span class="layer-num text-2xl mono">02</span>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900">RAW TEXT, vật liệu tìm kiếm</h3>
+          <p class="text-sm text-slate-600">
+            Chữ nguyên vẹn từ OCR, không xử lý. Cho BM25 và dense embedding <b>đọc trực tiếp</b> nội dung bảng.
+            Kể cả khi rule sai loại bảng, chỉ cần từ khóa còn trong text thì search vẫn tìm ra.
+          </p>
+          <div class="text-xs uppercase tracking-wide text-slate-400 pt-2">Nội dung xung quanh</div>
+          <div>
+            <div class="field-row"><span class="field-name">context_page</span><span class="field-desc">Văn bản trên cùng trang, đã bỏ các bảng khác. Cho ngữ cảnh.</span></div>
+            <div class="field-row"><span class="field-name">section_title</span><span class="field-desc">Tiêu đề in-page ("THUYẾT MINH BCTC..."). Heuristic, khoảng 80%.</span></div>
+          </div>
+          <div class="text-xs uppercase tracking-wide text-slate-400 pt-2">Bên trong bảng</div>
+          <div>
+            <div class="field-row"><span class="field-name">header_flat</span><span class="field-desc">Tất cả header cell nối bằng " | ". Signal mạnh nhất cho BM25.</span></div>
+            <div class="field-row"><span class="field-name">first_col_labels</span><span class="field-desc">20 dòng đầu cột 1 (tên chỉ tiêu). Mạnh cho note lookup.</span></div>
+            <div class="field-row"><span class="field-name">csv_snippet</span><span class="field-desc">5 dòng đầu bảng, preview cho LLM đọc</span></div>
+            <div class="field-row"><span class="field-name">note_id_raw</span><span class="field-desc">Regex bắt "Thuyết minh 26" trong context, nếu thấy</span></div>
+          </div>
+          <div class="alert alert-info alert-soft text-xs mt-2">
+            <span>Chiến lược: BM25 trên header + labels (từ khóa chính xác), dense embed trên <code>llm_summary</code> (ngữ nghĩa mềm). Hai signal bổ trợ, không thay nhau.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 3 -->
+      <div class="layer-3 layer-card card bg-white shadow-sm">
+        <div class="card-body space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="layer-badge">Tầng 3</span>
+            <span class="layer-num text-2xl mono">03</span>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900">LLM, gợi ý mềm</h3>
+          <p class="text-sm text-slate-600">
+            LLM đọc header + snippet + context của bảng rồi phán đoán loại, gán tag chủ đề, viết 1 câu mô tả.
+            Dùng để <b>boost hoặc rerank</b>, không làm filter cứng. Nếu LLM sai, kết quả tệ hơn nhưng không mất record.
+          </p>
+          <div class="text-xs uppercase tracking-wide text-slate-400 pt-2">Phân loại</div>
+          <div>
+            <div class="field-row"><span class="field-name">llm_statement_type</span><span class="field-desc">enum: BS / PL / CF / note / entity_info / equity_change / unknown. Lấp chỗ Mẫu null.</span></div>
+            <div class="field-row"><span class="field-name">llm_confidence</span><span class="field-desc">0.0 đến 1.0. Ngưỡng khoảng 0.7 mới dùng cho rerank.</span></div>
+          </div>
+          <div class="text-xs uppercase tracking-wide text-slate-400 pt-2">Từ khóa mềm</div>
+          <div>
+            <div class="field-row"><span class="field-name">llm_topic_tags</span><span class="field-desc">3 đến 5 tag từ vựng hẹp: <code>revenue</code>, <code>provision</code>, <code>related_party</code>, <code>fx_loan</code>...</span></div>
+            <div class="field-row"><span class="field-name">llm_summary</span><span class="field-desc">1 câu tiếng Việt tự nhiên, input cho dense embedding</span></div>
+          </div>
+          <div class="text-xs uppercase tracking-wide text-slate-400 pt-2">Lấp chỗ trống</div>
+          <div>
+            <div class="field-row"><span class="field-name">llm_note_id, llm_note_title</span><span class="field-desc">Khi regex miss (bảng bị cắt qua trang), LLM đọc context để đoán</span></div>
+            <div class="field-row"><span class="field-name">llm_model, llm_ts</span><span class="field-desc">Ghi version + timestamp để tái sinh khi cần</span></div>
+          </div>
+          <div class="alert alert-warning alert-soft text-xs mt-2">
+            <span>Chi phí: chạy Gemini Flash 8B trên 146k bảng khoảng $6, 30 phút. Làm một lần, cache vào parquet.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="story-box max-w-4xl">
+      <p>
+        <b>Vì sao phải tách?</b> Nếu để chung, hệ thống retrieval không biết field nào tin cậy được.
+        Filter cứng theo <code>statement_type = "note"</code> mà giá trị đó do LLM gán với confidence 0.6 sẽ mất recall lung tung.
+      </p>
+      <p>
+        Khi tách ra, đường đi rõ: lọc thô bằng Tầng 1 (không bao giờ sai), tìm kiếm bằng Tầng 2 (đọc text thật),
+        xếp hạng lại bằng Tầng 3 (khi cần semantic). Sai ở Tầng 3 chỉ làm ranking hơi lệch, không loại mất bảng đúng.
+      </p>
+    </div>
+  </section>
+
+  <!-- 5 · WHAT'S DONE -->
+  <section id="done" class="space-y-4">
+    <div>
+      <div class="sec-eyebrow">5 · Tiến độ</div>
+      <h2 class="sec-title">Đến hôm nay đã làm được gì</h2>
+      <p class="sec-sub">Kể lại tuần tự cho dễ theo, không dùng thuật ngữ. Mỗi việc đều đã có output nằm sẵn trên máy.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card bg-white shadow-sm">
+        <div class="card-body space-y-4">
+          <h3 class="font-bold text-slate-900">Đã làm xong</h3>
+
+          <div class="milestone">
+            <div class="milestone-title">Tách bảng ra khỏi báo cáo</div>
+            <div class="milestone-desc">
+              Đọc hết 1,965 báo cáo, tách được <b>146,246 bảng</b> ra file rời. Mỗi bảng nhớ luôn nó nằm ở trang nào,
+              đứng thứ mấy trong báo cáo, và đoạn văn xung quanh nó.
+            </div>
+          </div>
+
+          <div class="milestone">
+            <div class="milestone-title">Dựng trang để mở báo cáo bằng mắt</div>
+            <div class="milestone-desc">
+              Có một trang web nhỏ để mở từng báo cáo ra xem tận mắt. Tự kiểm chứng nhanh khi nghi ngờ,
+              không phải mò trong hàng nghìn file.
+            </div>
+          </div>
+
+          <div class="milestone">
+            <div class="milestone-title">Tự giải tay 24 câu hỏi mẫu</div>
+            <div class="milestone-desc">
+              Chọn 24 câu, 4 câu cho mỗi mức độ khó từ L1 đến L6. Với mỗi câu, ghi lại bốn bước:
+              tìm báo cáo → tìm bảng → tìm ô số → tính. Đây là bản mẫu để đối chiếu sau này, giống chấm bài.
+            </div>
+          </div>
+
+          <div class="milestone">
+            <div class="milestone-title">Xem thử 1,012 câu hỏi thuộc kiểu nào</div>
+            <div class="milestone-desc">
+              Ban đầu định phân loại theo phép tính (tra cứu, tỷ số, tăng trưởng...) rồi chọn template.
+              Nhưng thấy 24 câu tự giải cho thấy: khó ở <b>tìm đúng bảng</b>, không phải chọn phép tính.
+              Nên đã đổi hướng: cứ lấy đủ bảng ra, để mô hình đọc rồi viết công thức.
+            </div>
+          </div>
+
+          <div class="milestone">
+            <div class="milestone-title">Gắn nhãn chắc chắn cho 146k bảng</div>
+            <div class="milestone-desc">
+              Duyệt lại từng báo cáo, ở đâu thấy dòng "Mẫu B 01 - DN" hay "B 05 - TCTD" là gắn ngay loại tương ứng.
+              Đã bắt được <b>81.7%</b> tổng số bảng. 10.3% chưa gắn được vì báo cáo mất phần tiêu đề.
+              Toàn bộ chạy hết khoảng 2 phút.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-white shadow-sm">
+        <div class="card-body space-y-4">
+          <h3 class="font-bold text-slate-900">Sắp tới sẽ làm</h3>
+
+          <div class="milestone pending">
+            <div class="milestone-title">Nhờ mô hình đọc & tóm tắt các bảng còn mơ hồ</div>
+            <div class="milestone-desc">
+              Với những bảng chưa gắn được nhãn (10.3%) và những bảng cần thêm chủ đề để tìm kiếm ngữ nghĩa,
+              nhờ mô hình đọc header + vài dòng đầu rồi phán đoán loại + gán 3-5 chủ đề + viết 1 câu tóm tắt.
+              Dự kiến khoảng $6 và 30 phút cho cả 146k bảng.
+            </div>
+          </div>
+
+          <div class="milestone pending">
+            <div class="milestone-title">Xếp lại các bảng số chính thành 1 bảng dài duy nhất</div>
+            <div class="milestone-desc">
+              12,427 bảng cân đối, kết quả kinh doanh, lưu chuyển tiền tệ đã có nhãn chắc chắn.
+              Xếp chúng thành một bảng lớn dạng <em>(báo cáo, mã số, chỉ tiêu, kỳ, giá trị)</em>.
+              Sau này hỏi "vốn chủ sở hữu VJC 2018 là bao nhiêu" là ra số trong tíc tắc.
+            </div>
+          </div>
+
+          <div class="milestone pending">
+            <div class="milestone-title">Sửa việc bảng bị cắt sang trang khác</div>
+            <div class="milestone-desc">
+              Nhiều bảng trong phần thuyết minh bị cắt đôi qua trang, làm mất tiêu đề "Thuyết minh 12".
+              Hiện tại chỉ nhận diện được 57.9%. Sẽ dạy cho hệ thống nhớ tiêu đề gần nhất khi thấy chữ "(Tiếp theo)".
+            </div>
+          </div>
+
+          <div class="milestone pending">
+            <div class="milestone-title">Ráp cỗ máy tìm bảng</div>
+            <div class="milestone-desc">
+              Kết hợp tìm theo từ khoá (nhanh, chính xác cho tra thẳng) và tìm theo ngữ nghĩa (mềm, tốt cho câu hỏi mơ hồ).
+              Xem sơ đồ ở mục 8.
+            </div>
+          </div>
+
+          <div class="milestone pending">
+            <div class="milestone-title">Xử lý câu hỏi nhiều bước</div>
+            <div class="milestone-desc">
+              Khoảng 12% câu hỏi khó, phải làm 2-3 phép tính lồng nhau (ví dụ: chọn công ty D/E cao nhất, rồi tính khả năng trả lãi).
+              Sẽ để mô hình vạch kế hoạch rồi chạy từng bước. Việc này để sau khi bản đơn giản chạy được.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats stats-vertical lg:stats-horizontal shadow-sm bg-white w-full">
+      <div class="stat"><div class="stat-title">Bảng đã gắn thẻ</div><div class="stat-value text-teal-600">146,246</div><div class="stat-desc">100% có tầng 1 + 2</div></div>
+      <div class="stat"><div class="stat-title">Bắt được mẫu pháp lý</div><div class="stat-value text-slate-900">81.7%</div><div class="stat-desc">119,418 bảng, chắc chắn 100%</div></div>
+      <div class="stat"><div class="stat-title">Báo cáo tài chính chính</div><div class="stat-value text-blue-600">12,427</div><div class="stat-desc">Sẵn sàng ráp thành bảng lớn</div></div>
+      <div class="stat"><div class="stat-title">Còn chưa rõ loại</div><div class="stat-value text-amber-600">10.3%</div><div class="stat-desc">14,997 bảng, đợi mô hình đọc</div></div>
+    </div>
+  </section>
+
+  <!-- 6 · FIELD MATRIX -->
+  <section id="fields" class="space-y-4">
+    <div>
+      <div class="sec-eyebrow">6 · Chi tiết</div>
+      <h2 class="sec-title">Từng field: ai tạo, tin cậy bao nhiêu?</h2>
+      <p class="sec-sub">Bảng này giúp nhớ nhanh: khi bạn dùng field nào cho filter cứng, hãy chắc rằng nó ở Tầng 1 và đảm bảo 100%.</p>
+    </div>
+    <div class="overflow-x-auto rounded-box border border-slate-200 bg-white">
+      <table class="table table-sm">
+        <thead class="bg-slate-100 text-slate-700">
+          <tr>
+            <th class="w-56">Field</th>
+            <th class="w-24">Tầng</th>
+            <th class="w-40">Ai sinh ra</th>
+            <th class="w-28">Đảm bảo</th>
+            <th>Cách tạo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono text-xs">report_id, ticker, year, doc_type</td>
+            <td><span class="layer-badge" style="background:#ccfbf1;color:#0d9488">Tầng 1</span></td>
+            <td>Tên file BTC</td>
+            <td><span class="verdict-yes">100%</span></td>
+            <td class="text-xs">Tách trực tiếp: <code>VJC_financial_statements_2018_separate</code></td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">industry</td>
+            <td><span class="layer-badge" style="background:#ccfbf1;color:#0d9488">Tầng 1</span></td>
+            <td><code>code_stock.csv</code></td>
+            <td><span class="verdict-yes">100%</span></td>
+            <td class="text-xs">Join theo ticker từ file BTC provided</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">table_pos, page_number, num_rows, num_cols</td>
+            <td><span class="layer-badge" style="background:#ccfbf1;color:#0d9488">Tầng 1</span></td>
+            <td>OCR structure</td>
+            <td><span class="verdict-yes">100%</span></td>
+            <td class="text-xs">Đếm trực tiếp từ output của <code>extract_tables.py</code></td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">has_ma_so_column, has_thuyet_minh_column</td>
+            <td><span class="layer-badge" style="background:#ccfbf1;color:#0d9488">Tầng 1</span></td>
+            <td>Header string match</td>
+            <td><span class="verdict-yes">100%</span></td>
+            <td class="text-xs">Regex đơn giản trên header cell</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">mau_tag</td>
+            <td><span class="layer-badge" style="background:#ccfbf1;color:#0d9488">Tầng 1</span></td>
+            <td>Global regex</td>
+            <td><span class="verdict-yes">100% khi bắt được</span></td>
+            <td class="text-xs">Regex <code>B \d+ - (DN|CTCK|TCTD|NH|BH)</code> trên toàn OCR. Bắt 81.7%; còn lại null (không đoán).</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">statement_type_certain</td>
+            <td><span class="layer-badge" style="background:#ccfbf1;color:#0d9488">Tầng 1</span></td>
+            <td>Mẫu → mapping</td>
+            <td><span class="verdict-yes">100% khi có Mẫu</span></td>
+            <td class="text-xs">Suy trực tiếp từ <code>mau_tag</code> qua bảng pháp lý TT200/210/49. Null khi Mẫu null.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">period_columns_raw</td>
+            <td><span class="layer-badge" style="background:#ccfbf1;color:#0d9488">Tầng 1</span></td>
+            <td>Header cell</td>
+            <td><span class="verdict-yes">100%</span></td>
+            <td class="text-xs">Cell khớp regex năm hoặc "Số cuối năm", "Năm nay". Chưa chuẩn hóa thành date, để nguyên.</td>
+          </tr>
+          <tr class="border-t-2 border-blue-200">
+            <td class="mono text-xs">section_title</td>
+            <td><span class="layer-badge" style="background:#dbeafe;color:#2563eb">Tầng 2</span></td>
+            <td>Prose trước bảng</td>
+            <td><span class="verdict-partial">~80%</span></td>
+            <td class="text-xs">Heuristic: dòng ngay trước <code>&lt;table&gt;</code>. Có thể nhiễu (header PDF, số trang).</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">context_page</td>
+            <td><span class="layer-badge" style="background:#dbeafe;color:#2563eb">Tầng 2</span></td>
+            <td>Text trang</td>
+            <td>Raw</td>
+            <td class="text-xs">Text trang hiện tại, đã strip các bảng khác. Để nguyên cho BM25.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">header_flat</td>
+            <td><span class="layer-badge" style="background:#dbeafe;color:#2563eb">Tầng 2</span></td>
+            <td>Header cells</td>
+            <td>Raw</td>
+            <td class="text-xs">Tất cả cell hàng đầu bảng nối bằng " | ". Signal mạnh cho BM25.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">first_col_labels</td>
+            <td><span class="layer-badge" style="background:#dbeafe;color:#2563eb">Tầng 2</span></td>
+            <td>CSV column 0</td>
+            <td>Raw</td>
+            <td class="text-xs">20 tên chỉ tiêu đầu, signal cực mạnh cho note lookup.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">csv_snippet</td>
+            <td><span class="layer-badge" style="background:#dbeafe;color:#2563eb">Tầng 2</span></td>
+            <td>5 dòng đầu CSV</td>
+            <td>Raw</td>
+            <td class="text-xs">Preview cho LLM và fallback embedding.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">note_id_raw, note_title_raw</td>
+            <td><span class="layer-badge" style="background:#dbeafe;color:#2563eb">Tầng 2</span></td>
+            <td>Regex context</td>
+            <td><span class="verdict-partial">~57%</span></td>
+            <td class="text-xs">Regex "Thuyết minh 26. TIỀN...". Miss khoảng 43% (cắt trang, format lạ). LLM lấp.</td>
+          </tr>
+          <tr class="border-t-2 border-amber-200">
+            <td class="mono text-xs">llm_statement_type</td>
+            <td><span class="layer-badge" style="background:#fef3c7;color:#d97706">Tầng 3</span></td>
+            <td>LLM classify</td>
+            <td><span class="verdict-partial">~95%</span></td>
+            <td class="text-xs">Prompt enum + confidence. Bù cho unknown ở Tầng 1.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">llm_confidence</td>
+            <td><span class="layer-badge" style="background:#fef3c7;color:#d97706">Tầng 3</span></td>
+            <td>LLM structured</td>
+            <td>Score</td>
+            <td class="text-xs">0.0 đến 1.0. Ngưỡng &lt;0.5 bỏ, &gt;0.9 tin.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">llm_topic_tags</td>
+            <td><span class="layer-badge" style="background:#fef3c7;color:#d97706">Tầng 3</span></td>
+            <td>LLM</td>
+            <td>Signal</td>
+            <td class="text-xs">3 đến 5 tag từ vựng hẹp (<code>revenue</code>, <code>provision</code>, <code>related_party</code>...). Dùng rerank.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">llm_summary</td>
+            <td><span class="layer-badge" style="background:#fef3c7;color:#d97706">Tầng 3</span></td>
+            <td>LLM 1 câu VN</td>
+            <td>Signal</td>
+            <td class="text-xs">Input cho dense embedding. Câu tiếng Việt tự nhiên embed tốt hơn header thô.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">llm_note_id, llm_note_title</td>
+            <td><span class="layer-badge" style="background:#fef3c7;color:#d97706">Tầng 3</span></td>
+            <td>LLM fill-in</td>
+            <td><span class="verdict-partial">~90%</span></td>
+            <td class="text-xs">Khi regex miss, LLM đọc context để đoán. So sánh với <code>note_id_raw</code> nếu có.</td>
+          </tr>
+          <tr>
+            <td class="mono text-xs">llm_model, llm_ts</td>
+            <td><span class="layer-badge" style="background:#fef3c7;color:#d97706">Tầng 3</span></td>
+            <td>Provenance</td>
+            <td>Meta</td>
+            <td class="text-xs">Model version + timestamp. Để re-run khi đổi prompt.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 7 · EXAMPLES -->
+  <section id="examples" class="space-y-4">
+    <div>
+      <div class="sec-eyebrow">7 · Ví dụ</div>
+      <h2 class="sec-title">Bốn ví dụ thật từ dataset</h2>
+      <p class="sec-sub">Mỗi ví dụ chia 3 khối tầng, đọc từ trên xuống. Phần Tầng 3 là mô phỏng theo prompt sẽ dùng khi chạy LLM (chưa chạy thật).</p>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+
+      <div class="card bg-white shadow-sm">
+        <div class="card-body">
+          <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-success badge-sm">Ví dụ 1</span>
+              <span class="text-xs text-slate-500">Rule đủ, LLM chỉ thêm gia vị</span>
+            </div>
+            <span class="mono text-xs text-slate-400">HNG · 2020 · hợp nhất</span>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-1">Bảng cân đối kế toán, trường hợp sạch</h3>
+          <p class="text-sm text-slate-600 mb-3">Có mẫu B 01 - DN nên loại bảng chắc chắn. Rule đã đủ, LLM chỉ bổ sung từ khoá để tìm kiếm dễ hơn.</p>
+
+          <div class="schema">
+            <div class="schema-tier schema-tier-1">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 1 · Chắc chắn <span class="tier-note">dùng để lọc cứng</span></div>
+              <div class="schema-row"><div class="k">ticker</div><div class="v">HNG</div></div>
+              <div class="schema-row"><div class="k">năm</div><div class="v">2020</div></div>
+              <div class="schema-row"><div class="k">loại báo cáo</div><div class="v">Hợp nhất</div></div>
+              <div class="schema-row"><div class="k">ngành</div><div class="v">Doanh nghiệp phi tài chính</div></div>
+              <div class="schema-row"><div class="k">mẫu pháp lý</div><div class="v mono">B 01 - DN</div></div>
+              <div class="schema-row"><div class="k">loại bảng</div><div class="v">Bảng cân đối kế toán <span class="muted">· phần Tài sản</span></div></div>
+              <div class="schema-row"><div class="k">có cột "Mã số"</div><div class="v">có</div></div>
+              <div class="schema-row"><div class="k">cột kỳ</div><div class="v">Số cuối năm · Số đầu năm</div></div>
+            </div>
+            <div class="schema-tier schema-tier-2">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 2 · Chữ nguyên bản <span class="tier-note">dùng để tìm kiếm</span></div>
+              <div class="schema-row"><div class="k">header bảng</div><div class="v mono">Mã số | TÀI SẢN | Thuyết minh | Số cuối năm | Số đầu năm</div></div>
+              <div class="schema-row"><div class="k">tên chỉ tiêu đầu</div><div class="v">100 · 110 · 111 · 130 · 131 · ...</div></div>
+              <div class="schema-row"><div class="k">dòng đầu bảng</div><div class="v mono">100 | A. TÀI SẢN NGẮN HẠN | | 6,229,932,116 | 3,872,422,704</div></div>
+            </div>
+            <div class="schema-tier schema-tier-3">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 3 · Gợi ý mềm <span class="tier-note">mô phỏng · LLM sẽ điền</span></div>
+              <div class="schema-row"><div class="k">loại bảng (đoán)</div><div class="v">balance_sheet <span class="conf">tự tin 0.99</span></div></div>
+              <div class="schema-row"><div class="k">chủ đề</div><div class="v"><span class="tag">current_assets</span><span class="tag">receivable</span><span class="tag">inventory</span><span class="tag">cash</span></div></div>
+              <div class="schema-row"><div class="k">tóm tắt 1 câu</div><div class="v"><i>"Bảng cân đối kế toán phần Tài sản, có mã số và tham chiếu thuyết minh."</i></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-white shadow-sm">
+        <div class="card-body">
+          <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-success badge-sm">Ví dụ 2</span>
+              <span class="text-xs text-slate-500">Ngân hàng, không có cột mã số</span>
+            </div>
+            <span class="mono text-xs text-slate-400">NAB · 2022 · hợp nhất</span>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-1">Kết quả kinh doanh ngân hàng</h3>
+          <p class="text-sm text-slate-600 mb-3">Ngân hàng dùng mẫu B 03 - TCTD, bảng không có cột "Mã số". Việc tra phải dựa vào tên chỉ tiêu.</p>
+
+          <div class="schema">
+            <div class="schema-tier schema-tier-1">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 1 · Chắc chắn</div>
+              <div class="schema-row"><div class="k">ticker</div><div class="v">NAB</div></div>
+              <div class="schema-row"><div class="k">năm</div><div class="v">2022</div></div>
+              <div class="schema-row"><div class="k">ngành</div><div class="v">Ngân hàng</div></div>
+              <div class="schema-row"><div class="k">mẫu pháp lý</div><div class="v mono">B 03 - TCTD</div></div>
+              <div class="schema-row"><div class="k">loại bảng</div><div class="v">Báo cáo kết quả kinh doanh</div></div>
+              <div class="schema-row"><div class="k">có cột "Mã số"</div><div class="v">không</div></div>
+              <div class="schema-row"><div class="k">có cột Thuyết minh</div><div class="v">có</div></div>
+              <div class="schema-row"><div class="k">cột kỳ</div><div class="v">Năm nay (triệu đồng) · Năm trước (triệu đồng)</div></div>
+            </div>
+            <div class="schema-tier schema-tier-2">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 2 · Chữ nguyên bản</div>
+              <div class="schema-row"><div class="k">tiêu đề mục</div><div class="v">BÁO CÁO KẾT QUẢ HOẠT ĐỘNG HỢP NHẤT</div></div>
+              <div class="schema-row"><div class="k">tên chỉ tiêu đầu</div><div class="v">Thu nhập lãi và các khoản thu nhập tương tự · Chi phí lãi và các chi phí tương tự · Thu nhập lãi thuần · ...</div></div>
+            </div>
+            <div class="schema-tier schema-tier-3">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 3 · Gợi ý mềm <span class="tier-note">mô phỏng</span></div>
+              <div class="schema-row"><div class="k">loại bảng (đoán)</div><div class="v">income_statement <span class="conf">0.98</span></div></div>
+              <div class="schema-row"><div class="k">chủ đề</div><div class="v"><span class="tag">interest_income</span><span class="tag">interest_expense</span><span class="tag">net_interest_margin</span></div></div>
+              <div class="schema-row"><div class="k">tóm tắt 1 câu</div><div class="v"><i>"Báo cáo KQKD ngân hàng: thu nhập lãi, chi phí lãi, hợp nhất năm 2022."</i></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-white shadow-sm">
+        <div class="card-body">
+          <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-warning badge-sm">Ví dụ 3</span>
+              <span class="text-xs text-slate-500">Rule đúng, LLM thêm chủ đề</span>
+            </div>
+            <span class="mono text-xs text-slate-400">PVT · 2017 · riêng</span>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-1">Thuyết minh chi tiết doanh thu</h3>
+          <p class="text-sm text-slate-600 mb-3">Có mẫu B 09 - DN, tìm được số thuyết minh 26. LLM thêm chủ đề giúp khớp câu hỏi kiểu "doanh thu vận tải".</p>
+
+          <div class="schema">
+            <div class="schema-tier schema-tier-1">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 1 · Chắc chắn</div>
+              <div class="schema-row"><div class="k">ticker</div><div class="v">PVT</div></div>
+              <div class="schema-row"><div class="k">năm</div><div class="v">2017</div></div>
+              <div class="schema-row"><div class="k">loại báo cáo</div><div class="v">Riêng</div></div>
+              <div class="schema-row"><div class="k">mẫu pháp lý</div><div class="v mono">B 09 - DN</div></div>
+              <div class="schema-row"><div class="k">loại bảng</div><div class="v">Thuyết minh</div></div>
+            </div>
+            <div class="schema-tier schema-tier-2">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 2 · Chữ nguyên bản</div>
+              <div class="schema-row"><div class="k">tiêu đề mục</div><div class="v">Thuyết minh báo cáo tài chính riêng...</div></div>
+              <div class="schema-row"><div class="k">số thuyết minh</div><div class="v">26</div></div>
+              <div class="schema-row"><div class="k">tên thuyết minh</div><div class="v">DOANH THU THUẦN VỀ BÁN HÀNG VÀ CUNG CẤP DỊCH VỤ</div></div>
+              <div class="schema-row"><div class="k">tên chỉ tiêu đầu</div><div class="v">Dịch vụ vận tải · Dịch vụ hàng hải dầu khí · Thương mại</div></div>
+            </div>
+            <div class="schema-tier schema-tier-3">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 3 · Gợi ý mềm <span class="tier-note">mô phỏng</span></div>
+              <div class="schema-row"><div class="k">loại bảng (đoán)</div><div class="v">note <span class="conf">0.98</span></div></div>
+              <div class="schema-row"><div class="k">chủ đề</div><div class="v"><span class="tag">revenue_breakdown</span><span class="tag">transport</span><span class="tag">marine_oil_gas</span><span class="tag">trading</span></div></div>
+              <div class="schema-row"><div class="k">tóm tắt 1 câu</div><div class="v"><i>"Chi tiết doanh thu thuần theo mảng: vận tải, hàng hải dầu khí, thương mại."</i></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-white shadow-sm" style="border: 2px solid #d97706;">
+        <div class="card-body">
+          <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-error badge-sm">Ví dụ 4</span>
+              <span class="text-xs text-slate-500">Rule bó tay, chỉ LLM cứu được</span>
+            </div>
+            <span class="mono text-xs text-slate-400">ASM · 2023 · riêng</span>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-1">Không thấy mẫu pháp lý, phải nhờ đoán</h3>
+          <p class="text-sm text-slate-600 mb-3">Bản số hoá bị mất tiêu đề mẫu nên Tầng 1 phải để trống. Tầng 2 vẫn giữ chữ đầy đủ, Tầng 3 đọc và đoán ra là ghi chép giao dịch bên liên quan.</p>
+
+          <div class="schema">
+            <div class="schema-tier schema-tier-1">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 1 · Chắc chắn <span class="tier-note">nhiều ô để trống</span></div>
+              <div class="schema-row"><div class="k">ticker</div><div class="v">ASM</div></div>
+              <div class="schema-row"><div class="k">năm</div><div class="v">2023</div></div>
+              <div class="schema-row"><div class="k">mẫu pháp lý</div><div class="v"><span class="null">không xác định được</span></div></div>
+              <div class="schema-row"><div class="k">loại bảng</div><div class="v"><span class="null">không xác định được</span></div></div>
+              <div class="schema-row"><div class="k">cột kỳ</div><div class="v">Năm nay · Năm trước</div></div>
+            </div>
+            <div class="schema-tier schema-tier-2">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 2 · Chữ nguyên bản <span class="tier-note">vẫn đầy đủ vật liệu</span></div>
+              <div class="schema-row"><div class="k">header bảng</div><div class="v mono">Bên liên quan | Nội dung nghiệp vụ | Năm nay | Năm trước</div></div>
+              <div class="schema-row"><div class="k">tên chỉ tiêu đầu</div><div class="v">+ Công ty Cổ phần Du Lịch An Giang (Công ty con) · 1. Mua hàng trong năm · 2. Cho vay huy động</div></div>
+            </div>
+            <div class="schema-tier schema-tier-3">
+              <div class="schema-tier-head"><span class="dot"></span>Tầng 3 · Gợi ý mềm <span class="tier-note">nguồn phân loại duy nhất</span></div>
+              <div class="schema-row"><div class="k">loại bảng (đoán)</div><div class="v">note <span class="conf">0.94</span></div></div>
+              <div class="schema-row"><div class="k">tên thuyết minh (đoán)</div><div class="v">Giao dịch với các bên liên quan</div></div>
+              <div class="schema-row"><div class="k">chủ đề</div><div class="v"><span class="tag">related_party</span><span class="tag">subsidiary</span><span class="tag">intercompany_transaction</span></div></div>
+              <div class="schema-row"><div class="k">tóm tắt 1 câu</div><div class="v"><i>"Giao dịch với bên liên quan (Du Lịch An Giang): mua hàng, cho vay huy động."</i></div></div>
+            </div>
+          </div>
+
+          <div class="alert alert-success alert-soft text-xs mt-3">
+            <span>Câu hỏi "giao dịch bên liên quan ASM 2023" sẽ đi qua: Tầng 1 lọc theo ticker và năm → Tầng 3 nhận diện chủ đề bên liên quan → Tầng 2 xác nhận bằng chữ trong bảng. Không có Tầng 3, bảng này sẽ bị bỏ sót.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 8 · PIPELINE -->
+  <section id="pipeline" class="space-y-4">
+    <div>
+      <div class="sec-eyebrow">8 · Retrieval</div>
+      <h2 class="sec-title">Câu hỏi đi qua pipeline thế nào</h2>
+      <p class="sec-sub">Ba tầng metadata được dùng theo thứ tự: filter cứng trước (rẻ, chính xác), search sau (khi cần đọc text), LLM planner chỉ khi thật sự cần (đắt).</p>
+    </div>
+
+    <div class="mermaid">
+flowchart TD
+    Q["<b>Câu hỏi tiếng Việt</b><br/>ví dụ: Nợ vay của NKG 2016 tăng bao nhiêu % so với 2015?"]
+    Q --> OP{"<b>Op classifier</b><br/>Câu này hỏi phép gì?<br/>lookup / growth / ratio / diff / argmax..."}
+
+    OP -->|"~12%<br/>L6 phức tạp"| PLANNER["<b>LLM planner</b> (Gemini Pro)<br/>Chia thành plan JSON nhiều bước"]
+    OP -->|"~88%<br/>L1 đến L5"| ENT["<b>Entity resolver</b><br/>Tách ra: ticker=NKG, year=2016"]
+
+    ENT --> FILT[/"<b>Filter cứng Tầng 1</b><br/>ticker AND year AND doc_type<br/>KHÔNG BAO GIỜ MẤT BẢNG ĐÚNG"/]
+    FILT --> CAND["Candidate tables<br/>(khoảng 50 đến 200 bảng còn lại)"]
+
+    CAND --> BR{"<b>Loại thông tin cần?</b>"}
+    BR -->|"Chỉ tiêu chính<br/>(có mã số 100, 200, 500...)"| MAIN[["<b>Long-format parquet lookup</b><br/>WHERE ma_so='500' AND period='2016'<br/>deterministic, khoảng 0ms"]]
+    BR -->|"Note chi tiết<br/>(chủ đề cụ thể)"| SEARCH[["<b>Hybrid search Tầng 2</b><br/>BM25 header + first_col_labels<br/>+ dense embed llm_summary<br/>ra top-k bảng"]]
+
+    MAIN --> CELL["Cell value"]
+    SEARCH --> RERANK["<b>Rerank Tầng 3</b><br/>Boost bảng có <code>llm_topic_tags</code><br/>khớp câu hỏi"]
+    RERANK --> CELL
+
+    CELL --> FORMULA["<b>Formula runner</b><br/>growth / ratio / diff / sum / avg"]
+    PLANNER --> FORMULA
+    FORMULA --> UNIT["<b>Unit converter</b><br/>tỷ / triệu / %, chuẩn hóa"]
+    UNIT --> OUT[["<b>Answer</b><br/>+ csv_path (evidence)<br/>+ pandas_query (reproducible)"]]
+
+    classDef certain fill:#0d9488,stroke:#0f766e,color:#fff
+    classDef rawtxt  fill:#2563eb,stroke:#1d4ed8,color:#fff
+    classDef signal  fill:#d97706,stroke:#b45309,color:#fff
+    classDef llm     fill:#7c3aed,stroke:#6d28d9,color:#fff
+    class FILT,MAIN certain
+    class SEARCH rawtxt
+    class RERANK signal
+    class PLANNER llm
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+      <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded" style="background:#0d9488"></span> Tầng 1 · filter cứng</div>
+      <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded" style="background:#2563eb"></span> Tầng 2 · text search</div>
+      <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded" style="background:#d97706"></span> Tầng 3 · soft rerank</div>
+      <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded" style="background:#7c3aed"></span> LLM planner (chỉ L6)</div>
+    </div>
+
+    <div class="story-box max-w-4xl mt-4">
+      <p>
+        <b>Đọc theo câu hỏi ví dụ.</b> "Nợ vay NKG 2016 tăng bao nhiêu % so với 2015?"
+      </p>
+      <p>
+        Op classifier bắt được đây là <b>growth</b>. Entity resolver rút ra <code>ticker=NKG, year=2016</code>.
+        Filter cứng Tầng 1 giới hạn còn khoảng 80 bảng của NKG 2016. Câu hỏi hỏi "nợ vay ngân hàng", không phải chỉ tiêu có mã số chuẩn,
+        nên đi nhánh <b>Hybrid search</b>: BM25 tìm "vay ngân hàng" trên <code>first_col_labels</code>, dense embed match "khoản vay tài chính"
+        trên <code>llm_summary</code>. Top-3 bảng ra: thuyết minh 19 (vay ngắn hạn), thuyết minh 20 (vay dài hạn), và bảng cân đối.
+        Tầng 3 rerank: bảng nào có <code>llm_topic_tags</code> chứa <code>bank_loan</code> lên đầu. Formula runner lấy 2 giá trị "Số cuối năm 2016" và "Số đầu năm 2016",
+        tính <code>(A − B) / B × 100</code>, trả về kèm <code>csv_path</code> để reviewer verify.
+      </p>
+    </div>
+  </section>
+
+  <!-- 9 · DRY RUN -->
+  <section id="dry-run" class="space-y-5">
+    <div>
+      <div class="sec-eyebrow">9 · Kiểm chứng</div>
+      <h2 class="sec-title">Bảy bảng thật, xem mô hình giúp được ở đâu</h2>
+      <p class="sec-sub">
+        Cùng nhìn qua từng bảng. Mỗi bảng đi qua 4 bước: (1) bảng trông thế nào, (2) tầng chắc chắn đọc được gì,
+        (3) mô hình thêm gì, (4) rốt cuộc có đáng nhờ mô hình không. Ba trường hợp mô hình cứu, hai trường hợp bonus, hai trường hợp không cần.
+      </p>
+    </div>
+
+    <!-- CASE 1 · BS DXS -->
+    <div class="case">
+      <div class="case-head">
+        <div>
+          <div class="case-title">Bảng cân đối kế toán, mọi thứ đều rõ</div>
+          <div class="case-subtitle">DXS_2023_separate · bảng thứ 5 · trang 6</div>
+        </div>
+        <span class="case-chip chip-none">Không cần mô hình</span>
+      </div>
+      <div class="case-body">
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">1</span>Bảng gốc</div>
+          <div class="case-step-body">
+            <div class="evidence">
+              <div><span class="row-lbl">Header</span>Mã&nbsp;số &nbsp;|&nbsp; TÀI SẢN &nbsp;|&nbsp; TM &nbsp;|&nbsp; Cuối năm &nbsp;|&nbsp; Đầu năm</div>
+              <div><span class="row-lbl">Dòng 1</span>100 &nbsp; A. TÀI SẢN NGẮN HẠN &nbsp; ... &nbsp; 1,244,872,935 &nbsp; 990,014,183</div>
+              <div><span class="row-lbl">Dòng 2</span>110 &nbsp; I. Tiền và các khoản tương đương tiền &nbsp; 111 &nbsp; ...</div>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">2</span>Rule đọc</div>
+          <div class="case-step-body">
+            Trong file có dòng "<b>Mẫu B 01 - DN</b>" in sẵn. Regex bắt được ngay.
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">loại bảng:</span><span class="pill-ok">balance_sheet</span> (chắc chắn 100%)</span><br/>
+              <span class="kv-line"><span class="k">subtype:</span> bs_assets (nhìn cột "TÀI SẢN")</span>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">3</span>Mô hình thêm</div>
+          <div class="case-step-body">
+            Xác nhận lại loại, gán chủ đề: <span class="tag">current_assets</span> <span class="tag">receivable</span> <span class="tag">inventory</span>.
+          </div>
+        </div>
+        <div class="case-conclusion">
+          <b>Kết luận.</b> Rule đã đúng và chắc chắn. Mô hình chỉ xác nhận, không đổi gì. Tốn tiền vô ích.
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 2 · MCH note vay -->
+    <div class="case">
+      <div class="case-head">
+        <div>
+          <div class="case-title">Thuyết minh vay ngắn hạn, rule đúng nhưng tag giúp tìm kiếm</div>
+          <div class="case-subtitle">MCH_2020_separate · bảng thứ 33</div>
+        </div>
+        <span class="case-chip chip-bonus">Bonus</span>
+      </div>
+      <div class="case-body">
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">1</span>Bảng gốc</div>
+          <div class="case-step-body">
+            <div class="evidence">
+              <div><span class="row-lbl">Header</span>Loại tiền &nbsp;|&nbsp; Lãi suất &nbsp;|&nbsp; 31/12/2020 &nbsp;|&nbsp; 01/01/2020</div>
+              <div><span class="row-lbl">Dòng 1</span>Vay ngân hàng bằng VND &nbsp; 1% - 3.5% &nbsp; 1,234,567 &nbsp; 987,654</div>
+              <div><span class="row-lbl">Dòng 2</span>Vay ngân hàng bằng USD &nbsp; 1.7% - 1.94% &nbsp; ... </div>
+              <div><span class="row-lbl">Context</span>"19. Vay ngắn hạn" (tiêu đề ngay phía trên)</div>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">2</span>Rule đọc</div>
+          <div class="case-step-body">
+            File này có "<b>Mẫu B 09 - DN</b>" (mẫu thuyết minh doanh nghiệp), context có "19. Vay ngắn hạn".
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">loại bảng:</span><span class="pill-ok">note</span></span><br/>
+              <span class="kv-line"><span class="k">note_id:</span> 19</span><br/>
+              <span class="kv-line"><span class="k">tên thuyết minh:</span> "Vay ngắn hạn"</span>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">3</span>Mô hình thêm</div>
+          <div class="case-step-body">
+            Đọc kỹ nội dung rồi gán chủ đề: <span class="tag">short_term_borrowing</span> <span class="tag">bank_loan</span> <span class="tag">fx_loan</span>.
+            Viết tóm tắt 1 câu: <em>"Chi tiết vay ngắn hạn theo loại tiền và lãi suất."</em>
+          </div>
+        </div>
+        <div class="case-conclusion">
+          <b>Kết luận.</b> Rule đủ để tìm bảng khi câu hỏi nhắc "vay ngắn hạn". Nhưng nếu người dùng hỏi <em>"vay ngoại tệ"</em>,
+          rule không bắt được. Chủ đề <code>fx_loan</code> mà mô hình gán sẽ giúp câu hỏi mơ hồ tìm ra đúng bảng này.
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 3 · DTK rescue unknown -->
+    <div class="case">
+      <div class="case-head">
+        <div>
+          <div class="case-title">Bảng mất tiêu đề mẫu, rule không đọc ra loại</div>
+          <div class="case-subtitle">DTK_2016_separate · bảng thứ 28</div>
+        </div>
+        <span class="case-chip chip-high">Mô hình cứu</span>
+      </div>
+      <div class="case-body">
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">1</span>Bảng gốc</div>
+          <div class="case-step-body">
+            <div class="evidence hi">
+              <div><span class="row-lbl">Header</span>31/12/2016 (VND) &nbsp;|&nbsp; 15/01/2016 (VND)</div>
+              <div><span class="row-lbl">Section</span>THUYẾT MINH BCTC RIÊNG (Tiếp theo)</div>
+              <div><span class="row-lbl">Dòng 1</span>Công ty Kho vận Cẩm Phả &nbsp; ... &nbsp; 12,345,678</div>
+              <div><span class="row-lbl">Dòng 2</span>Tổng Công ty Đông Bắc &nbsp; ... &nbsp; 8,901,234</div>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">2</span>Rule đọc</div>
+          <div class="case-step-body">
+            File này không có dòng "Mẫu B ..." (OCR sót). Không có neo để rule bám.
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">loại bảng:</span><span class="pill-miss">unknown</span></span><br/>
+              <span class="kv-line"><span class="k">note_id:</span> không có</span>
+            </div>
+            <div class="mt-1 text-xs text-slate-500">Bảng này rớt khỏi filter cứng. Người hỏi "phải trả cho ai" không tìm ra.</div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">3</span>Mô hình thêm</div>
+          <div class="case-step-body">
+            Đọc thấy toàn tên công ty đối tác, cột kỳ theo ngày, section "THUYẾT MINH". Đoán ra là bảng phải trả.
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">loại bảng:</span><span class="pill-add">note</span> (0.95)</span><br/>
+              <span class="kv-line"><span class="k">chủ đề:</span> <span class="tag">account_payable</span> <span class="tag">supplier</span> <span class="tag">related_party</span></span><br/>
+              <span class="kv-line"><span class="k">tóm tắt:</span> "Chi tiết phải trả người bán."</span>
+            </div>
+          </div>
+        </div>
+        <div class="case-conclusion">
+          <b>Kết luận.</b> Không có mô hình thì bảng này biến mất khỏi kết quả tìm kiếm. Đây chính là 10.3% "chưa rõ loại" cần mô hình cứu.
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 4 · CRE equity_change -->
+    <div class="case">
+      <div class="case-head">
+        <div>
+          <div class="case-title">Bảng biến động vốn chủ, thiếu mẫu nên rule đoán sai</div>
+          <div class="case-subtitle">CRE_2021_consolidated · bảng thứ 43</div>
+        </div>
+        <span class="case-chip chip-high">Mô hình cứu · sửa loại</span>
+      </div>
+      <div class="case-body">
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">1</span>Bảng gốc</div>
+          <div class="case-step-body">
+            <div class="evidence hi">
+              <div><span class="row-lbl">Header</span>Năm 2021 &nbsp;|&nbsp; Năm 2020 (VND)</div>
+              <div><span class="row-lbl">Dòng 1</span>Vốn góp đầu năm &nbsp; 800,000,000,000</div>
+              <div><span class="row-lbl">Dòng 2</span>Tăng trong năm &nbsp; 1,215,000,000,000</div>
+              <div><span class="row-lbl">Dòng 3</span>Vốn góp cuối năm &nbsp; 2,015,000,000,000</div>
+              <div><span class="row-lbl">Dòng 4</span>Cổ tức lợi nhuận Công ty mẹ &nbsp; ...</div>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">2</span>Rule đọc</div>
+          <div class="case-step-body">
+            Vẫn không có dòng "Mẫu B ...". Rule đầu hàng.
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">loại bảng:</span><span class="pill-miss">unknown</span></span>
+            </div>
+            <div class="mt-1 text-xs text-slate-500">Đây thực chất là bảng biến động vốn chủ sở hữu (equity_change), nhưng rule không biết.</div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">3</span>Mô hình thêm</div>
+          <div class="case-step-body">
+            Nhìn thấy "vốn góp đầu năm ... cuối năm", "cổ tức lợi nhuận", nhận ra ngay là biến động vốn.
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">loại bảng:</span><span class="pill-add">equity_change</span> (0.92)</span><br/>
+              <span class="kv-line"><span class="k">chủ đề:</span> <span class="tag">equity_movement</span> <span class="tag">contributed_capital</span> <span class="tag">retained_earnings</span></span><br/>
+              <span class="kv-line"><span class="k">tóm tắt:</span> "Biến động vốn chủ sở hữu qua các năm."</span>
+            </div>
+          </div>
+        </div>
+        <div class="case-conclusion">
+          <b>Kết luận.</b> Đây là giá trị cao nhất của mô hình: gán đúng một loại mà rule không thể suy ra được, vì cấu trúc bảng đặc thù.
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 5 · VIB entity info -->
+    <div class="case">
+      <div class="case-head">
+        <div>
+          <div class="case-title">Danh sách Ban Điều hành, header tự nói ra loại</div>
+          <div class="case-subtitle">VIB_2019_consolidated · bảng thứ 3</div>
+        </div>
+        <span class="case-chip chip-none">Không cần mô hình</span>
+      </div>
+      <div class="case-body">
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">1</span>Bảng gốc</div>
+          <div class="case-step-body">
+            <div class="evidence">
+              <div><span class="row-lbl">Header</span>Ban Điều hành &nbsp;|&nbsp; Họ và tên &nbsp;|&nbsp; Chức vụ &nbsp;|&nbsp; Ngày bổ nhiệm</div>
+              <div><span class="row-lbl">Dòng 1</span>Ông Hàn Ngọc Vũ &nbsp; TV HĐQT kiêm Tổng Giám đốc &nbsp; ...</div>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">2</span>Rule đọc</div>
+          <div class="case-step-body">
+            Header có "Ban Điều hành", "Ngày bổ nhiệm" - rule khớp từ khoá và gán ngay.
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">loại bảng:</span><span class="pill-ok">entity_info</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">3</span>Mô hình thêm</div>
+          <div class="case-step-body">
+            Xác nhận loại, gán chủ đề: <span class="tag">board_of_directors</span> <span class="tag">management</span> <span class="tag">signatory</span>.
+          </div>
+        </div>
+        <div class="case-conclusion">
+          <b>Kết luận.</b> Rule đủ, không cần mô hình.
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 6 · ACB cross-page note_id -->
+    <div class="case">
+      <div class="case-head">
+        <div>
+          <div class="case-title">Bảng ngân hàng bị cắt sang trang, mất tiêu đề thuyết minh</div>
+          <div class="case-subtitle">ACB_2025_consolidated · bảng thứ 90</div>
+        </div>
+        <span class="case-chip chip-high">Mô hình cứu · lấp tiêu đề</span>
+      </div>
+      <div class="case-body">
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">1</span>Bảng gốc</div>
+          <div class="case-step-body">
+            <div class="evidence hi">
+              <div><span class="row-lbl">Header</span>Năm 2025 (Triệu VND) &nbsp;|&nbsp; Năm 2024 (Triệu VND)</div>
+              <div><span class="row-lbl">Dòng 1</span>(Hoàn nhập) / trích lập dự phòng giảm giá &nbsp; (8,892) &nbsp; 4,570</div>
+              <div><span class="row-lbl">Context</span>Không thấy chữ "Thuyết minh 12" nào trên trang này</div>
+              <div><span class="row-lbl">Trang trước</span>"12. Chi phí dự phòng rủi ro tín dụng" (nhưng ở trang trước)</div>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">2</span>Rule đọc</div>
+          <div class="case-step-body">
+            File có "<b>Mẫu B 05 - TCTD</b>" (mẫu tổ chức tín dụng). Rule biết chắc là note.
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">loại bảng:</span><span class="pill-ok">note</span></span><br/>
+              <span class="kv-line"><span class="k">note_id:</span><span class="pill-miss">rỗng</span> (regex không thấy trên cùng trang)</span>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">3</span>Mô hình thêm</div>
+          <div class="case-step-body">
+            Đọc trang trước, nối lại: bảng này thuộc "Thuyết minh 12. Chi phí dự phòng rủi ro tín dụng".
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">note_id đoán:</span><span class="pill-add">12</span></span><br/>
+              <span class="kv-line"><span class="k">chủ đề:</span> <span class="tag">provision</span> <span class="tag">impairment</span> <span class="tag">reversal</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="case-conclusion">
+          <b>Kết luận.</b> Rule đúng loại nhưng thiếu số hiệu thuyết minh. Đây là 42.1% bảng note đang bị hụt (57.9% có, 42.1% thiếu).
+          Cách tốt nhất là sửa việc đọc trang liền kề. Nhờ mô hình lấp là phương án dự phòng.
+        </div>
+      </div>
+    </div>
+
+    <!-- CASE 7 · SSI related parties -->
+    <div class="case">
+      <div class="case-head">
+        <div>
+          <div class="case-title">Danh sách bên liên quan của công ty chứng khoán</div>
+          <div class="case-subtitle">SSI_2024_separate · bảng thứ 89</div>
+        </div>
+        <span class="case-chip chip-bonus">Bonus</span>
+      </div>
+      <div class="case-body">
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">1</span>Bảng gốc</div>
+          <div class="case-step-body">
+            <div class="evidence">
+              <div><span class="row-lbl">Header</span>Danh sách bên liên quan &nbsp;|&nbsp; Mối quan hệ</div>
+              <div><span class="row-lbl">Dòng 1</span>Công ty TNHH Quản lý Quỹ SSI &nbsp; Công ty con</div>
+              <div><span class="row-lbl">Dòng 2</span>Daiwa Securities Group Inc. &nbsp; Cổ đông chiến lược</div>
+              <div><span class="row-lbl">Context</span>"42. NHỮNG THÔNG TIN KHÁC"</div>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">2</span>Rule đọc</div>
+          <div class="case-step-body">
+            File có "<b>Mẫu B 09 - CTCK</b>" (thuyết minh chứng khoán). Regex bắt luôn note_id.
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">loại bảng:</span><span class="pill-ok">note</span></span><br/>
+              <span class="kv-line"><span class="k">note_id:</span> 42</span><br/>
+              <span class="kv-line"><span class="k">tên thuyết minh:</span> "NHỮNG THÔNG TIN KHÁC"</span>
+            </div>
+          </div>
+        </div>
+        <div class="case-step">
+          <div class="case-step-label"><span class="num">3</span>Mô hình thêm</div>
+          <div class="case-step-body">
+            Tên "NHỮNG THÔNG TIN KHÁC" rất mơ hồ. Mô hình đọc nội dung rồi gán chủ đề sát hơn.
+            <div class="mt-1.5">
+              <span class="kv-line"><span class="k">chủ đề:</span> <span class="tag">related_parties</span> <span class="tag">subsidiaries</span> <span class="tag">strategic_shareholder</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="case-conclusion">
+          <b>Kết luận.</b> Câu hỏi "cổ đông chiến lược của SSI là ai" không có từ khoá nào trong tên "NHỮNG THÔNG TIN KHÁC".
+          Không có chủ đề của mô hình thì bảng này bị bỏ sót dù rule đúng loại.
+        </div>
+      </div>
+    </div>
+
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="card bg-teal-50 border border-teal-200">
+        <div class="card-body py-4">
+          <div class="text-3xl font-bold text-teal-600">3</div>
+          <div class="text-sm font-semibold text-slate-800">Mô hình cứu</div>
+          <div class="text-xs text-slate-600">Cứu bảng chưa rõ loại, sửa loại đoán sai, lấp lại tiêu đề thuyết minh bị cắt trang</div>
+        </div>
+      </div>
+      <div class="card bg-amber-50 border border-amber-200">
+        <div class="card-body py-4">
+          <div class="text-3xl font-bold text-amber-600">2</div>
+          <div class="text-sm font-semibold text-slate-800">Bonus</div>
+          <div class="text-xs text-slate-600">Rule đúng loại rồi. Mô hình gán thêm chủ đề để câu hỏi mơ hồ vẫn tìm ra bảng</div>
+        </div>
+      </div>
+      <div class="card bg-slate-100 border border-slate-200">
+        <div class="card-body py-4">
+          <div class="text-3xl font-bold text-slate-500">2</div>
+          <div class="text-sm font-semibold text-slate-800">Không cần</div>
+          <div class="text-xs text-slate-600">Rule đã quá đủ. Nhờ mô hình cũng không đổi được gì</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="story-box max-w-4xl">
+      <p>
+        <b>Đọc số liệu thế nào.</b> Trên 7 bảng này, mô hình có ích ở 3 trường hợp (~43%). Suy rộng ra 146k bảng thì
+        khoảng 15,000 bảng sẽ được mô hình cứu hoặc sửa loại. Số còn lại mô hình vẫn có ích ở việc gán chủ đề để tìm kiếm ngữ nghĩa,
+        nhưng không phải là chuyện sống còn.
+      </p>
+      <p>
+        Chi phí khoảng $6 và 30 phút cho toàn bộ. Đổi lấy 15,000 lần cứu bảng cộng chủ đề cho 146k bảng. Đáng.
+      </p>
+    </div>
+  </section>
+
+  <!-- 10 · V0 ALIGNMENT (NEW) -->
+  <section id="alignment" class="space-y-4">
+    <div>
+      <div class="sec-eyebrow">10 · Bám sát v0</div>
+      <h2 class="sec-title">Kiến trúc 3 tầng có bám sát brainstorming v0 không?</h2>
+      <p class="sec-sub">Đối chiếu 3 tầng metadata với 8 chốt trong <code>brainstorming/v0_pipeline_design.md</code>. Kết luận: bám sát, có mở rộng ở phần LLM enrich cho table classifier fallback.</p>
+    </div>
+
+    <div class="align-box max-w-4xl">
+      <div class="align-row">
+        <div class="align-key">Chốt #1<span class="sub">Storage hybrid</span></div>
+        <div class="align-val">
+          v0 chốt: raw CSV làm evidence + long-format làm index để retrieve.
+          Kiến trúc 3 tầng khớp: Tầng 1 và 2 lưu trong <code>tables_metadata.jsonl</code> làm index; raw CSV giữ nguyên trong <code>output/tables/&lt;report_id&gt;/</code> làm evidence cho <code>pandas_query</code>.
+          <span class="verdict-yes">✓ Bám sát.</span>
+        </div>
+      </div>
+
+      <div class="align-row">
+        <div class="align-key">Chốt #2<span class="sub">Long-format 2 tier</span></div>
+        <div class="align-val">
+          v0 chốt: full long-format cho BS/PL/CF theo <code>ma_so</code>, minimal cho note.
+          <code>build_long_format.py</code> chưa build nhưng schema đã định trong Tầng 1: <code>statement_type_certain</code>, <code>has_ma_so_column</code>, <code>period_columns_raw</code>. 12,427 main statements sẵn sàng melt.
+          <span class="verdict-partial">◐ Đã thiết kế, chưa build.</span>
+        </div>
+      </div>
+
+      <div class="align-row">
+        <div class="align-key">Chốt #3<span class="sub">Rule + LLM Haiku fallback</span></div>
+        <div class="align-val">
+          v0 chốt: rule chạy trước, log confidence, LLM chỉ chạy trên medium+low (khoảng 20% bảng).
+          Kiến trúc 3 tầng đi xa hơn: <b>chạy LLM trên toàn 146k bảng</b> (Tầng 3 full), lý do là dense embedding cần <code>llm_summary</code> đồng bộ cho <em>tất cả</em> bảng, không chỉ những bảng khó. Chi phí $6 chấp nhận được.
+          <span class="verdict-partial">◐ Mở rộng scope.</span>
+        </div>
+      </div>
+
+      <div class="align-row">
+        <div class="align-key">Chốt #4<span class="sub">Row canonicalization</span></div>
+        <div class="align-val">
+          v0 chốt: dictionary tay cho <code>ma_so → metric_canonical</code> + LLM Haiku fallback.
+          Kiến trúc 3 tầng hiện chưa có bước này. <code>llm_topic_tags</code> (Tầng 3) là chuẩn bị cho canonicalization ở query-time, nhưng dictionary tay 80 entry chưa được build.
+          <span class="verdict-partial">◐ Còn thiếu dictionary.</span>
+        </div>
+      </div>
+
+      <div class="align-row">
+        <div class="align-key">Chốt #5<span class="sub">Period parser</span></div>
+        <div class="align-val">
+          v0 chốt: regex trên tên cột, không grilling.
+          Kiến trúc: <code>period_columns_raw</code> (Tầng 1) đã bắt được 58.2% cột kỳ bằng regex. Đủ dùng, chưa cần chuẩn hoá thành date.
+          <span class="verdict-yes">✓ Bám sát.</span>
+        </div>
+      </div>
+
+      <div class="align-row">
+        <div class="align-key">Chốt #6<span class="sub">Retrieval full stack</span></div>
+        <div class="align-val">
+          v0 chốt: structured filter + BM25 + embedding.
+          Ánh xạ 1-1:
+          <b>structured filter</b> ← Tầng 1 (<code>ticker</code>, <code>year</code>, <code>statement_type_certain</code>);
+          <b>BM25</b> ← Tầng 2 (<code>header_flat</code>, <code>first_col_labels</code>);
+          <b>embedding</b> ← Tầng 3 (<code>llm_summary</code>).
+          Pipeline ở mục 8 minh hoạ luồng này.
+          <span class="verdict-yes">✓ Bám sát 1-1.</span>
+        </div>
+      </div>
+
+      <div class="align-row">
+        <div class="align-key">Chốt #7<span class="sub">LLM 2-stage prompt</span></div>
+        <div class="align-val">
+          v0 chốt: Stage 1 selector (chọn tables), Stage 2 coder (viết pandas_query).
+          Cả 2 stage đều <b>tiêu thụ</b> metadata 3 tầng: selector thấy Tầng 1 (filter) + Tầng 2 (snippet) + Tầng 3 (topic tags, summary). Coder thấy raw CSV.
+          <span class="verdict-yes">✓ Bám sát.</span>
+        </div>
+      </div>
+
+      <div class="align-row">
+        <div class="align-key">Chốt #8<span class="sub">Eval 50-câu gold + health</span></div>
+        <div class="align-val">
+          v0 chốt: 50 câu tay stratify L1-L6 + health metrics D + submit outer-loop.
+          Hiện có 24 câu tay, cần mở rộng lên 50. Metadata 3 tầng chưa được đưa vào eval loop.
+          <span class="verdict-no">◯ Chưa bắt đầu eval harness.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="story-box max-w-4xl mt-4">
+      <p>
+        <b>Kết luận đối chiếu.</b> 3 tầng metadata là hiện thực hoá <em>build-time</em> của 8 chốt v0.
+        Chốt #1, #5, #6, #7 khớp trực tiếp. Chốt #2 và #4 đã có schema nhưng chưa build script (<code>build_long_format.py</code>, alias dictionary).
+        Chốt #3 mở rộng: chạy LLM full 146k thay vì chỉ 20%, để đồng bộ embed.
+        Chốt #8 (eval) là mảnh còn thiếu lớn nhất.
+      </p>
+      <p>
+        <b>Reframe từ v0 (LLM luôn viết pandas)</b> giữ nguyên. 3 tầng metadata không sinh code, chỉ cung cấp context cho LLM viết pandas.
+        Op classifier trong pipeline (mục 8) chỉ đóng vai retrieval-breadth selector, đúng như v0 đã chốt.
+      </p>
+    </div>
+  </section>
+
+  <!-- 11 · DECISIONS -->
+  <section id="decisions" class="space-y-4">
+    <div>
+      <div class="sec-eyebrow">11 · Quyết định</div>
+      <h2 class="sec-title">Ba quyết định còn treo</h2>
+      <p class="sec-sub">Ba nút chọn cần chốt trước khi implement Tầng 3 và long-format store.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+      <div class="card bg-white shadow-sm">
+        <div class="card-body">
+          <div class="flex items-center justify-between">
+            <span class="badge badge-warning">Quyết định 1</span>
+            <span class="text-xs text-slate-500">Scope LLM</span>
+          </div>
+          <h3 class="font-bold text-slate-900 mt-2">Chạy LLM trên bao nhiêu bảng?</h3>
+          <div class="space-y-2 mt-3">
+            <div class="p-2.5 rounded bg-slate-100">
+              <div class="font-semibold text-sm">A · Chỉ 26,828 bảng thiếu Mẫu</div>
+              <div class="text-xs text-slate-600 mt-1">Rẻ, khoảng $1.2, 8 phút. Nhưng 82% còn lại không có <code>llm_summary</code>. Dense embed không đồng bộ.</div>
+            </div>
+            <div class="p-2.5 rounded bg-amber-50 border border-amber-200">
+              <div class="font-semibold text-sm">B · Full 146,246 bảng ⭐</div>
+              <div class="text-xs text-slate-600 mt-1">Khoảng $6, 30 phút. Mọi bảng có <code>llm_summary</code>. Dense embed đồng bộ, retrieval nhất quán.</div>
+              <div class="text-xs text-amber-700 mt-1 font-semibold">→ Đề xuất</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-white shadow-sm">
+        <div class="card-body">
+          <div class="flex items-center justify-between">
+            <span class="badge badge-warning">Quyết định 2</span>
+            <span class="text-xs text-slate-500">Format output</span>
+          </div>
+          <h3 class="font-bold text-slate-900 mt-2">LLM trả về những field gì?</h3>
+          <div class="space-y-2 mt-3">
+            <div class="p-2.5 rounded bg-slate-100">
+              <div class="font-semibold text-sm">a · Enum only</div>
+              <div class="text-xs text-slate-600 mt-1">Chỉ <code>statement_type</code> + <code>confidence</code> + 3 tag. Khoảng $3. Ít material cho embed.</div>
+            </div>
+            <div class="p-2.5 rounded bg-amber-50 border border-amber-200">
+              <div class="font-semibold text-sm">b · Enum + summary 1 câu ⭐</div>
+              <div class="text-xs text-slate-600 mt-1">Khoảng $6. Structured cho filter, free-text cho dense embed. Một gói đủ dùng.</div>
+              <div class="text-xs text-amber-700 mt-1 font-semibold">→ Đề xuất</div>
+            </div>
+            <div class="p-2.5 rounded bg-slate-100">
+              <div class="font-semibold text-sm">c · Full JSON row-level</div>
+              <div class="text-xs text-slate-600 mt-1">Khoảng $15. Tag cho từng row. Over-engineer, không cần cho MVP.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-white shadow-sm">
+        <div class="card-body">
+          <div class="flex items-center justify-between">
+            <span class="badge badge-warning">Quyết định 3</span>
+            <span class="text-xs text-slate-500">Song song</span>
+          </div>
+          <h3 class="font-bold text-slate-900 mt-2">Build long-format parquet ngay?</h3>
+          <div class="space-y-2 mt-3">
+            <div class="p-2.5 rounded bg-amber-50 border border-amber-200">
+              <div class="font-semibold text-sm">Có ⭐</div>
+              <div class="text-xs text-slate-600 mt-1">12,427 main statements đã có Mẫu. Melt được ngay thành <code>(mã_số, period, value)</code>. Không cần chờ LLM.</div>
+              <div class="text-xs text-amber-700 mt-1 font-semibold">→ Đề xuất</div>
+            </div>
+            <div class="p-2.5 rounded bg-slate-100">
+              <div class="font-semibold text-sm">Chờ LLM xong</div>
+              <div class="text-xs text-slate-600 mt-1">Nếu LLM tìm thêm khoảng 500 BS/PL trong unknown thì melt 1 lần. Trễ khoảng 1 giờ. Ít lợi.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="alert alert-success mt-4 max-w-3xl">
+      <div>
+        <div class="font-semibold">Đề xuất tổng thể</div>
+        <div class="text-sm mt-1">
+          <span class="badge badge-success badge-sm">1B</span> +
+          <span class="badge badge-success badge-sm">2b</span> +
+          <span class="badge badge-success badge-sm">3-Có</span>.
+          Chi phí một lần khoảng $6 và 30 phút LLM, đồng thời build long-format song song. Xong sẽ mở đường cho hybrid retriever ở stage tiếp.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="pt-8 border-t border-slate-200 text-xs text-slate-500">
+    <div class="flex justify-between flex-wrap gap-2">
+      <div>ViFinQA Stage 2 · metadata architecture v3 · 2026-08-03</div>
+      <div>Số liệu từ <code>output/tables_metadata.jsonl</code> (146,246 bảng · 1,965 báo cáo)</div>
+    </div>
+  </footer>
+
+</main>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs";
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const paint = document.createElement("canvas").getContext("2d");
+  function toRgba(color) {
+    paint.clearRect(0, 0, 1, 1);
+    paint.fillStyle = "#000";
+    paint.fillStyle = color;
+    paint.fillRect(0, 0, 1, 1);
+    return paint.getImageData(0, 0, 1, 1).data;
+  }
+  function compositeRgba(fg, bg) {
+    const fa = fg[3] / 255, ba = bg[3] / 255;
+    const a = fa + ba * (1 - fa);
+    if (a === 0) return [0,0,0,0];
+    return [
+      (fg[0]*fa + bg[0]*ba*(1-fa))/a,
+      (fg[1]*fa + bg[1]*ba*(1-fa))/a,
+      (fg[2]*fa + bg[2]*ba*(1-fa))/a,
+      a * 255,
+    ];
+  }
+  function pageIsDark() {
+    const root = document.documentElement;
+    const rb = toRgba(getComputedStyle(root).backgroundColor);
+    const bb = document.body ? toRgba(getComputedStyle(document.body).backgroundColor) : [0,0,0,0];
+    const [r,g,b,a] = compositeRgba(bb, rb);
+    if (a > 0) return (0.2126*r + 0.7152*g + 0.0722*b) / 255 < 0.5;
+    const cs = getComputedStyle(root).colorScheme;
+    if (cs.includes("dark") && !cs.includes("light")) return true;
+    if (cs.includes("light") && !cs.includes("dark")) return false;
+    return darkQuery.matches;
+  }
+  const diagrams = [...document.querySelectorAll(".mermaid")].map(el => ({el, src: el.textContent}));
+  let applied, rendering = false, queued = false;
+  function queueRender() { queued = true; if (!rendering) void render(); }
+  async function render() {
+    rendering = true;
+    try {
+      while (queued) {
+        queued = false;
+        const theme = pageIsDark() ? "dark" : "default";
+        if (theme === applied) continue;
+        mermaid.initialize({ startOnLoad: false, theme, securityLevel: "strict" });
+        for (const {el, src} of diagrams) { el.removeAttribute("data-processed"); el.textContent = src; }
+        try { await mermaid.run({ nodes: diagrams.map(d => d.el) }); }
+        catch(e) { console.error(e); return; }
+        applied = theme;
+      }
+    } finally { rendering = false; if (queued) queueRender(); }
+  }
+  if (document.readyState === "complete") queueRender();
+  else window.addEventListener("load", queueRender, { once: true });
+  const mo = new MutationObserver(queueRender);
+  for (const el of [document.documentElement, document.body]) {
+    if (el) mo.observe(el, {attributes: true, attributeFilter: ["data-theme","class","style"]});
+  }
+  darkQuery.addEventListener("change", queueRender);
+</script>
+
+</body>
+</html>

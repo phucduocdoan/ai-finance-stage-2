@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ViFinQA — Kiến trúc metadata 3 tầng</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1020;
+    --bg-2: #0f1730;
+    --panel: #131b36;
+    --panel-2: #182348;
+    --line: #22305c;
+    --line-2: #2c3d75;
+    --ink: #e8ecf7;
+    --ink-2: #a9b3d1;
+    --ink-3: #7684a8;
+    --gold: #d4b06a;
+    --gold-2: #f4d68a;
+    --emerald: #48d597;
+    --emerald-2: #78e9b6;
+    --violet: #a78bfa;
+    --violet-2: #c4b5fd;
+    --coral: #ff8a7a;
+    --amber: #f4c25a;
+    --danger: #ef6d6d;
+  }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+  .panel { background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%); border: 1px solid var(--line); border-radius: 14px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255,255,255,.02); color: var(--ink-2); }
+  .chip .dot { width: 6px; height: 6px; border-radius: 999px; }
+  .kpi { background: radial-gradient(120% 200% at 0% 0%, rgba(212,176,106,.10) 0%, rgba(212,176,106,0) 55%), var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+  .grid-lines { background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 48px 48px; background-position: -1px -1px; }
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--line-2), transparent); }
+  .tier-card { border-radius: 16px; padding: 20px; min-width: 0; }
+  .tier-1 { background: linear-gradient(180deg, rgba(72, 213, 151, .10), rgba(72,213,151,.02) 55%), var(--panel); border: 1px solid rgba(72,213,151,.35); }
+  .tier-2 { background: linear-gradient(180deg, rgba(212, 176, 106, .10), rgba(212,176,106,.02) 55%), var(--panel); border: 1px solid rgba(212,176,106,.35); }
+  .tier-3 { background: linear-gradient(180deg, rgba(167, 139, 250, .10), rgba(167,139,250,.02) 55%), var(--panel); border: 1px solid rgba(167,139,250,.35); }
+  .field-row { display: grid; grid-template-columns: minmax(0, 140px) minmax(0, 1fr); gap: 10px; padding: 8px 10px; border-radius: 8px; }
+  .field-row:hover { background: rgba(255,255,255,.03); }
+  .field-name { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); word-break: break-all; }
+  .field-desc { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+  .badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .06em; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+  .badge-ok { background: rgba(72,213,151,.15); color: var(--emerald-2); border: 1px solid rgba(72,213,151,.35); }
+  .badge-warn { background: rgba(244,194,90,.15); color: var(--amber); border: 1px solid rgba(244,194,90,.35); }
+  .badge-danger { background: rgba(239,109,109,.15); color: var(--danger); border: 1px solid rgba(239,109,109,.35); }
+  .badge-neutral { background: rgba(167,139,250,.15); color: var(--violet-2); border: 1px solid rgba(167,139,250,.35); }
+  .badge-gold { background: rgba(212,176,106,.15); color: var(--gold-2); border: 1px solid rgba(212,176,106,.35); }
+  table.data { width: 100%; border-collapse: separate; border-spacing: 0; }
+  table.data th, table.data td { padding: 12px 14px; text-align: left; font-size: 13px; }
+  table.data th { color: var(--ink-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--line-2); }
+  table.data td { border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.data tbody tr:last-child td { border-bottom: none; }
+  table.data tbody tr:hover { background: rgba(255,255,255,.02); }
+  .mermaid { background: #0d1428; border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+  .mermaid svg { max-width: 100%; height: auto; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  h1, h2, h3 { letter-spacing: -.02em; }
+  .num { font-variant-numeric: tabular-nums; }
+  .arrow-down { width: 2px; background: linear-gradient(180deg, var(--line-2), transparent); margin: 0 auto; height: 24px; }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .18em; color: var(--gold); font-weight: 700; }
+  .quote { border-left: 3px solid var(--gold); padding: 8px 14px; color: var(--ink-2); font-size: 13px; background: rgba(212,176,106,.05); border-radius: 0 8px 8px 0; }
+  .metric-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,.04); font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink); border: 1px solid var(--line-2); }
+  .llm-arrow { color: var(--violet); font-weight: 700; }
+  .case-row td:first-child { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink); }
+  .grad-header { background: linear-gradient(90deg, rgba(212,176,106,.06), transparent 60%); }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Top bar -->
+<div class="border-b border-[var(--line)] sticky top-0 z-20 backdrop-blur" style="background: rgba(11,16,32,.85)">
+  <div class="max-w-[1360px] mx-auto px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-md flex items-center justify-center" style="background: linear-gradient(135deg,var(--gold),#8a6a2c)">
+        <span class="mono font-bold text-[13px] text-[#1a1408]">V</span>
+      </div>
+      <div class="leading-tight">
+        <div class="text-sm font-bold tracking-tight">ViFinQA Stage 2</div>
+        <div class="text-[11px] text-[var(--ink-3)] mono">table metadata · retrieval architecture</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-[11px] text-[var(--ink-2)]">
+      <span class="chip"><span class="dot" style="background: var(--emerald)"></span>146,246 tables indexed</span>
+      <span class="chip"><span class="dot" style="background: var(--gold)"></span>1,464 reports</span>
+      <span class="chip"><span class="dot" style="background: var(--violet)"></span>75 tickers · 2015–2025</span>
+    </div>
+  </div>
+</div>
+
+<!-- Hero -->
+<div class="relative">
+  <div class="absolute inset-0 grid-lines opacity-[.06] pointer-events-none"></div>
+  <div class="max-w-[1360px] mx-auto px-6 pt-10 pb-6 relative">
+    <div class="section-title mb-3">Retrieval architecture</div>
+    <h1 class="text-4xl font-extrabold leading-tight">Kiến trúc metadata <span style="color:var(--gold)">3 tầng</span> cho bảng tài chính Việt Nam</h1>
+    <p class="text-[var(--ink-2)] mt-3 max-w-3xl text-[15px] leading-relaxed">
+      Mỗi bảng OCR được biểu diễn dưới ba dạng song song: <b class="text-[var(--emerald-2)]">Tầng 1 CERTAIN</b> để lọc cứng theo cấu trúc,
+      <b class="text-[var(--gold-2)]">Tầng 2 RAW TEXT</b> làm nhiên liệu cho BM25 + embedding, và
+      <b class="text-[var(--violet-2)]">Tầng 3 LLM-derived</b> chứa các tín hiệu ngữ nghĩa mà regex không kham nổi.
+      Câu hỏi được giải bằng cách xuống thang: filter cứng &rarr; retrieval từ &rarr; verify bằng LLM.
+    </p>
+
+    <!-- KPI strip -->
+    <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="kpi p-5">
+        <div class="text-[11px] uppercase tracking-widest text-[var(--ink-3)]">Bảng đã trích</div>
+        <div class="text-3xl font-bold num mt-1">146,246</div>
+        <div class="text-[12px] text-[var(--ink-2)] mt-1">27 trường / bảng · 343.5 MB JSONL</div>
+      </div>
+      <div class="kpi p-5">
+        <div class="text-[11px] uppercase tracking-widest text-[var(--ink-3)]">Long-format cells</div>
+        <div class="text-3xl font-bold num mt-1">274,899</div>
+        <div class="text-[12px] text-[var(--ink-2)] mt-1">BS 168k · IS 53k · CF 53k</div>
+      </div>
+      <div class="kpi p-5">
+        <div class="text-[11px] uppercase tracking-widest text-[var(--ink-3)]">Solve baseline</div>
+        <div class="text-3xl font-bold num mt-1">27.4<span class="text-lg text-[var(--ink-2)]">%</span></div>
+        <div class="text-[12px] text-[var(--ink-2)] mt-1">277 / 1,012 câu ANSWERED (chưa RAG)</div>
+      </div>
+      <div class="kpi p-5">
+        <div class="text-[11px] uppercase tracking-widest text-[var(--ink-3)]">Nghẽn lớn nhất</div>
+        <div class="text-3xl font-bold num mt-1">57.2<span class="text-lg text-[var(--ink-2)]">%</span></div>
+        <div class="text-[12px] text-[var(--ink-2)] mt-1">NO_METRIC · cần Tầng 2 + Tầng 3</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3-Tier split -->
+<div class="max-w-[1360px] mx-auto px-6 pt-6 pb-2">
+  <div class="flex items-baseline justify-between mb-4">
+    <h2 class="text-xl font-bold">3-Tier field split</h2>
+    <div class="text-[12px] text-[var(--ink-3)] mono">27 fields per table · <a class="text-[var(--gold)]" href="#">enrich_metadata_v2.py</a></div>
+  </div>
+  <div class="divider mb-6"></div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    <!-- Tier 1 -->
+    <div class="tier-card tier-1">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="badge badge-ok">Tầng 1</span>
+          <span class="text-[13px] text-[var(--ink-2)] uppercase tracking-widest">CERTAIN</span>
+        </div>
+        <span class="mono text-[11px] text-[var(--ink-3)]">16 fields</span>
+      </div>
+      <h3 class="text-lg font-bold mb-1">Hard filter fields</h3>
+      <p class="text-[12.5px] text-[var(--ink-2)] leading-relaxed mb-3">
+        Trường xác định chắc chắn từ path / regex mẫu / classifier. Dùng cho <b>WHERE clause</b> ở bước filter đầu tiên —
+        loại 99% ứng viên trước khi retrieval.
+      </p>
+
+      <div class="field-row"><div class="field-name">ticker</div><div class="field-desc">Mã cổ phiếu · từ report_id · 75 giá trị</div></div>
+      <div class="field-row"><div class="field-name">year</div><div class="field-desc">Năm báo cáo · int · 2015–2025</div></div>
+      <div class="field-row"><div class="field-name">doc_type</div><div class="field-desc"><span class="mono">consolidated</span> / <span class="mono">separate</span></div></div>
+      <div class="field-row"><div class="field-name">statement_type</div><div class="field-desc"><span class="mono">balance_sheet</span> / <span class="mono">income_statement</span> / <span class="mono">cash_flow</span> / <span class="mono">note</span> / <span class="mono">unknown</span></div></div>
+      <div class="field-row"><div class="field-name">statement_subtype</div><div class="field-desc">CF direct/indirect · IS TCTD/CTCK</div></div>
+      <div class="field-row"><div class="field-name">mau_tag</div><div class="field-desc">Mẫu TT200 <span class="mono">B01-DN</span>, TT210 <span class="mono">B01-CTCK</span>, TT49 <span class="mono">B02/TCTD</span></div></div>
+      <div class="field-row"><div class="field-name">note_id</div><div class="field-desc">Số thuyết minh · <span class="mono">"4"</span>, <span class="mono">"29"</span> …</div></div>
+      <div class="field-row"><div class="field-name">has_ma_so_column</div><div class="field-desc">Bảng có cột "Mã số" → lookup theo mã</div></div>
+      <div class="field-row"><div class="field-name">has_thuyet_minh_column</div><div class="field-desc">Bảng có cột "TM" → cross-ref sang note</div></div>
+      <div class="field-row"><div class="field-name">page_number</div><div class="field-desc">int · dùng cho cross-page merge</div></div>
+      <div class="field-row"><div class="field-name">num_rows / num_cols</div><div class="field-desc">Shape · phân biệt matrix vs list</div></div>
+      <div class="field-row"><div class="field-name">parse_status</div><div class="field-desc"><span class="mono">ok</span> · lọc bảng hỏng</div></div>
+      <div class="field-row"><div class="field-name">report_id</div><div class="field-desc">Primary key · <span class="mono">TICKER_..._YEAR_TYPE</span></div></div>
+      <div class="field-row"><div class="field-name">table_pos, csv_path</div><div class="field-desc">Vị trí trong report · trỏ về CSV gốc</div></div>
+      <div class="field-row"><div class="field-name">company_name</div><div class="field-desc">Từ mapping ticker → tên VN đầy đủ</div></div>
+
+      <div class="mt-4 quote text-[12px]">
+        <b class="text-[var(--emerald-2)]">Retrieval role:</b> WHERE clause. Sau bước này còn <span class="mono">1–20 candidate tables</span>.
+      </div>
+    </div>
+
+    <!-- Tier 2 -->
+    <div class="tier-card tier-2">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="badge badge-gold">Tầng 2</span>
+          <span class="text-[13px] text-[var(--ink-2)] uppercase tracking-widest">RAW TEXT</span>
+        </div>
+        <span class="mono text-[11px] text-[var(--ink-3)]">10 fields</span>
+      </div>
+      <h3 class="text-lg font-bold mb-1">BM25 + embedding fuel</h3>
+      <p class="text-[12.5px] text-[var(--ink-2)] leading-relaxed mb-3">
+        Ghép nối thành <span class="mono">retrieval_doc</span> mỗi bảng. Không có canonical hoá — giữ nguyên OCR để
+        khớp cả những cách hỏi lạ. Vừa mới bổ sung <span class="mono">context_page_text</span> để index prose trên cùng trang.
+      </p>
+
+      <div class="field-row"><div class="field-name">section_title</div><div class="field-desc">Tiêu đề section OCR gần bảng — vd "TÀI SẢN NGẮN HẠN"</div></div>
+      <div class="field-row"><div class="field-name">note_title</div><div class="field-desc">Tên thuyết minh — <span class="mono">"29. Doanh thu tài chính"</span></div></div>
+      <div class="field-row"><div class="field-name">header_flat</div><div class="field-desc">Toàn bộ header rows nối với " · " → khớp thuật ngữ cột</div></div>
+      <div class="field-row"><div class="field-name">first_col_labels</div><div class="field-desc">List label cột trái (top 30) — nguồn chính khớp metric</div></div>
+      <div class="field-row"><div class="field-name">csv_snippet</div><div class="field-desc">10 dòng đầu CSV — giữ context số + label</div></div>
+      <div class="field-row"><div class="field-name">period_columns_raw</div><div class="field-desc">Text raw cột kỳ — <span class="mono">"31/12/2024"</span>, <span class="mono">"Số cuối năm"</span></div></div>
+      <div class="field-row"><div class="field-name">context_page_text</div><div class="field-desc"><span class="badge badge-warn">NEW</span> Prose page-local · cap 1500 chars · <span class="mono">&lt;table&gt;</span> stripped</div></div>
+      <div class="field-row"><div class="field-name">header_preview</div><div class="field-desc">Header cell đầu tiên · thô nhất</div></div>
+      <div class="field-row"><div class="field-name">n_numeric_rows</div><div class="field-desc">Số dòng có value · debug bảng lỗi</div></div>
+      <div class="field-row"><div class="field-name">label_col</div><div class="field-desc">Index cột label · TT200=0, TT49 bank=1</div></div>
+
+      <div class="mt-4 quote text-[12px]">
+        <b class="text-[var(--gold-2)]">Retrieval role:</b> BM25 (weighted) + rerank embedding. Chọn top-K từ 20 candidate còn lại.
+      </div>
+    </div>
+
+    <!-- Tier 3 -->
+    <div class="tier-card tier-3">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="badge badge-neutral">Tầng 3</span>
+          <span class="text-[13px] text-[var(--ink-2)] uppercase tracking-widest">LLM-DERIVED</span>
+        </div>
+        <span class="mono text-[11px] text-[var(--ink-3)]">planned</span>
+      </div>
+      <h3 class="text-lg font-bold mb-1">Semantic signals</h3>
+      <p class="text-[12.5px] text-[var(--ink-2)] leading-relaxed mb-3">
+        Chưa build. Tín hiệu bị lọt lưới regex + đòi hỏi hiểu ngữ nghĩa VN kế toán. Sinh offline một lần
+        cho 8,257 table nhóm (~$5–20 với Sonnet), lưu lại dùng vô hạn.
+      </p>
+
+      <div class="field-row"><div class="field-name">industry</div><div class="field-desc">enum: <span class="mono">non_financial</span> / <span class="mono">bank</span> / <span class="mono">securities</span> / <span class="mono">insurance</span> · từ mau_tag</div></div>
+      <div class="field-row"><div class="field-name">canonical_metric</div><div class="field-desc">Chuẩn hoá row label → khoá điển hình · <span class="mono">"Doanh thu thuần"</span> ↔ mọi biến thể OCR</div></div>
+      <div class="field-row"><div class="field-name">metric_aliases[]</div><div class="field-desc">Synonym cụm từ VN kế toán · giúp BM25 recall</div></div>
+      <div class="field-row"><div class="field-name">entity_scope</div><div class="field-desc"><span class="mono">group_consolidated</span> vs <span class="mono">parent_only</span> · giải quyết mã 60 vs 61</div></div>
+      <div class="field-row"><div class="field-name">column_semantics</div><div class="field-desc">Trong note: <span class="mono">cost</span> · <span class="mono">carrying</span> · <span class="mono">fair_value</span> · <span class="mono">recoverable</span></div></div>
+      <div class="field-row"><div class="field-name">pivot_dim</div><div class="field-desc">Matrix roll-forward TSCĐ: rows = movement type, cols = asset category</div></div>
+      <div class="field-row"><div class="field-name">semantic_category</div><div class="field-desc">Note category: "revenue breakdown", "fixed asset roll-forward", "related party loans"…</div></div>
+      <div class="field-row"><div class="field-name">cross_year_links</div><div class="field-desc">Cùng metric tại year khác · phục vụ growth / diff / avg</div></div>
+
+      <div class="mt-4 quote text-[12px]">
+        <b class="text-[var(--violet-2)]">Retrieval role:</b> Verify sau BM25. LLM chỉ decide khi &gt;1 ứng viên có score sát nhau.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Retrieval pipeline diagram -->
+<div class="max-w-[1360px] mx-auto px-6 pt-12 pb-2">
+  <div class="flex items-baseline justify-between mb-4">
+    <h2 class="text-xl font-bold">Retrieval pipeline · decision tree</h2>
+    <div class="text-[12px] text-[var(--ink-3)] mono">question → cell → op → answer</div>
+  </div>
+  <div class="divider mb-6"></div>
+
+  <div class="mermaid">
+flowchart TD
+    Q[["❓ Câu hỏi tiếng Việt<br/><span style='font-size:11px;color:#a9b3d1'>Vd. LNST năm 2016 của HBC là bao nhiêu tỷ đồng?</span>"]]
+    Q --> PARSE
+
+    PARSE["🧠 Parse câu hỏi<br/>ticker · year · metric · period · op · doc_type"]
+    PARSE -->|entities| T1
+
+    subgraph TIER1["Tầng 1 · CERTAIN — hard filter (WHERE)"]
+      direction TB
+      T1["Filter theo<br/>ticker + year + doc_type<br/>+ statement_type + note_id?"]
+      T1 --> CNT{{"Số candidate tables ?"}}
+      CNT -->|"= 1"| DIRECT["🎯 Direct lookup<br/>bằng ma_so nếu có"]
+      CNT -->|"2 – 20"| T2GATE["Chuyển xuống Tầng 2"]
+      CNT -->|"0"| FALLBACK1["🚫 statement_type=unknown ?<br/>Note continuation ?"]
+    end
+
+    T2GATE --> T2
+    subgraph TIER2["Tầng 2 · RAW TEXT — retrieval từ"]
+      direction TB
+      T2["BM25 trên<br/>section_title ⊕ note_title ⊕<br/>first_col_labels ⊕ csv_snippet<br/>⊕ context_page_text"]
+      T2 --> EMB["Rerank embedding<br/>(bge-m3 / e5-multi)"]
+      EMB --> TOPK{{"Top-K ≥ 2 gần điểm nhau ?"}}
+    end
+
+    TOPK -->|"1 ứng viên rõ"| CELL
+    TOPK -->|"ambiguous"| T3
+
+    subgraph TIER3["Tầng 3 · LLM-DERIVED — verify"]
+      direction TB
+      T3["LLM decide dựa vào<br/>canonical_metric · entity_scope<br/>column_semantics · pivot_dim"]
+      T3 --> CELL
+    end
+
+    DIRECT --> CELL
+    FALLBACK1 -.->|"note narrative"| T2
+
+    CELL["📊 Extract cell<br/>(row, period_col) → value"]
+    CELL --> OP{{"Op ?"}}
+    OP -->|lookup| ANS
+    OP -->|ratio / growth| CALC["🧮 Compute<br/>ratio · growth · diff · avg"]
+    OP -->|argmax / diff / avg| CALC
+    CALC --> ANS
+    ANS["✅ Answer<br/>+ unit convert (tỷ / triệu / nghìn)"]
+
+    classDef tierA fill:#0f2b1e,stroke:#48d597,color:#e8ecf7
+    classDef tierB fill:#2b220f,stroke:#d4b06a,color:#e8ecf7
+    classDef tierC fill:#1e1435,stroke:#a78bfa,color:#e8ecf7
+    classDef termNode fill:#131b36,stroke:#22305c,color:#e8ecf7
+    classDef ansNode fill:#0f2b1e,stroke:#48d597,color:#78e9b6,font-weight:bold
+
+    class T1,CNT,DIRECT,FALLBACK1 tierA
+    class T2,EMB,TOPK tierB
+    class T3 tierC
+    class Q,PARSE,CELL,OP,CALC termNode
+    class ANS ansNode
+  </div>
+
+  <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div class="panel p-4">
+      <div class="text-[11px] uppercase tracking-widest text-[var(--emerald-2)] font-bold">Tầng 1 loại được</div>
+      <div class="text-[13px] text-[var(--ink-2)] mt-2 leading-relaxed">146,246 → ~10 candidates trung bình. Zero recall risk vì trường đã chắc.</div>
+    </div>
+    <div class="panel p-4">
+      <div class="text-[11px] uppercase tracking-widest text-[var(--gold-2)] font-bold">Tầng 2 tìm được</div>
+      <div class="text-[13px] text-[var(--ink-2)] mt-2 leading-relaxed">Metric phrasing lạ, note-level lookup, "Lãi tiền gửi", tên khoản trong phần narrative.</div>
+    </div>
+    <div class="panel p-4">
+      <div class="text-[11px] uppercase tracking-widest text-[var(--violet-2)] font-bold">Tầng 3 phân biệt</div>
+      <div class="text-[13px] text-[var(--ink-2)] mt-2 leading-relaxed">LNST mã 60 vs 61 · consolidated vs parent · matrix TSCĐ · column semantics.</div>
+    </div>
+  </div>
+</div>
+
+<!-- 7 case results -->
+<div class="max-w-[1360px] mx-auto px-6 pt-12 pb-2">
+  <div class="flex items-baseline justify-between mb-4">
+    <h2 class="text-xl font-bold">7 sample verified cases · nơi mỗi tầng đóng góp</h2>
+    <div class="text-[12px] text-[var(--ink-3)] mono">verify_long_format.py — 7/7 PASS</div>
+  </div>
+  <div class="divider mb-6"></div>
+
+  <div class="panel overflow-hidden">
+    <table class="data">
+      <thead class="grad-header">
+        <tr>
+          <th style="width: 200px">Case</th>
+          <th style="width: 130px">Status</th>
+          <th>Tầng 1 (filter)</th>
+          <th>Tầng 2 (từ khớp)</th>
+          <th>Nơi LLM (Tầng 3) tạo giá trị</th>
+          <th class="text-right" style="width: 200px">Expected (VND)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="case-row">
+          <td>HBC 2016 IS mã 10<br/><span class="text-[var(--ink-3)] text-[11px]">Doanh thu thuần</span></td>
+          <td><span class="badge badge-ok">PASS</span></td>
+          <td class="field-desc"><span class="metric-pill">ticker=HBC</span> <span class="metric-pill">year=2016</span> <span class="metric-pill">statement=IS</span> <span class="metric-pill">ma_so=10</span> → 1 hit</td>
+          <td class="field-desc">— Không cần. Filter đã đủ vì ma_so unique trong IS.</td>
+          <td class="field-desc"><span class="text-[var(--ink-3)]">Không cần LLM. Baseline solve đã ANSWER.</span></td>
+          <td class="num text-right mono">10,766,205,824,099</td>
+        </tr>
+        <tr class="case-row">
+          <td>HBC 2016 IS mã 60<br/><span class="text-[var(--ink-3)] text-[11px]">LNST hợp nhất</span></td>
+          <td><span class="badge badge-ok">PASS</span></td>
+          <td class="field-desc"><span class="metric-pill">statement=IS</span> <span class="metric-pill">ma_so=60</span></td>
+          <td class="field-desc">— ma_so đủ.</td>
+          <td class="field-desc"><span class="llm-arrow">⇢</span> Câu hỏi thường chỉ ghi "LNST" → LLM phải chọn <span class="mono">entity_scope=group</span> để pick mã 60.</td>
+          <td class="num text-right mono">568,013,202,926</td>
+        </tr>
+        <tr class="case-row" style="background: rgba(167,139,250,.04)">
+          <td>HBC 2016 IS <b class="text-[var(--violet-2)]">mã 61</b><br/><span class="text-[var(--ink-3)] text-[11px]">LNST của công ty mẹ</span></td>
+          <td><span class="badge badge-ok">PASS</span></td>
+          <td class="field-desc"><span class="metric-pill">statement=IS</span> <span class="metric-pill">ma_so=61</span></td>
+          <td class="field-desc"><span class="mono">first_col_labels</span> có "Lợi ích cổ đông không kiểm soát" gần đó — tín hiệu weak.</td>
+          <td class="field-desc"><span class="llm-arrow">⇢⇢</span> <b>Ambiguity điển hình.</b> Q hỏi "LNST của cổ đông công ty mẹ" — LLM phải map sang <span class="mono">canonical_metric=NCI_parent</span> và <span class="mono">entity_scope=parent_only</span>. Regex không thể phân biệt.</td>
+          <td class="num text-right mono">567,045,986,811</td>
+        </tr>
+        <tr class="case-row" style="background: rgba(212,176,106,.04)">
+          <td>NLG 2024 BS mã 312<br/><span class="text-[var(--ink-3)] text-[11px]">Vay dài hạn · <b class="text-[var(--gold-2)]">cuối kỳ</b></span></td>
+          <td><span class="badge badge-ok">PASS</span></td>
+          <td class="field-desc"><span class="metric-pill">statement=BS</span> <span class="metric-pill">ma_so=312</span> → 1 bảng, <b>2 cột kỳ</b></td>
+          <td class="field-desc"><span class="mono">period_columns_raw</span> = ["31/12/2024", "1/1/2024"] → khớp "cuối năm 2024".</td>
+          <td class="field-desc"><span class="llm-arrow">⇢</span> Nếu Q dùng "vào ngày 31.12.24" hoặc "cuối 2024" → Tầng 2 raw text đủ. Tầng 3 chỉ can thiệp khi phrasing lạ ("thời điểm khoá sổ").</td>
+          <td class="num text-right mono">3,023,679,812,978</td>
+        </tr>
+        <tr class="case-row" style="background: rgba(212,176,106,.04)">
+          <td>NLG 2024 BS mã 312<br/><span class="text-[var(--ink-3)] text-[11px]">Vay dài hạn · <b class="text-[var(--gold-2)]">đầu kỳ</b></span></td>
+          <td><span class="badge badge-ok">PASS</span></td>
+          <td class="field-desc">Cùng bảng như trên.</td>
+          <td class="field-desc"><span class="mono">period_columns_raw</span> chứa "1/1/2024" ≡ "31/12/2023" ≡ "đầu năm 2024".</td>
+          <td class="field-desc"><span class="llm-arrow">⇢</span> Chuẩn hoá "đầu kỳ 2024" ≡ "cuối 2023" — heuristic hiện làm được, nhưng cross-year lookup (VD lấy đầu 2024 để tính growth) cần Tầng 3 <span class="mono">cross_year_links</span>.</td>
+          <td class="num text-right mono">3,814,598,243,120</td>
+        </tr>
+        <tr class="case-row">
+          <td>MCH 2021 BS mã 320<br/><span class="text-[var(--ink-3)] text-[11px]">Nợ dài hạn · cuối kỳ</span></td>
+          <td><span class="badge badge-ok">PASS</span></td>
+          <td class="field-desc"><span class="metric-pill">MCH</span> <span class="metric-pill">2021</span> <span class="metric-pill">BS</span> <span class="metric-pill">320</span></td>
+          <td class="field-desc">— Filter đủ.</td>
+          <td class="field-desc"><span class="text-[var(--ink-3)]">Không cần. Straightforward lookup.</span></td>
+          <td class="num text-right mono">7,445,112,961,981</td>
+        </tr>
+        <tr class="case-row">
+          <td>MCH 2023 BS mã 320<br/><span class="text-[var(--ink-3)] text-[11px]">Nợ dài hạn · cuối kỳ</span></td>
+          <td><span class="badge badge-ok">PASS</span></td>
+          <td class="field-desc"><span class="metric-pill">MCH</span> <span class="metric-pill">2023</span> <span class="metric-pill">BS</span> <span class="metric-pill">320</span></td>
+          <td class="field-desc">— Filter đủ.</td>
+          <td class="field-desc"><span class="llm-arrow">⇢</span> Cần Tầng 3 khi Q hỏi "tăng trưởng nợ dài hạn MCH 2021→2023" — <span class="mono">cross_year_links</span> để không phải re-parse.</td>
+          <td class="num text-right mono">8,468,802,865,360</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div class="panel p-4">
+      <div class="flex items-center gap-2">
+        <span class="badge badge-ok">4/7</span>
+        <div class="text-[13px] font-semibold">Filter cứng đủ dùng</div>
+      </div>
+      <div class="text-[12px] text-[var(--ink-2)] mt-2">Cases 1, 6, 7 và phần lookup của 4-5. Đây là 27.4% baseline hiện có.</div>
+    </div>
+    <div class="panel p-4">
+      <div class="flex items-center gap-2">
+        <span class="badge badge-gold">2/7</span>
+        <div class="text-[13px] font-semibold">Cần Tầng 2 period khớp</div>
+      </div>
+      <div class="text-[12px] text-[var(--ink-2)] mt-2">Cases 4, 5 (đầu / cuối kỳ). Đây là nghẽn phổ biến của BS.</div>
+    </div>
+    <div class="panel p-4">
+      <div class="flex items-center gap-2">
+        <span class="badge badge-neutral">1/7</span>
+        <div class="text-[13px] font-semibold">Chỉ Tầng 3 mới cứu</div>
+      </div>
+      <div class="text-[12px] text-[var(--ink-2)] mt-2">Case 3 (LNST cổ đông mẹ). Đây là loại lỗi silent — pipeline sẽ trả sai số nếu thiếu.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Coverage bottleneck -->
+<div class="max-w-[1360px] mx-auto px-6 pt-12 pb-2">
+  <div class="flex items-baseline justify-between mb-4">
+    <h2 class="text-xl font-bold">Coverage hiện tại · nơi mỗi tầng sẽ đóng góp</h2>
+    <div class="text-[12px] text-[var(--ink-3)] mono">solve_coverage.md · 1,012 questions</div>
+  </div>
+  <div class="divider mb-6"></div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-3">
+    <div class="panel p-5">
+      <div class="flex items-center justify-between">
+        <span class="badge badge-ok">ANSWERED</span>
+        <span class="mono text-[11px] text-[var(--ink-3)]">27.4%</span>
+      </div>
+      <div class="text-3xl font-bold num mt-2">277</div>
+      <div class="text-[12px] text-[var(--ink-2)] mt-2">Baseline: Tầng 1 filter + regex metric. Chưa dùng RAG.</div>
+    </div>
+    <div class="panel p-5" style="border-color: rgba(244,194,90,.35)">
+      <div class="flex items-center justify-between">
+        <span class="badge badge-warn">NO_METRIC</span>
+        <span class="mono text-[11px] text-[var(--ink-3)]">57.2%</span>
+      </div>
+      <div class="text-3xl font-bold num mt-2">579</div>
+      <div class="text-[12px] text-[var(--ink-2)] mt-2">Regex không khớp. <b class="text-[var(--gold-2)]">→ Tầng 2 BM25 + Tầng 3 alias.</b></div>
+    </div>
+    <div class="panel p-5" style="border-color: rgba(239,109,109,.35)">
+      <div class="flex items-center justify-between">
+        <span class="badge badge-danger">ERROR</span>
+        <span class="mono text-[11px] text-[var(--ink-3)]">9.2%</span>
+      </div>
+      <div class="text-3xl font-bold num mt-2">93</div>
+      <div class="text-[12px] text-[var(--ink-2)] mt-2">Bank/CTCK schema lệch, mã trùng, năm thiếu. <b>→ Tầng 3 industry-aware.</b></div>
+    </div>
+    <div class="panel p-5" style="border-color: rgba(167,139,250,.35)">
+      <div class="flex items-center justify-between">
+        <span class="badge badge-neutral">OP_NA</span>
+        <span class="mono text-[11px] text-[var(--ink-3)]">3.4%</span>
+      </div>
+      <div class="text-3xl font-bold num mt-2">34</div>
+      <div class="text-[12px] text-[var(--ink-2)] mt-2"><span class="mono">diff</span> / <span class="mono">avg</span> chưa impl. Không cần LLM, chỉ code.</div>
+    </div>
+    <div class="panel p-5">
+      <div class="flex items-center justify-between">
+        <span class="badge badge-warn">NO_CELL</span>
+        <span class="mono text-[11px] text-[var(--ink-3)]">2.9%</span>
+      </div>
+      <div class="text-3xl font-bold num mt-2">29</div>
+      <div class="text-[12px] text-[var(--ink-2)] mt-2">Metric matched nhưng cell trống — note/bank tables. <b>→ Tầng 2 note lookup.</b></div>
+    </div>
+  </div>
+
+  <div class="mt-6 panel p-5">
+    <div class="section-title mb-2">Đường tiến từ 27.4% → mục tiêu</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-[13px]">
+      <div>
+        <div class="flex items-center gap-2 mb-1"><span class="legend-swatch" style="background: var(--emerald)"></span><b>Bước 1 · Tầng 2 retrieval</b></div>
+        <div class="text-[var(--ink-2)] leading-relaxed">BM25 + rerank trên 5 field text. Ước tính giải thêm <b class="text-[var(--emerald-2)]">~250</b> câu NO_METRIC.</div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2 mb-1"><span class="legend-swatch" style="background: var(--gold)"></span><b>Bước 2 · impl diff/avg</b></div>
+        <div class="text-[var(--ink-2)] leading-relaxed">Code op còn thiếu + fix cross-page note continuation (task #12). <b class="text-[var(--gold-2)]">+80 câu</b>.</div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2 mb-1"><span class="legend-swatch" style="background: var(--violet)"></span><b>Bước 3 · Tầng 3 LLM</b></div>
+        <div class="text-[var(--ink-2)] leading-relaxed">Offline enrichment 8,257 note groups. Bắt phrasing khó + entity_scope. <b class="text-[var(--violet-2)]">+150 câu</b>.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Field concatenation for BM25 -->
+<div class="max-w-[1360px] mx-auto px-6 pt-12 pb-2">
+  <div class="flex items-baseline justify-between mb-4">
+    <h2 class="text-xl font-bold">Retrieval doc — cách ghép Tầng 2</h2>
+    <div class="text-[12px] text-[var(--ink-3)] mono">1 table = 1 BM25 document</div>
+  </div>
+  <div class="divider mb-6"></div>
+
+  <div class="panel p-6">
+<pre class="mono text-[12.5px] leading-relaxed" style="color: var(--ink-2); white-space: pre-wrap; word-break: break-word;"><span style="color: var(--gold)">retrieval_doc</span> = " · ".join([
+    section_title,       <span style="color: var(--ink-3)"># "TÀI SẢN NGẮN HẠN"</span>
+    note_title,          <span style="color: var(--ink-3)"># "29. Doanh thu hoạt động tài chính"</span>
+    header_flat,         <span style="color: var(--ink-3)"># "Chỉ tiêu · Mã số · TM · Số cuối năm · Số đầu năm"</span>
+    " · ".join(first_col_labels),  <span style="color: var(--ink-3)"># row labels — nguồn chính</span>
+    period_columns_raw,  <span style="color: var(--ink-3)"># ["31/12/2024", "1/1/2024"]</span>
+    csv_snippet,         <span style="color: var(--ink-3)"># 10 dòng đầu CSV</span>
+    context_page_text,   <span style="color: var(--emerald-2)"># NEW · prose page-local ngoài bảng</span>
+])
+
+<span style="color: var(--gold)">bm25</span>.rank(retrieval_doc, query=<span style="color: var(--emerald-2)">"Lãi tiền gửi VJC 2018"</span>)
+<span style="color: var(--gold)">emb</span>.rerank(top_20, query)  <span style="color: var(--ink-3)"># bge-m3 or e5-multilingual</span>
+</pre>
+    <div class="mt-4 flex items-center gap-2 flex-wrap">
+      <span class="chip"><span class="dot" style="background: var(--emerald)"></span>Không lemma / normalize — giữ nguyên OCR để khớp cả OCR lỗi</span>
+      <span class="chip"><span class="dot" style="background: var(--gold)"></span>Weight field khác nhau (note_title × 3, first_col × 2)</span>
+      <span class="chip"><span class="dot" style="background: var(--violet)"></span>context_page_text bổ sung khi câu hỏi hỏi thông tin narrative</span>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="max-w-[1360px] mx-auto px-6 pt-16 pb-10">
+  <div class="divider mb-6"></div>
+  <div class="flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--ink-3)]">
+    <div>
+      <span class="mono">ai-finance-stage-2</span> · Stage 2 prototype ·
+      artifacts: <span class="mono">tables_metadata_v2.jsonl</span> (146,246) ·
+      <span class="mono">long_format.parquet</span> (274,899) ·
+      <span class="mono">solve_coverage.md</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="legend-swatch" style="background: var(--emerald)"></span>Tầng 1 CERTAIN
+      <span class="legend-swatch" style="background: var(--gold)"></span>Tầng 2 RAW TEXT
+      <span class="legend-swatch" style="background: var(--violet)"></span>Tầng 3 LLM-derived
+    </div>
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      background: '#0d1428',
+      primaryColor: '#182348',
+      primaryTextColor: '#e8ecf7',
+      primaryBorderColor: '#2c3d75',
+      lineColor: '#2c3d75',
+      secondaryColor: '#131b36',
+      tertiaryColor: '#0f1730',
+      fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+      fontSize: '13px',
+      clusterBkg: '#0f1730',
+      clusterBorder: '#22305c',
+    },
+    flowchart: { htmlLabels: true, curve: 'basis', padding: 12, nodeSpacing: 40, rankSpacing: 55 }
+  });
+</script>
+</body>
+</html>

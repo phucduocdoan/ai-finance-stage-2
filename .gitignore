@@ -1,0 +1,24 @@
+# virtualenv (5.7G)
+.venv_bge/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# secrets -- API keys
+.env
+.env.*
+
+# provided raw dataset (447M) + generated data snapshot (1.3G):
+# unrebuildable, backed up on the filesystem, never in git. Keep only the
+# hand-written eval ground truth (small, precious for reproducibility).
+ViFinQA/
+data/*
+!data/eval/
+
+# run outputs + submission build artifacts (regeneratable, large)
+artifacts/runs/
+output/
+
+# large binaries / competition docs (backed up on filesystem)
+*.pdf
+*.jpg
