@@ -96,6 +96,16 @@ Thứ tự ưu tiên gợi ý, mỗi mục **đổi một biến một lần** r
      đo lại. Dùng LLM đúng chỗ, không blanket.
 4. **Nhãn answer-level thật** — tự solve 12–15 câu để có GT trên nhiều loại question hơn (hiện chỉ 15 answer-GT).
 5. **Mở rộng eval set 15→100** — giảm noise floor (hiện 1 câu = 6.7pp).
+6. **Async runner** *(chưa cần — không phải maintainability)* — `pipeline/run.py` dùng
+   `ThreadPoolExecutor(4)`. Async `gather` **không** giúp ở đây: mỗi task trộn I/O (LLM) +
+   CPU-bound (pandas exec/compile/CSV), async serialize phần CPU trừ khi `run_in_executor`
+   (quay về thread). Concurrency chốt 4 vì vLLM chung nên overhead thread là noise. Chỉ đáng
+   làm nếu tương lai bỏ giới hạn endpoint chung và cần concurrency cao. Không sửa thứ không hỏng.
+
+## Hạ tầng (2026-08-04)
+- **Git local đã init** (commit `a260070`). `.gitignore` loại `.venv_bge/`, `ViFinQA/`,
+  `data/*` (giữ `data/eval/`), `artifacts/runs/`, `output/`, `.env`. Snapshot data 1.3G +
+  dataset gốc 447M **không trong git** — backup filesystem riêng. Remote private: hoãn (tính sau).
 
 ---
 
