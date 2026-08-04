@@ -101,6 +101,24 @@ Thứ tự ưu tiên gợi ý, mỗi mục **đổi một biến một lần** r
    CPU-bound (pandas exec/compile/CSV), async serialize phần CPU trừ khi `run_in_executor`
    (quay về thread). Concurrency chốt 4 vì vLLM chung nên overhead thread là noise. Chỉ đáng
    làm nếu tương lai bỏ giới hạn endpoint chung và cần concurrency cao. Không sửa thứ không hỏng.
+7. **Semantic-signal fields dormant — precondition nếu resurrect** *(hiện không dùng)*
+   `enrich_metadata_v2.py` tính & lưu 3 field gắn nhãn "BA priorities 2/3/4":
+   `period_years`, `industry_segment`, `is_continuation`. **Pipeline đang ship KHÔNG đọc field nào:**
+   - `period_years`: 0 `.py` đọc (filter dùng `table.year` từ report_id; index text dùng
+     `statement_label|note_title|section_title|first_col_labels|header_flat`). Grep toàn repo chỉ
+     thấy trong docs thiết kế + stats.
+   - `industry_segment`: 0 `.py` đọc. `metadata_audit.md` mô tả filter *thiết kế* có nó, nhưng
+     `filters.py` *thực thi* chỉ ticker/year/doc_type + prefer_consolidated.
+   - `is_continuation`: **cố ý loại sau khi đo** (`filters.py:82`, `v0_retrieval_pipeline.md:138`) —
+     `detect_continuation` over-match section header → ~65% `true` là noise.
+   Bài học: filter hẹp (ticker/year/doc_type) thắng design phức tạp; đừng thêm signal khi chưa đo.
+   **Bug đã biết trong field dormant** (chỉ quan trọng NẾU resurrect):
+   - `period_years` BS mất năm so sánh: `period_columns_raw=['31/12/2015','01/01/2015']` →
+     `[2015]` thay vì `[2015,2014]` (548 records). Fix: thêm `YYYY-1` khi có `01/01/YYYY`.
+   - 650 bank maturity table (statement_type=balance_sheet, header "Từ 1 năm trở xuống…") có
+     `period_years=[]` — đúng, nhưng gây nhiễu nếu bật period filter.
+   Sửa 3 field này = **ghi đè `tables_metadata_v2.jsonl` 294MB** (chạy lại enrich, không cần
+   re-extract OCR) → chỉ làm khi pipeline KHÔNG chạy, và chỉ khi quyết định dùng signal (có đo).
 
 ## Hạ tầng (2026-08-04)
 - **Git local đã init** (commit `a260070`). `.gitignore` loại `.venv_bge/`, `ViFinQA/`,
