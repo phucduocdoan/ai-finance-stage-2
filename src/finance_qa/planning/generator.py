@@ -82,6 +82,10 @@ Yêu cầu:
 - OCR có thể làm header nhiều dòng bị lệch. Khi một tên cột chứa chữ thay vì
   số, hãy suy ra cột số thực tế từ toàn bộ hàng, các cột `Unnamed:*`, và quan hệ
   cộng/trừ của bảng; không máy móc tin tên header.
+- Khi câu hỏi có nhiều công ty, xác định biến df nào ứng với công ty nào bằng
+  ticker đầu csv_path (ký tự trước '_' đầu tiên, ví dụ ABB_... → ABB).
+  Với "chênh lệch A và B" hoặc "A so với B", tính A_df.value - B_df.value
+  theo đúng thứ tự câu hỏi, không phụ thuộc thứ tự evidence.
 - Chú ý ĐƠN VỊ: nếu câu hỏi hỏi "triệu đồng"/"tỷ đồng" mà bảng ghi bằng đồng thì phải chia.
 - Quy đổi: triệu = chia 1e6, tỷ = chia 1e9, trăm tỷ = chia 1e11,
   nghìn tỷ = chia 1e12. Nếu bảng đã ghi `Triệu đồng` thì không chia lần nữa.
@@ -759,6 +763,15 @@ def generate(
     `error` is non-empty when even the repaired query would not run; the caller
     decides what to submit for that question rather than having that policy here.
     """
+    # Sort by table_pos ascending so primary statements (low pos) get df1/df2 and
+    # note/breakdown tables (high pos) get later variables. The model consistently
+    # trusts earlier-listed frames, and primary statements have the summary totals.
+    def _pos(tid: str) -> int:
+        try:
+            return int(tid.rsplit("|", 1)[1])
+        except (IndexError, ValueError):
+            return 999
+    table_ids = sorted(table_ids, key=_pos)
     names = {f"df{i}": tid for i, tid in enumerate(table_ids, 1)}
     frames = {var: load_frame(tid) for var, tid in names.items()}
 

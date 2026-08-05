@@ -85,6 +85,22 @@ Ràng buộc:
 - Với câu hỏi lồng/lọc, formula phải thể hiện đủ bước lọc/chọn; không nhảy thẳng tới kết quả.
 - `trung bình` phải dùng mean; `tổng` dùng sum; tăng trưởng dùng (mới-cũ)/cũ*100.
 - Với "chênh lệch A so với B" hoặc "giữa A và B", giữ thứ tự xuất hiện: A - B.
+  Khi câu hỏi có nhiều công ty, xác định df nào ứng với công ty nào bằng ticker
+  đầu tên bảng (ký tự trước dấu '_' đầu tiên trong tên bảng hiển thị ở header).
+  Đặt `id` binding theo ticker: `acb_revenue_2022`, `mbb_service_net_2022`.
+  Điều này giúp kiểm tra thứ tự trừ: binding ticker_A - binding ticker_B.
+- Ưu tiên bảng báo cáo chính cho chỉ tiêu tổng hợp: bảng cân đối kế toán,
+  báo cáo kết quả kinh doanh, lưu chuyển tiền tệ thường có tiêu đề in hoa như
+  "BẢNG CÂN ĐỐI", "KẾT QUẢ KINH DOANH", "LƯU CHUYỂN". Các bảng thuyết minh
+  (note) có chỉ tiêu phân tích chi tiết, không phải con số tổng cuối cùng.
+  Dấu hiệu bảng note: tiêu đề có "Thuyết minh", "phân tích", nhiều hàng phân mục
+  (các loại hình vay, ngành nghề, tài sản thế chấp…), tên cột phức tạp như
+  "Giá trị ghi sổ/Số có khả năng trả nợ", "Lãi suất bình quân".
+  Khi cùng một chỉ tiêu xuất hiện ở cả bảng chính lẫn bảng note, luôn lấy từ
+  bảng chính (tên cột đơn giản: "Số cuối năm", "Năm nay", "31/12/20XX").
+- Với bảng phân loại chi tiết (nhiều hàng phân mục con), giá trị tổng hợp
+  thường là dòng đầu tiên (row_index=0 hoặc 1) hoặc dòng có nhãn "Cộng"/
+  "Tổng cộng". Không dùng row_index của một hàng phân mục làm đại diện tổng.
 
 Formula registry tài chính chung (khi đúng ngữ cảnh báo cáo chính):
 - tỷ suất lợi nhuận ròng = LNST / doanh thu thuần * 100 (mã số 60 / 10)

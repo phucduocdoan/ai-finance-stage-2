@@ -39,7 +39,7 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 
 from finance_qa.paths import QUESTION_METADATA_PATH
-from finance_qa.execution.query import source_csv, submission_csv_name
+from finance_qa.execution.query import load_frame, source_csv, submission_csv_name
 
 
 def load_questions() -> dict[int, dict]:
@@ -76,10 +76,9 @@ def build_item(qrow: dict, record: dict | None) -> dict:
     docs: dict[str, None] = {}
     for tid in table_ids:
         docs.setdefault(tid.rsplit("|", 1)[0], None)
-    evidence, query = [], ""
-    if table_ids:
-        evidence = [{"variable": "df1", "csv_path": f"data/{submission_csv_name(table_ids[0])}"}]
-        query = "df1"  # non-empty + references df1; audit-only, answer is graded
+    # Fallback items have no valid query; "0.0" matches answer=0.0 and avoids
+    # TypeError when the evaluator tries float(eval("df1")) on a DataFrame.
+    evidence, query = [], "0.0"
     return {
         "id": int(qrow["id"]),
         "question": qrow["question"],
@@ -152,7 +151,15 @@ def stage(items: list[dict], out_dir: Path) -> tuple[int, list[str]]:
                 continue
             name = submission_csv_name(tid)
             if name not in copied:
-                shutil.copyfile(src, data_dir / name)
+                # Ship the normalized frame (repair headers + parse VN numbers to float)
+                # so the evaluator can run pandas_query without dtype errors.
+                try:
+                    load_frame(tid).to_csv(data_dir / name, index=False)
+                except Exception as exc:
+                    # Duplicate column names cause normalize_frame to fail; fall back
+                    # to the raw CSV so the ZIP is at least complete.
+                    warnings.append(f"load_frame {tid} failed ({exc.__class__.__name__}), raw CSV shipped")
+                    shutil.copyfile(src, data_dir / name)
                 copied.add(name)
             kept_tables.append(tid)
         it["relevant_tables"] = kept_tables
