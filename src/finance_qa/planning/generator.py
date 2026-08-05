@@ -267,7 +267,10 @@ def semantic_errors(
         ):
             errors.append(
                 f"câu hỏi chọn năm có giá trị {direction} nhưng query chưa thực hiện "
-                f"phép chọn {direction} trên các năm"
+                f"phép chọn {direction} trên các năm. "
+                f"Phải dùng: formula=\"select(arg{direction}({{'2021': rank_2021, ...}}), "
+                f"{{'2021': answer_2021, ...}})\" với rank_* binding chỉ tiêu xếp hạng "
+                f"và answer_* binding kết quả câu hỏi."
             )
 
     return errors
@@ -668,7 +671,19 @@ def repair_non_numeric_bindings(
     frames: dict[str, pd.DataFrame],
     table_ids: dict[str, str],
 ) -> tuple[dict, list[str]]:
-    """Move a non-numeric binding to one unique semantic/period equivalent."""
+    """Move a non-numeric binding to one unique semantic/period equivalent.
+
+    Three-stage search:
+    1. Semantic+period search across all frames (original, requires score >= 3).
+    2. If that finds nothing: same search with score >= 1 as last resort.
+    3. If still nothing: scan same column ±5 rows for the nearest numeric cell.
+       This handles sparse tables where a summary cell is simply blank for one
+       column but the adjacent row has the real value.
+
+    The year-in-binding-id gate is relaxed: if no year is claimed we skip the
+    period filter so a binding without a year in its meaning can still be repaired
+    via stages 2 and 3.
+    """
     repaired = copy.deepcopy(plan)
     changes = []
     for binding in repaired.get("bindings", []):
@@ -691,15 +706,18 @@ def repair_non_numeric_bindings(
                 f"{binding.get('id', '')} {binding.get('meaning', '')}",
             )
         }
-        if len(claimed_years) != 1:
-            continue
-        target_year = next(iter(claimed_years))
+        target_year = next(iter(claimed_years)) if len(claimed_years) == 1 else None
         wanted = {
             token
             for token in re.findall(r"\w+", str(binding.get("meaning", "")).casefold())
             if len(token) > 2 and not token.isdigit()
         }
-        candidates = []
+
+        def _is_numeric(v) -> bool:
+            return pd.api.types.is_number(v) and not pd.isna(v)
+
+        # Stage 1 & 2: semantic search across all frames
+        candidates: list[tuple[int, str, int, str]] = []
         for candidate_variable, candidate_frame in frames.items():
             row_texts = [
                 " ".join(
@@ -709,45 +727,57 @@ def repair_non_numeric_bindings(
                 )
                 for _, row in candidate_frame.iterrows()
             ]
-            row_scores = [
-                len(wanted & set(re.findall(r"\w+", text))) for text in row_texts
-            ]
+            row_scores = [len(wanted & set(re.findall(r"\w+", text))) for text in row_texts]
             for candidate_column in candidate_frame.columns:
-                candidate_binding = {
-                    "variable": candidate_variable,
-                    "column": str(candidate_column),
-                }
-                if _binding_period_year(candidate_binding, table_ids) != target_year:
+                cand_binding = {"variable": candidate_variable, "column": str(candidate_column)}
+                period = _binding_period_year(cand_binding, table_ids)
+                if target_year is not None and period != target_year:
                     continue
                 for candidate_row, score in enumerate(row_scores):
-                    candidate_value = candidate_frame.iloc[candidate_row][candidate_column]
-                    if (
-                        score >= 3
-                        and pd.api.types.is_number(candidate_value)
-                        and not pd.isna(candidate_value)
-                    ):
-                        candidates.append(
-                            (
-                                score,
-                                candidate_variable,
-                                candidate_row,
-                                str(candidate_column),
-                            )
-                        )
-        if not candidates:
-            continue
-        best_score = max(candidate[0] for candidate in candidates)
-        best = [candidate for candidate in candidates if candidate[0] == best_score]
-        if len(best) != 1:
-            continue
-        _, new_variable, new_row, new_column = best[0]
-        changes.append(
-            f"{binding.get('id')}: non-numeric {variable}.row {row_index} "
-            f"-> {new_variable}.row {new_row}, column {new_column!r}"
-        )
-        binding["variable"] = new_variable
-        binding["row_index"] = new_row
-        binding["column"] = new_column
+                    if score >= 1 and _is_numeric(candidate_frame.iloc[candidate_row][candidate_column]):
+                        candidates.append((score, candidate_variable, candidate_row, str(candidate_column)))
+
+        # Filter to score >= 3 first; fall back to score >= 1 if nothing found
+        strong = [c for c in candidates if c[0] >= 3]
+        pool = strong if strong else candidates
+
+        new_variable, new_row, new_column = variable, row_index, column
+        found = False
+        if pool:
+            best_score = max(c[0] for c in pool)
+            best = [c for c in pool if c[0] == best_score]
+            # Tie-break: prefer same variable, then closest row
+            same_var = [c for c in best if c[1] == variable]
+            finalists = same_var if same_var else best
+            if len(finalists) == 1:
+                _, new_variable, new_row, new_column = finalists[0]
+                found = True
+            elif len(finalists) > 1:
+                # Pick the one nearest the original row_index
+                _, new_variable, new_row, new_column = min(
+                    finalists, key=lambda c: abs(c[2] - row_index)
+                )
+                found = True
+
+        # Stage 3: fallback — nearest numeric cell in same column, same frame
+        if not found and column in frame.columns:
+            for offset in range(1, min(6, len(frame))):
+                for candidate_row in (row_index - offset, row_index + offset):
+                    if 0 <= candidate_row < len(frame) and _is_numeric(frame.iloc[candidate_row][column]):
+                        new_row = candidate_row
+                        found = True
+                        break
+                if found:
+                    break
+
+        if found and (new_variable, new_row, new_column) != (variable, row_index, column):
+            changes.append(
+                f"{binding.get('id')}: non-numeric {variable}.row {row_index} "
+                f"-> {new_variable}.row {new_row}, column {new_column!r}"
+            )
+            binding["variable"] = new_variable
+            binding["row_index"] = new_row
+            binding["column"] = new_column
     return repaired, changes
 
 

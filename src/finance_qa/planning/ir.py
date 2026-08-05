@@ -370,6 +370,20 @@ def repair_binding_alignment(
     return repaired, changes
 
 
+_UNIT_SUFFIX_RE = re.compile(
+    r"\s*(?:VND|Triệu VND|Nghìn VND|Tỷ VND|Triệu đồng|Nghìn đồng|%/năm|/năm)\s*$",
+    re.IGNORECASE,
+)
+
+
+def _col_key(col: str) -> str:
+    """Strip trailing unit annotation, collapse whitespace, casefold.
+
+    Keeps year numbers intact so "31/12/2022" never matches "31/12/2023 VND".
+    """
+    return re.sub(r"\s+", " ", _UNIT_SUFFIX_RE.sub("", col).strip()).casefold()
+
+
 def repair_binding_column(
     plan: dict[str, Any], frames: dict[str, pd.DataFrame]
 ) -> tuple[dict[str, Any], list[str]]:
@@ -381,9 +395,14 @@ def repair_binding_column(
     Exact-match validation then rejects the binding and the whole plan falls back
     to unguarded direct code, losing the unit and order repairs.
 
-    Only rebind when exactly one column carries that leaf: an ambiguous leaf is a
-    real choice the model must make, so it is left to fail into the repair loop
-    rather than guessed here.
+    Three matching passes, each only applied when exactly one column matches:
+    1. Leaf exact match (original behaviour).
+    2. Full-name unit-normalised match: strips trailing unit suffix before
+       comparing, so "Số cuối năm" matches "Số cuối năm VND".
+    3. Leaf unit-normalised match: same normalisation but on the last ' | '
+       segment only.
+
+    Ambiguous matches (> 1 candidate) are always left to the LLM repair loop.
     """
     repaired = copy.deepcopy(plan)
     bindings = repaired.get("bindings")
@@ -400,15 +419,29 @@ def repair_binding_column(
         df = frames[variable]
         if column in df.columns:
             continue
-        want = column.strip().casefold()
-        matches = [
-            c
-            for c in df.columns
-            if isinstance(c, str) and c.rsplit(" | ", 1)[-1].strip().casefold() == want
-        ]
+
+        str_cols = [c for c in df.columns if isinstance(c, str)]
+        want_exact = column.strip().casefold()
+
+        # Pass 1: leaf exact match
+        matches = [c for c in str_cols if c.rsplit(" | ", 1)[-1].strip().casefold() == want_exact]
+        label = "leaf match"
+
+        # Pass 2: full-name unit-normalised
+        if len(matches) != 1:
+            want_key = _col_key(column)
+            matches = [c for c in str_cols if _col_key(c) == want_key]
+            label = "unit-norm match"
+
+        # Pass 3: leaf unit-normalised
+        if len(matches) != 1:
+            want_leaf_key = _col_key(column.rsplit(" | ", 1)[-1])
+            matches = [c for c in str_cols if _col_key(c.rsplit(" | ", 1)[-1]) == want_leaf_key]
+            label = "leaf unit-norm match"
+
         if len(matches) == 1:
             changes.append(
-                f"{binding.get('id')}: column {column!r} -> {matches[0]!r} (leaf match)"
+                f"{binding.get('id')}: column {column!r} -> {matches[0]!r} ({label})"
             )
             binding["column"] = matches[0]
     return repaired, changes

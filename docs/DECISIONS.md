@@ -1,7 +1,7 @@
 # DECISIONS — ViFinQA Stage 2
 
 Sổ ghi quyết định (decision log). Ghi *đã quyết cái gì*, *vì sao*, và *hoãn cái gì cho tương lai*.
-Cập nhật gần nhất: **2026-08-04**.
+Cập nhật gần nhất: **2026-08-05**.
 
 ---
 
@@ -380,14 +380,21 @@ Local gold = 24 câu, 9 đúng / 6 sai (trong đó 2 = planner error không sinh
 | `src/finance_qa/planning/generator.py::PROMPT` | +1 rule: fallback xác định df→công ty bằng ticker csv_path | order fix cho fallback path |
 | `src/finance_qa/planning/generator.py::generate()` | Sort table_ids by table_pos ascending trước khi gán df1..dfN | bảng chính (pos thấp) → df1/df2; note (pos cao) → cuối list |
 
-**Kết quả test trên 4 câu sai (gold-24)**:
+**Kết quả test trên 4 câu sai (gold-24)** *(sample=4, chưa đủ để tổng quát — đo lại trên leaderboard)*:
 - qid=754 ✅ FIXED: 156,680,339 → **116,644,397** đúng — sort đưa `|32`,`|33` (liability BS) lên df1/df2
 - qid=582 ✗ Tiến bộ một nửa: 2021 dùng đúng `|4` (liability BS, row 9), nhưng 2023 `|4` không có trong pool → vẫn sai
 - qid=752 ✗ Gần hơn nhưng sai: pool chỉ có `|78`,`|91` (note); retrieval miss không sửa được bằng prompt
 - qid=605 ✗ Không đổi: pool chỉ có 2 note tables, BS không được retrieve
 
-**Kết luận từ test**: sort table_pos giúp 1/4 câu (25%); 3 câu còn lại là retrieval miss —
-bảng chính không vào được pool. Retrieval quality là bottleneck tiếp theo.
+**Kết luận từ test**: sort table_pos giúp 1/4 câu (25%); **3/4 câu sai là retrieval miss — prompt rules
+không giải quyết được root cause**. Prompt rules chỉ có ích khi bảng đúng đã ở trong pool.
+Retrieval quality là bottleneck thật của 3 câu này.
+
+**Giới hạn của prompt rules (ghi để không lặp lại)**:
+- Rule "dấu hiệu bảng note" dùng ví dụ ngành ngân hàng ("các loại hình vay", "Lãi suất bình quân") —
+  hơi sector-specific; các ngành khác có note với cột tên khác. Signal chung hơn: tên cột đơn giản
+  ("Số cuối năm", "Năm nay") = bảng chính; tên cột phức tạp/kép = note.
+- Rule "tổng hợp = dòng đầu" đúng cho phần lớn bảng; một số bảng có tổng ở cuối (dòng "Cộng").
 
 ### 9e. Kế hoạch tiếp theo
 
