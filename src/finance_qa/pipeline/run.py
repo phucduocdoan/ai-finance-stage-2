@@ -100,6 +100,8 @@ def run_question(
     judge_thinking: bool = True,
     plan_thinking: bool = False,
     verify_fallback: bool = False,
+    use_planner: bool = True,
+    use_simple: bool = False,
 ) -> dict[str, Any]:
     """One question through judge -> planner -> item -> validate.
 
@@ -144,6 +146,8 @@ def run_question(
             thinking=plan_thinking,
             verify=verify_fallback,
             review_thinking=plan_thinking,
+            use_planner=use_planner,
+            use_simple=use_simple,
         )
     except Exception as exc:  # noqa: BLE001 - reported per stage, run continues
         record["plan_seconds"] = round(time.monotonic() - plan_started, 3)
@@ -283,6 +287,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="semantic review when the planner falls back to direct code",
     )
     parser.add_argument(
+        "--no-planner",
+        action="store_true",
+        help="skip planner DSL entirely, go straight to REPL for every question",
+    )
+    parser.add_argument(
+        "--simple",
+        action="store_true",
+        help="use simple chat-loop solver (finance_qa/simple/solver.py)",
+    )
+    parser.add_argument(
         "--dense-backend",
         default="bge-m3",
         choices=list(EMBEDDING_BACKENDS),
@@ -395,6 +409,8 @@ def main(argv: list[str] | None = None) -> int:
                             judge_thinking=not args.no_judge_thinking,
                             plan_thinking=args.thinking,
                             verify_fallback=args.verify_fallback,
+                            use_planner=not args.no_planner,
+                            use_simple=args.simple,
                         ): question
                         for question, candidate_pool in zip(chunk, pools)
                     }
@@ -425,6 +441,7 @@ def main(argv: list[str] | None = None) -> int:
         "judge_thinking": not args.no_judge_thinking,
         "planner_thinking": bool(args.thinking),
         "verify_fallback": bool(args.verify_fallback),
+        "use_planner": not args.no_planner,
         "dense_backend": args.dense_backend,
         "reranker": args.reranker,
         "judge_top_n": args.judge_top_n,

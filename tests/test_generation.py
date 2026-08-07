@@ -9,18 +9,19 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.planning.generator import (
-    parse_query,
-    plan_contract_errors,
-    plan_order_errors,
+from finance_qa.planning.repairs import (
     repair_plan_order,
     repair_plan_output_unit,
     repair_non_numeric_bindings,
     repair_prior_year_coverage,
     repair_select_answer_periods,
+)
+from finance_qa.planning.validators import (
+    binding_concept_errors,
+    plan_contract_errors,
+    plan_order_errors,
     semantic_errors,
 )
-from finance_qa.planning.concepts import binding_concept_errors
 from finance_qa.preprocessing.questions import detect_unit
 
 
@@ -86,16 +87,6 @@ check(
     any("2017" in e and "2019" in e for e in contract_errors),
 )
 
-check(
-    "free-form prose is not parsed as pandas",
-    parse_query("The query is probably correct.\nBut use another column.") == "",
-)
-check(
-    "JSON pandas expression is parsed",
-    parse_query('{"pandas_query": "float(df1.iloc[0][\\"2022\\"])"}')
-    == 'float(df1.iloc[0]["2022"])',
-)
-
 # Unit extraction is shared metadata, not a question-specific planner rule.
 check(
     "ratio word is not billion currency",
@@ -153,7 +144,7 @@ check(
     "nested multi-year shortcut rejected",
     any(
         "phép chọn max" in error
-        for error in semantic_errors(q363, "df1.iloc[0]['2020']", 1.0, {})
+        for error in semantic_errors(q363, "df1.iloc[0]['2020']", {})
     ),
 )
 check(
@@ -161,7 +152,6 @@ check(
     not semantic_errors(
         q363,
         "pd.Series([df1.iloc[0]['2019'], df1.iloc[0]['2020']]).idxmax()",
-        1.0,
         {},
     ),
 )

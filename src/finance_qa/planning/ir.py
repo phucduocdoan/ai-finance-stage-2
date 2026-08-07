@@ -1,179 +1,95 @@
-"""Validated intermediate representation between a question and pandas code.
+"""Core intermediate representation: plan schema, unit system, compile_plan.
 
 The LLM does two jobs only:
-
 1. bind semantic quantities to concrete cells in the retrieved DataFrames;
 2. express the calculation over symbolic binding names.
 
-It never writes pandas.  ``compile_plan`` validates every row/column coordinate
+It never writes pandas. ``compile_plan`` validates every row/column coordinate
 and compiles a deliberately small formula language to one pandas expression.
-This keeps planning general (lookup through filtered/nested analytics) while
-making hallucinated columns and unsafe code fail before execution.
 """
 
 from __future__ import annotations
 
 import ast
-import copy
 import json
 import re
-import unicodedata
 from typing import Any
 
 import pandas as pd
 
-
-PLAN_PROMPT = """Bạn lập kế hoạch tính toán để trả lời câu hỏi tài chính từ các DataFrame.
-
-CÂU HỎI: {question}
-
-CÁC BẢNG (số ở lề trái là row_index dùng trong binding):
-{tables}
-
-Trả về một JSON object theo schema:
-{{
-  "bindings": [
-    {{
-      "id": "tên_gợi_nhớ",
-      "variable": "df1",
-      "row_index": 0,
-      "column": "tên cột chính xác",
-      "source_unit": "vnd",
-      "meaning": "ý nghĩa ngắn gọn"
-    }}
-  ],
-  "formula": "biểu thức trên các binding",
-  "output_unit": "million_vnd",
-  "explanation": "một câu kiểm tra logic"
-}}
-
-Ngôn ngữ formula:
-- Toán tử: +, -, *, /, **; so sánh >, >=, <, <=, ==; `and`, `or`, `not`.
-- Hàm scalar/list: abs(x), sum([...]), mean([...]), median([...]), min([...]), max([...]).
-- Chọn nhãn: argmax({{"2021": x, "2022": y}}), argmin({{...}}).
-- Lấy kết quả theo nhãn: select(key, {{"2021": a, "2022": b}}).
-- Lọc: mean_where([values], [conditions]), sum_where, min_where, max_where.
-- Argmax có lọc: argmax_where({{"A": x, "B": y}}, {{"A": cond_a, "B": cond_b}})
-  (tương tự argmin_where).
-- Đếm điều kiện đúng: count_true([conditions]).
-
-Ví dụ cấu trúc (chỉ minh hoạ, không phải dữ liệu câu hỏi):
-- lookup đổi ra triệu: bindings=[revenue], formula="revenue", output_unit="million_vnd"
-- tăng trưởng: bindings=[old, new], formula="(new - old) / old * 100"
-- trung bình tiền tệ: formula="mean([v2021, v2022])", output_unit="billion_vnd"
-- lồng argmax rồi lấy chỉ tiêu khác:
-  formula="select(argmax({{'2021': rank_2021, '2022': rank_2022}}),
-                  {{'2021': answer_2021, '2022': answer_2022}})"
-
-Ràng buộc:
-- `id` là snake_case duy nhất. `variable`, `row_index`, `column` phải tồn tại đúng như bảng.
-- `row_index` LUÔN là số ở LỀ TRÁI DataFrame (0, 1, 2...), không phải giá trị trong
-  cột Mã số. Ví dụ Mã số 300 nằm ở lề trái 0 thì row_index là 0, tuyệt đối không phải 300.
-- Mỗi binding phải có `source_unit`: vnd, million_vnd, billion_vnd, percent,
-  percentage_point, count, ratio hoặc year.
-- Plan phải có `output_unit`: vnd, million_vnd, billion_vnd, hundred_billion_vnd,
-  trillion_vnd, percent, percentage_point, count, ratio hoặc year.
-- Formula KHÔNG tự chia 1e6/1e9/1e11/1e12. Compiler tự chuẩn hoá tiền về VND từ
-  source_unit rồi đổi sang output_unit đúng một lần.
-- Cột `Mã số`, `Thuyết minh`, `TM`, STT thường là mã tham chiếu, không phải số tiền.
-- Với báo cáo năm Y, các cột `Năm nay`/`Số cuối năm` thường là Y và
-  `Năm trước`/`Số đầu năm` thường là Y-1. Phải tận dụng cột so sánh để bao phủ
-  đủ mọi năm trong một giai đoạn, không mặc định mỗi bảng chỉ có một năm.
-- Chỉ binding những ô thực sự cần. Không chép giá trị ô hoặc đáp án thành hằng số.
-- Hằng số trong formula chỉ dùng cho bản thân công thức, ví dụ nhân 100 khi tính
-  phần trăm. Không dùng 1e6/1e9/1e11/1e12 để đổi đơn vị tiền trong formula.
-- Với câu hỏi lồng/lọc, formula phải thể hiện đủ bước lọc/chọn; không nhảy thẳng tới kết quả.
-- `trung bình` phải dùng mean; `tổng` dùng sum; tăng trưởng dùng (mới-cũ)/cũ*100.
-- Với "chênh lệch A so với B" hoặc "giữa A và B", giữ thứ tự xuất hiện: A - B.
-  Khi câu hỏi có nhiều công ty, xác định df nào ứng với công ty nào bằng ticker
-  đầu tên bảng (ký tự trước dấu '_' đầu tiên trong tên bảng hiển thị ở header).
-  Đặt `id` binding theo ticker: `acb_revenue_2022`, `mbb_service_net_2022`.
-  Điều này giúp kiểm tra thứ tự trừ: binding ticker_A - binding ticker_B.
-- Ưu tiên bảng báo cáo chính cho chỉ tiêu tổng hợp: bảng cân đối kế toán,
-  báo cáo kết quả kinh doanh, lưu chuyển tiền tệ thường có tiêu đề in hoa như
-  "BẢNG CÂN ĐỐI", "KẾT QUẢ KINH DOANH", "LƯU CHUYỂN". Các bảng thuyết minh
-  (note) có chỉ tiêu phân tích chi tiết, không phải con số tổng cuối cùng.
-  Dấu hiệu bảng note: tiêu đề có "Thuyết minh", "phân tích", nhiều hàng phân mục
-  (các loại hình vay, ngành nghề, tài sản thế chấp…), tên cột phức tạp như
-  "Giá trị ghi sổ/Số có khả năng trả nợ", "Lãi suất bình quân".
-  Khi cùng một chỉ tiêu xuất hiện ở cả bảng chính lẫn bảng note, luôn lấy từ
-  bảng chính (tên cột đơn giản: "Số cuối năm", "Năm nay", "31/12/20XX").
-- Với bảng phân loại chi tiết (nhiều hàng phân mục con), giá trị tổng hợp
-  thường là dòng đầu tiên (row_index=0 hoặc 1) hoặc dòng có nhãn "Cộng"/
-  "Tổng cộng". Không dùng row_index của một hàng phân mục làm đại diện tổng.
-
-Formula registry tài chính chung (khi đúng ngữ cảnh báo cáo chính):
-- tỷ suất lợi nhuận ròng = LNST / doanh thu thuần * 100 (mã số 60 / 10)
-- D/E = nợ phải trả / vốn chủ sở hữu (mã số 300 / 400)
-- khả năng thanh toán lãi vay = (lợi nhuận trước thuế + abs(chi phí lãi vay)) /
-  abs(chi phí lãi vay) (mã số 50 và 23)
-- hệ số thanh toán hiện hành = tài sản ngắn hạn / nợ ngắn hạn (mã số 100 / 310)
-- vốn cổ phần = vốn góp của chủ sở hữu/cổ phiếu theo mệnh giá; không phải tổng
-  vốn chủ sở hữu và không phải thặng dư vốn cổ phần
-
-Chỉ in JSON, không markdown."""
+from finance_qa.paths import QUESTION_METADATA_PATH
 
 
-PLAN_REPAIR = """Kế hoạch vừa rồi không hợp lệ.
-
-KẾ HOẠCH HIỆN TẠI (đã qua các sửa chữa deterministic; giữ nguyên mọi phần
-không liên quan trực tiếp tới lỗi):
-{previous_plan}
-
-LỖI:
-{errors}
-
-Trả về TOÀN BỘ JSON plan sau khi chỉ sửa binding/formula gây lỗi. Không dựng lại
-các binding đã hợp lệ và không đổi row/column của phần không bị nêu trong lỗi.
-Chỉ in JSON đúng schema."""
-
+# ---------------------------------------------------------------------------
+# Unit system
+# ---------------------------------------------------------------------------
 
 SOURCE_UNITS = {
-    "vnd",
-    "million_vnd",
-    "billion_vnd",
-    "percent",
-    "percentage_point",
-    "count",
-    "ratio",
-    "year",
+    "vnd", "million_vnd", "billion_vnd", "percent", "percentage_point",
+    "count", "ratio", "year",
 }
 
 OUTPUT_UNITS = SOURCE_UNITS | {"hundred_billion_vnd", "trillion_vnd"}
 
 SOURCE_MULTIPLIERS = {
-    "vnd": 1.0,
-    "million_vnd": 1e6,
-    "billion_vnd": 1e9,
-    "percent": 1.0,
-    "percentage_point": 1.0,
-    "count": 1.0,
-    "ratio": 1.0,
-    "year": 1.0,
+    "vnd": 1.0, "million_vnd": 1e6, "billion_vnd": 1e9,
+    "percent": 1.0, "percentage_point": 1.0, "count": 1.0, "ratio": 1.0, "year": 1.0,
 }
 
 OUTPUT_DIVISORS = {
-    "vnd": 1.0,
-    "million_vnd": 1e6,
-    "billion_vnd": 1e9,
-    "hundred_billion_vnd": 1e11,
-    "trillion_vnd": 1e12,
-    "percent": 1.0,
-    "percentage_point": 1.0,
-    "count": 1.0,
-    "ratio": 1.0,
-    "year": 1.0,
+    "vnd": 1.0, "million_vnd": 1e6, "billion_vnd": 1e9,
+    "hundred_billion_vnd": 1e11, "trillion_vnd": 1e12,
+    "percent": 1.0, "percentage_point": 1.0, "count": 1.0, "ratio": 1.0, "year": 1.0,
 }
 
-MONEY_UNITS = {
-    "vnd",
-    "million_vnd",
-    "billion_vnd",
-    "hundred_billion_vnd",
-    "trillion_vnd",
-}
+MONEY_UNITS = {"vnd", "million_vnd", "billion_vnd", "hundred_billion_vnd", "trillion_vnd"}
 MONEY_SCALES = {1e6, 1e9, 1e11, 1e12}
 
+# Maps detect_unit() hint → valid output_unit(s). Single source of truth for unit validation.
+UNIT_HINT_MAP: dict[str, set[str]] = {
+    "đồng": {"vnd"},
+    "triệu": {"million_vnd"},
+    "tỷ": {"billion_vnd"},
+    "trăm tỷ": {"hundred_billion_vnd"},
+    "nghìn tỷ": {"trillion_vnd"},
+    "phần trăm": {"percent", "percentage_point"},
+    "lần": {"ratio"},
+    "count": {"count"},
+}
+
+# Whitelist of functions the formula language exposes.
+_FUNCTIONS = {
+    "abs", "sum", "mean", "median", "min", "max",
+    "argmax", "argmin", "select",
+    "mean_where", "sum_where", "min_where", "max_where",
+    "argmax_where", "argmin_where",
+    "count_true", "true", "false",
+}
+
+
+# ---------------------------------------------------------------------------
+# Question metadata cache
+# ---------------------------------------------------------------------------
+
+_QUESTION_CONTEXTS: dict[str, dict] | None = None
+
+
+def question_context(question: str) -> dict:
+    """Return enriched metadata for a question, loaded once from disk."""
+    global _QUESTION_CONTEXTS
+    if _QUESTION_CONTEXTS is None:
+        with QUESTION_METADATA_PATH.open(encoding="utf-8") as fh:
+            _QUESTION_CONTEXTS = {
+                record["question"]: record
+                for line in fh
+                if (record := json.loads(line))
+            }
+    return _QUESTION_CONTEXTS.get(question, {})
+
+
+# ---------------------------------------------------------------------------
+# Plan parsing
+# ---------------------------------------------------------------------------
 
 def parse_plan_response(raw: str) -> dict[str, Any] | None:
     """Find the first JSON object after an optional Qwen think block."""
@@ -181,7 +97,7 @@ def parse_plan_response(raw: str) -> dict[str, Any] | None:
     decoder = json.JSONDecoder()
     for match in re.finditer(r"\{", raw):
         try:
-            value, _ = decoder.raw_decode(raw[match.start() :])
+            value, _ = decoder.raw_decode(raw[match.start():])
         except json.JSONDecodeError:
             continue
         if isinstance(value, dict):
@@ -189,13 +105,11 @@ def parse_plan_response(raw: str) -> dict[str, Any] | None:
     return None
 
 
-def _formula_names(formula: str) -> set[str]:
-    tree = ast.parse(formula, mode="eval")
-    return {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
-
+# ---------------------------------------------------------------------------
+# Plan validation
+# ---------------------------------------------------------------------------
 
 def _valid_binding_id(value: object) -> bool:
-    """Accept lowercase snake_case identifiers, including Vietnamese letters."""
     return (
         isinstance(value, str)
         and value.isidentifier()
@@ -205,482 +119,14 @@ def _valid_binding_id(value: object) -> bool:
     )
 
 
-_FUNCTIONS = {
-    "abs",
-    "sum",
-    "mean",
-    "median",
-    "min",
-    "max",
-    "argmax",
-    "argmin",
-    "select",
-    "mean_where",
-    "sum_where",
-    "min_where",
-    "max_where",
-    "argmax_where",
-    "argmin_where",
-    "count_true",
-    "true",
-    "false",
-}
-
-_QUESTION_STOPWORDS = {
-    "bao",
-    "nhiêu",
-    "của",
-    "trong",
-    "ngoài",
-    "năm",
-    "cuối",
-    "đầu",
-    "công",
-    "ty",
-    "ngân",
-    "hàng",
-    "phần",
-    "tính",
-    "giữa",
-    "với",
-    "theo",
-    "đơn",
-    "đồng",
-    "triệu",
-    "tỷ",
-    "vào",
-    "tại",
-    "được",
-    "là",
-}
-
-
-def _tokens(text: str) -> set[str]:
-    return {
-        token
-        for token in re.findall(r"\w+", text.casefold())
-        if len(token) > 2 and token not in _QUESTION_STOPWORDS
-    }
-
-
-def _binding_tokens(
-    question_tokens: set[str], binding: dict[str, Any], row_texts: list[str]
-) -> set[str]:
-    """Prefer a concrete binding meaning; fall back to the broader question.
-
-    Combining both vocabularies makes sibling components contaminate each
-    other.  For net margin, question words about ``lợi nhuận`` made the revenue
-    binding prefer a profit row.  A meaning is useful only when at least two of
-    its tokens occur together in some row; generic meanings such as ``value
-    2024`` therefore retain question-based matching.
-    """
-    meaning_tokens = _tokens(str(binding.get("meaning", "")))
-    best_meaning_overlap = max(
-        (len(meaning_tokens & _tokens(text)) for text in row_texts), default=0
-    )
-    return meaning_tokens if best_meaning_overlap >= 2 else question_tokens
-
-
-def binding_alignment_errors(
-    question: str,
-    plan: dict[str, Any],
-    frames: dict[str, pd.DataFrame],
-) -> list[str]:
-    """Flag a selected row when another row matches the question much better.
-
-    This is an audit signal, not an automatic rewrite. It catches semantic slips
-    such as selecting "Thu nhập lãi thuần" when the question says "Lãi thuần từ
-    hoạt động dịch vụ", then gives the planner concrete alternative row indices.
-    Derived metrics whose row labels are absent from the question are left alone.
-    """
-    question_tokens = _tokens(question)
-    if not question_tokens:
-        return []
-    errors = []
-    for binding in plan.get("bindings", []):
-        if not isinstance(binding, dict) or binding.get("variable") not in frames:
-            continue
-        row_index = binding.get("row_index")
-        df = frames[binding["variable"]]
-        if not isinstance(row_index, int) or not 0 <= row_index < len(df):
-            continue
-        row_texts = [
-            " ".join(str(value) for value in row if isinstance(value, str))
-            for _, row in df.iterrows()
-        ]
-        wanted = _binding_tokens(question_tokens, binding, row_texts)
-        selected_text = row_texts[row_index]
-        if "tổng" in question.casefold() and selected_text.strip().casefold() in {"cộng", "tổng"}:
-            continue
-        scores = [len(wanted & _tokens(text)) for text in row_texts]
-        selected_score = scores[row_index]
-        best_score = max(scores, default=0)
-        if best_score < 3 or best_score < selected_score + 2:
-            continue
-        alternatives = sorted(range(len(df)), key=lambda pos: scores[pos], reverse=True)[:3]
-        rendered = "; ".join(
-            f"row {pos} (score {scores[pos]}): {row_texts[pos][:120]!r}"
-            for pos in alternatives
-        )
-        errors.append(
-            f"binding {binding.get('id')!r} chọn row {row_index} chỉ khớp "
-            f"{selected_score} từ, có dòng khớp {best_score} từ: {rendered}"
-        )
-    return errors
-
-
-def repair_binding_alignment(
-    question: str,
-    plan: dict[str, Any],
-    frames: dict[str, pd.DataFrame],
-) -> tuple[dict[str, Any], list[str]]:
-    """Move a binding only when one alternative row is uniquely much stronger."""
-    question_tokens = _tokens(question)
-    repaired = copy.deepcopy(plan)
-    changes = []
-    for binding in repaired.get("bindings", []):
-        if not isinstance(binding, dict) or binding.get("variable") not in frames:
-            continue
-        row_index = binding.get("row_index")
-        df = frames[binding["variable"]]
-        if not isinstance(row_index, int) or not 0 <= row_index < len(df):
-            continue
-        row_texts = [
-            " ".join(str(value) for value in row if isinstance(value, str))
-            for _, row in df.iterrows()
-        ]
-        wanted = _binding_tokens(question_tokens, binding, row_texts)
-        selected_text = row_texts[row_index]
-        if "tổng" in question.casefold() and selected_text.strip().casefold() in {"cộng", "tổng"}:
-            continue
-        scores = [len(wanted & _tokens(text)) for text in row_texts]
-        best_score = max(scores, default=0)
-        best_rows = [pos for pos, score in enumerate(scores) if score == best_score]
-        if (
-            len(best_rows) == 1
-            and best_score >= 3
-            and best_score >= scores[row_index] + 2
-        ):
-            best = best_rows[0]
-            changes.append(
-                f"{binding.get('id')}: row {row_index} -> {best} "
-                f"(lexical score {scores[row_index]} -> {best_score})"
-            )
-            binding["row_index"] = best
-    return repaired, changes
-
-
-_UNIT_SUFFIX_RE = re.compile(
-    r"\s*(?:VND|Triệu VND|Nghìn VND|Tỷ VND|Triệu đồng|Nghìn đồng|%/năm|/năm)\s*$",
-    re.IGNORECASE,
-)
-
-
-def _col_key(col: str) -> str:
-    """Strip trailing unit annotation, collapse whitespace, casefold.
-
-    Keeps year numbers intact so "31/12/2022" never matches "31/12/2023 VND".
-    """
-    return re.sub(r"\s+", " ", _UNIT_SUFFIX_RE.sub("", col).strip()).casefold()
-
-
-def repair_binding_column(
-    plan: dict[str, Any], frames: dict[str, pd.DataFrame]
-) -> tuple[dict[str, Any], list[str]]:
-    """Rebind a column the model named by its leaf to the flattened header.
-
-    `load_frame` joins a hierarchical header with ' | ' (e.g. a "Số cuối năm"
-    group over a "Số cuối năm" closing column becomes 'Số cuối năm | Số cuối
-    năm'), but the model names the leaf it reads off the page ('Số cuối năm').
-    Exact-match validation then rejects the binding and the whole plan falls back
-    to unguarded direct code, losing the unit and order repairs.
-
-    Three matching passes, each only applied when exactly one column matches:
-    1. Leaf exact match (original behaviour).
-    2. Full-name unit-normalised match: strips trailing unit suffix before
-       comparing, so "Số cuối năm" matches "Số cuối năm VND".
-    3. Leaf unit-normalised match: same normalisation but on the last ' | '
-       segment only.
-
-    Ambiguous matches (> 1 candidate) are always left to the LLM repair loop.
-    """
-    repaired = copy.deepcopy(plan)
-    bindings = repaired.get("bindings")
-    if not isinstance(bindings, list):
-        return plan, []
-    changes = []
-    for binding in bindings:
-        if not isinstance(binding, dict):
-            continue
-        variable = binding.get("variable")
-        column = binding.get("column")
-        if variable not in frames or not isinstance(column, str):
-            continue
-        df = frames[variable]
-        if column in df.columns:
-            continue
-
-        str_cols = [c for c in df.columns if isinstance(c, str)]
-        want_exact = column.strip().casefold()
-
-        # Pass 1: leaf exact match
-        matches = [c for c in str_cols if c.rsplit(" | ", 1)[-1].strip().casefold() == want_exact]
-        label = "leaf match"
-
-        # Pass 2: full-name unit-normalised
-        if len(matches) != 1:
-            want_key = _col_key(column)
-            matches = [c for c in str_cols if _col_key(c) == want_key]
-            label = "unit-norm match"
-
-        # Pass 3: leaf unit-normalised
-        if len(matches) != 1:
-            want_leaf_key = _col_key(column.rsplit(" | ", 1)[-1])
-            matches = [c for c in str_cols if _col_key(c.rsplit(" | ", 1)[-1]) == want_leaf_key]
-            label = "leaf unit-norm match"
-
-        if len(matches) == 1:
-            changes.append(
-                f"{binding.get('id')}: column {column!r} -> {matches[0]!r} ({label})"
-            )
-            binding["column"] = matches[0]
-    return repaired, changes
-
-
-def prune_unused_bindings(plan: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
-    """Remove planner scratch bindings that the final symbolic formula does not use."""
-    formula = plan.get("formula")
-    if not isinstance(formula, str):
-        return plan, []
-    try:
-        used = _formula_names(formula)
-    except SyntaxError:
-        return plan, []
-    repaired = copy.deepcopy(plan)
-    before = repaired.get("bindings", [])
-    if not isinstance(before, list):
-        return plan, []
-    after = [binding for binding in before if binding.get("id") in used]
-    removed = [binding.get("id") for binding in before if binding.get("id") not in used]
-    repaired["bindings"] = after
-    return repaired, [f"removed unused binding {binding_id}" for binding_id in removed]
-
-
-def _fold_identifier(value: str) -> str:
-    value = value.replace("đ", "d").replace("Đ", "D")
-    return "".join(
-        char
-        for char in unicodedata.normalize("NFKD", value)
-        if not unicodedata.combining(char)
-    ).casefold()
-
-
-def repair_formula_binding_names(
-    plan: dict[str, Any],
-) -> tuple[dict[str, Any], list[str]]:
-    """Resolve formula/binding identifiers that differ only by diacritics."""
-    formula = plan.get("formula")
-    if not isinstance(formula, str):
-        return plan, []
-    binding_ids = {
-        binding.get("id")
-        for binding in plan.get("bindings", [])
-        if isinstance(binding.get("id"), str)
-    }
-    by_folded: dict[str, list[str]] = {}
-    for binding_id in binding_ids:
-        by_folded.setdefault(_fold_identifier(binding_id), []).append(binding_id)
-    try:
-        tree = ast.parse(formula, mode="eval")
-    except SyntaxError:
-        return plan, []
-
-    changes = []
-
-    class NameRepair(ast.NodeTransformer):
-        def visit_Name(self, node: ast.Name) -> ast.AST:  # noqa: N802
-            if node.id in binding_ids or node.id in _FUNCTIONS:
-                return node
-            candidates = by_folded.get(_fold_identifier(node.id), [])
-            if len(candidates) != 1:
-                return node
-            replacement = candidates[0]
-            changes.append(f"formula id {node.id!r} -> {replacement!r}")
-            return ast.copy_location(ast.Name(id=replacement, ctx=node.ctx), node)
-
-    repaired_tree = NameRepair().visit(tree)
-    if not changes:
-        return plan, []
-    ast.fix_missing_locations(repaired_tree)
-    repaired = copy.deepcopy(plan)
-    repaired["formula"] = ast.unparse(repaired_tree)
-    return repaired, changes
-
-
-def repair_repeated_select_answers(
-    plan: dict[str, Any],
-) -> tuple[dict[str, Any], list[str]]:
-    """Turn a repeated answer map into an assertion for its claimed period.
-
-    ``select(argmax(ranks), {'2017': answer_2022, ..., '2022': answer_2022})``
-    only pretends to depend on argmax.  If every answer expression is identical
-    and its bindings claim exactly one year, retain only that key.  Selection
-    then succeeds only when the computed key is genuinely that year.
-    """
-    formula = plan.get("formula")
-    if not isinstance(formula, str):
-        return plan, []
-    try:
-        tree = ast.parse(formula, mode="eval")
-    except SyntaxError:
-        return plan, []
-    body = tree.body
-    if not (
-        isinstance(body, ast.Call)
-        and isinstance(body.func, ast.Name)
-        and body.func.id == "select"
-        and len(body.args) == 2
-        and isinstance(body.args[1], ast.Dict)
-        and len(body.args[1].values) > 1
-    ):
-        return plan, []
-    answer_map = body.args[1]
-    dumps = {ast.dump(value, include_attributes=False) for value in answer_map.values}
-    if len(dumps) != 1:
-        return plan, []
-
-    by_id = {binding.get("id"): binding for binding in plan.get("bindings", [])}
-    answer_names = {
-        node.id for node in ast.walk(answer_map.values[0]) if isinstance(node, ast.Name)
-    }
-    claimed_years = {
-        int(year)
-        for name in answer_names
-        for year in re.findall(
-            r"\b(20\d{2})\b",
-            f"{name} {by_id.get(name, {}).get('meaning', '')}",
-        )
-    }
-    if len(claimed_years) != 1:
-        return plan, []
-    claimed_key = str(next(iter(claimed_years)))
-    matching = [
-        index
-        for index, key in enumerate(answer_map.keys)
-        if isinstance(key, ast.Constant) and str(key.value) == claimed_key
-    ]
-    if len(matching) != 1:
-        return plan, []
-    index = matching[0]
-    answer_map.keys = [answer_map.keys[index]]
-    answer_map.values = [answer_map.values[index]]
-    repaired = copy.deepcopy(plan)
-    repaired["formula"] = ast.unparse(tree)
-    return repaired, [f"select answer map restricted to claimed year {claimed_key}"]
-
-
-def _expression_claimed_years(
-    expression: ast.AST, bindings: dict[str, dict[str, Any]]
-) -> set[int]:
-    names = {node.id for node in ast.walk(expression) if isinstance(node, ast.Name)}
-    return {
-        int(year)
-        for name in names
-        for year in re.findall(
-            r"\b(20\d{2})\b",
-            f"{name} {bindings.get(name, {}).get('meaning', '')}",
-        )
-    }
-
-
-def repair_select_answer_years(
-    plan: dict[str, Any],
-) -> tuple[dict[str, Any], list[str]]:
-    """Drop select branches whose key contradicts the answer binding period."""
-    formula = plan.get("formula")
-    if not isinstance(formula, str):
-        return plan, []
-    try:
-        tree = ast.parse(formula, mode="eval")
-    except SyntaxError:
-        return plan, []
-    body = tree.body
-    if not (
-        isinstance(body, ast.Call)
-        and isinstance(body.func, ast.Name)
-        and body.func.id == "select"
-        and len(body.args) == 2
-        and isinstance(body.args[1], ast.Dict)
-    ):
-        return plan, []
-    bindings = {
-        binding.get("id"): binding
-        for binding in plan.get("bindings", [])
-        if isinstance(binding, dict)
-    }
-    answer_map = body.args[1]
-    keep = []
-    removed = []
-    for index, (key, value) in enumerate(zip(answer_map.keys, answer_map.values)):
-        if not isinstance(key, ast.Constant):
-            keep.append(index)
-            continue
-        key_years = {int(year) for year in re.findall(r"\b(20\d{2})\b", str(key.value))}
-        claimed_years = _expression_claimed_years(value, bindings)
-        if key_years and claimed_years and key_years.isdisjoint(claimed_years):
-            removed.append(str(key.value))
-        else:
-            keep.append(index)
-    if not removed or not keep:
-        return plan, []
-    answer_map.keys = [answer_map.keys[index] for index in keep]
-    answer_map.values = [answer_map.values[index] for index in keep]
-    repaired = copy.deepcopy(plan)
-    repaired["formula"] = ast.unparse(tree)
-    return repaired, ["removed select branches with mismatched answer years: " + ", ".join(removed)]
-
-
-def _selection_dependency_errors(
-    tree: ast.AST, bindings: dict[str, dict[str, Any]]
-) -> list[str]:
-    """Reject a select whose many branches are the identical expression."""
-    body = tree.body if isinstance(tree, ast.Expression) else tree
-    if not (
-        isinstance(body, ast.Call)
-        and isinstance(body.func, ast.Name)
-        and body.func.id == "select"
-        and len(body.args) == 2
-        and isinstance(body.args[1], ast.Dict)
-        and len(body.args[1].values) > 1
-    ):
-        return []
-    values = {
-        ast.dump(value, include_attributes=False) for value in body.args[1].values
-    }
-    errors = []
-    if len(values) == 1:
-        errors.append(
-            "select map lặp cùng một đáp án cho mọi key nên kết quả không thực sự "
-            "phụ thuộc bước chọn"
-        )
-    for key, value in zip(body.args[1].keys, body.args[1].values):
-        if not isinstance(key, ast.Constant):
-            continue
-        key_years = {int(year) for year in re.findall(r"\b(20\d{2})\b", str(key.value))}
-        claimed_years = _expression_claimed_years(value, bindings)
-        if key_years and claimed_years and key_years.isdisjoint(claimed_years):
-            errors.append(
-                f"select key {key.value!r} dùng đáp án được binding gắn năm "
-                f"{sorted(claimed_years)}"
-            )
-    return errors
+def _formula_names(formula: str) -> set[str]:
+    tree = ast.parse(formula, mode="eval")
+    return {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
 
 
 def _numeric_constant(node: ast.AST) -> float | None:
-    """Return a literal number without evaluating names or arbitrary syntax."""
-    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
-        if not isinstance(node.value, bool):
-            return float(node.value)
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+        return float(node.value)
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
         value = _numeric_constant(node.operand)
         if value is not None:
@@ -697,7 +143,6 @@ def _numeric_constant(node: ast.AST) -> float | None:
 
 
 def _formula_unit_conversion_errors(tree: ast.AST, output_unit: object) -> list[str]:
-    """Reject currency scaling that would duplicate compiler conversion."""
     if output_unit not in MONEY_UNITS:
         return []
     reciprocal_scales = {1 / scale for scale in MONEY_SCALES}
@@ -707,22 +152,48 @@ def _formula_unit_conversion_errors(tree: ast.AST, output_unit: object) -> list[
         if isinstance(node.op, ast.Div):
             divisor = _numeric_constant(node.right)
             if divisor is not None and abs(divisor) in MONEY_SCALES:
-                return [
-                    "formula tự đổi đơn vị tiền; compiler đã chuẩn hoá source_unit "
-                    "và output_unit"
-                ]
+                return ["formula tự đổi đơn vị tiền; compiler đã chuẩn hoá source_unit và output_unit"]
         if isinstance(node.op, ast.Mult):
             constants = {
-                abs(value)
-                for child in (node.left, node.right)
+                abs(value) for child in (node.left, node.right)
                 if (value := _numeric_constant(child)) is not None
             }
             if constants & (MONEY_SCALES | reciprocal_scales):
-                return [
-                    "formula tự đổi đơn vị tiền; compiler đã chuẩn hoá source_unit "
-                    "và output_unit"
-                ]
+                return ["formula tự đổi đơn vị tiền; compiler đã chuẩn hoá source_unit và output_unit"]
     return []
+
+
+def _selection_dependency_errors(
+    tree: ast.AST, bindings: dict[str, dict[str, Any]]
+) -> list[str]:
+    body = tree.body if isinstance(tree, ast.Expression) else tree
+    if not (
+        isinstance(body, ast.Call)
+        and isinstance(body.func, ast.Name)
+        and body.func.id == "select"
+        and len(body.args) == 2
+        and isinstance(body.args[1], ast.Dict)
+        and len(body.args[1].values) > 1
+    ):
+        return []
+    values = {ast.dump(value, include_attributes=False) for value in body.args[1].values}
+    errors = []
+    if len(values) == 1:
+        errors.append("select map lặp cùng một đáp án cho mọi key nên kết quả không thực sự phụ thuộc bước chọn")
+    for key, value in zip(body.args[1].keys, body.args[1].values):
+        if not isinstance(key, ast.Constant):
+            continue
+        key_years = {int(year) for year in re.findall(r"\b(20\d{2})\b", str(key.value))}
+        names = {node.id for node in ast.walk(value) if isinstance(node, ast.Name)}
+        claimed_years = {
+            int(year) for name in names
+            for year in re.findall(r"(?<!\d)(20\d{2})(?!\d)", f"{name} {bindings.get(name, {}).get('meaning', '')}")
+        }
+        if key_years and claimed_years and key_years.isdisjoint(claimed_years):
+            errors.append(
+                f"select key {key.value!r} dùng đáp án được binding gắn năm {sorted(claimed_years)}"
+            )
+    return errors
 
 
 def validate_plan(plan: object, frames: dict[str, pd.DataFrame]) -> list[str]:
@@ -781,16 +252,13 @@ def validate_plan(plan: object, frames: dict[str, pd.DataFrame]) -> list[str]:
             and source_unit != "million_vnd"
         ):
             errors.append(
-                f"{prefix}.column ghi Triệu nhưng source_unit={source_unit!r}, "
-                "phải là 'million_vnd'"
+                f"{prefix}.column ghi Triệu nhưng source_unit={source_unit!r}, phải là 'million_vnd'"
             )
 
     if formula:
         try:
             tree = ast.parse(formula, mode="eval")
-            names = {
-                node.id for node in ast.walk(tree) if isinstance(node, ast.Name)
-            }
+            names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
         except SyntaxError as exc:
             errors.append(f"formula sai cú pháp: {exc.msg}")
         else:
@@ -804,9 +272,15 @@ def validate_plan(plan: object, frames: dict[str, pd.DataFrame]) -> list[str]:
             if unused:
                 errors.append("bindings không được formula dùng: " + ", ".join(sorted(unused)))
             errors.extend(_formula_unit_conversion_errors(tree, output_unit))
-            errors.extend(_selection_dependency_errors(tree, {b["id"]: b for b in bindings if isinstance(b.get("id"), str)}))
+            errors.extend(_selection_dependency_errors(
+                tree, {b["id"]: b for b in bindings if isinstance(b.get("id"), str)}
+            ))
     return errors
 
+
+# ---------------------------------------------------------------------------
+# Compiler: symbolic formula → pandas expression
+# ---------------------------------------------------------------------------
 
 class _Compiler:
     """Compile the small symbolic formula language; reject every other AST node."""
@@ -831,10 +305,7 @@ class _Compiler:
         if node.id not in self.bindings:
             raise ValueError(f"tên không phải binding: {node.id}")
         binding = self.bindings[node.id]
-        cell = (
-            f"{binding['variable']}.iloc[{binding['row_index']}]"
-            f"[{binding['column']!r}]"
-        )
+        cell = f"{binding['variable']}.iloc[{binding['row_index']}][{binding['column']!r}]"
         multiplier = SOURCE_MULTIPLIERS[binding["source_unit"]]
         return cell if multiplier == 1 else f"({cell} * {multiplier!r})"
 
@@ -859,14 +330,7 @@ class _Compiler:
             raise ValueError("dict unpack không được phép")
         return "{" + ", ".join(pairs) + "}"
 
-    _BINOPS = {
-        ast.Add: "+",
-        ast.Sub: "-",
-        ast.Mult: "*",
-        ast.Div: "/",
-        ast.Pow: "**",
-        ast.Mod: "%",
-    }
+    _BINOPS = {ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.Div: "/", ast.Pow: "**", ast.Mod: "%"}
 
     def c_BinOp(self, node: ast.BinOp) -> str:
         symbol = self._BINOPS.get(type(node.op))
@@ -885,14 +349,7 @@ class _Compiler:
         symbol = " and " if isinstance(node.op, ast.And) else " or "
         return "(" + symbol.join(self.compile(x) for x in node.values) + ")"
 
-    _CMPOPS = {
-        ast.Eq: "==",
-        ast.NotEq: "!=",
-        ast.Lt: "<",
-        ast.LtE: "<=",
-        ast.Gt: ">",
-        ast.GtE: ">=",
-    }
+    _CMPOPS = {ast.Eq: "==", ast.NotEq: "!=", ast.Lt: "<", ast.LtE: "<=", ast.Gt: ">", ast.GtE: ">="}
 
     def c_Compare(self, node: ast.Compare) -> str:
         parts = [self.compile(node.left)]
@@ -926,14 +383,10 @@ class _Compiler:
             return f"{self._series(args[0], 'bool')}.sum()"
         if name in {"mean_where", "sum_where", "min_where", "max_where"} and len(args) == 2:
             method = name.removesuffix("_where")
-            values = self._series(args[0])
-            mask = self._series(args[1], "bool")
-            return f"{values}[{mask}].{method}()"
+            return f"{self._series(args[0])}[{self._series(args[1], 'bool')}].{method}()"
         if name in {"argmax_where", "argmin_where"} and len(args) == 2:
             method = "idxmax" if name == "argmax_where" else "idxmin"
-            values = self._series(args[0])
-            mask = self._series(args[1], "bool")
-            return f"{values}[{mask}].{method}()"
+            return f"{self._series(args[0])}[{self._series(args[1], 'bool')}].{method}()"
         raise ValueError(f"hàm hoặc số đối số không hợp lệ: {name}/{len(args)}")
 
 

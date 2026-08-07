@@ -23,12 +23,18 @@ server belongs to another project; keep concurrency modest.
 from __future__ import annotations
 
 import json
+import os
 import re
 import urllib.error
 import urllib.request
 
-ENDPOINT = "http://127.0.0.1:8990/v1/chat/completions"
-MODEL = "Qwen/Qwen3-8B-Instruct"
+# Override via env to switch backend without touching code:
+#   LLM_ENDPOINT=https://api.deepinfra.com/v1/openai/chat/completions
+#   LLM_MODEL=Qwen/Qwen3-14B
+#   LLM_API_KEY=$DEEPINFRA_API_KEY
+ENDPOINT = os.environ.get("LLM_ENDPOINT", "http://127.0.0.1:8990/v1/chat/completions")
+MODEL = os.environ.get("LLM_MODEL", "Qwen/Qwen3-8B-Instruct")
+_API_KEY = os.environ.get("LLM_API_KEY", "")
 MAX_PICKS = 10   # Q7: top-K final = 5-10
 
 # No fixed truncation. It was 400 chars, which silently cut the evidence out of
@@ -100,16 +106,32 @@ def call_llm(
     timeout: int = 600,
     max_tokens: int | None = None,
 ) -> str:
-    body = {
-        "model": MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": max_tokens or (4096 if thinking else 256),
-        "temperature": 0,
-        "chat_template_kwargs": {"enable_thinking": thinking},
-    }
+    is_deepinfra = _API_KEY != ""
+    if is_deepinfra:
+        # Qwen3 on DeepInfra: thinking is ON by default; /no_think disables it.
+        content = prompt if thinking else f"/no_think\n{prompt}"
+        body = {
+            "model": MODEL,
+            "messages": [{"role": "user", "content": content}],
+            "max_tokens": max_tokens or (8192 if thinking else 4096),
+            "temperature": 0,
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {_API_KEY}",
+        }
+    else:
+        body = {
+            "model": MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens or (4096 if thinking else 256),
+            "temperature": 0,
+            "chat_template_kwargs": {"enable_thinking": thinking},
+        }
+        headers = {"Content-Type": "application/json"}
+
     req = urllib.request.Request(
-        ENDPOINT, data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json"},
+        ENDPOINT, data=json.dumps(body).encode(), headers=headers,
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read())["choices"][0]["message"]["content"]

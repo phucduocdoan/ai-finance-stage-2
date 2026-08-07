@@ -27,6 +27,8 @@ exactly what the evaluator will see; generate the prompt from that.
 from __future__ import annotations
 
 import ast
+import contextlib
+import io
 import math
 import re
 
@@ -39,9 +41,11 @@ from finance_qa.paths import TABLES_DIR
 # than on the organizer's machine.
 SAFE_GLOBALS = {
     "__builtins__": {
-        "abs": abs, "float": float, "int": int, "len": len, "max": max,
-        "min": min, "round": round, "sum": sum, "sorted": sorted, "str": str,
-        "list": list, "range": range, "zip": zip, "enumerate": enumerate,
+        "abs": abs, "all": all, "any": any, "bool": bool, "dict": dict,
+        "enumerate": enumerate, "float": float, "int": int, "len": len,
+        "list": list, "max": max, "min": min, "print": print, "range": range,
+        "round": round, "set": set, "sorted": sorted, "str": str, "sum": sum,
+        "tuple": tuple, "zip": zip,
     },
     "pd": pd,
 }
@@ -221,7 +225,12 @@ def load_frame(table_id: str) -> pd.DataFrame:
     raw = pd.read_csv(source_csv(table_id), dtype=str, keep_default_na=False)
     repaired = repair_shifted_bank_header(raw)
     repaired = repair_shifted_multilevel_header(repaired)
-    return normalize_frame(repaired)
+    # Short summary tables (≤5 rows) often have 1-2 OCR-garbled cells that drag
+    # the parse ratio below 0.6, hiding valid total-row values (e.g. mã 270
+    # TỔNG CỘNG TÀI SẢN in split balance-sheet tables). Lower the threshold so
+    # the parseable cells are still converted.
+    min_ratio = 0.25 if len(repaired) <= 5 else 0.6
+    return normalize_frame(repaired, min_ratio=min_ratio)
 
 
 # --------------------------------------------------------------------------- exec
@@ -262,12 +271,47 @@ def run_query(query: str, frames: dict[str, pd.DataFrame]) -> float:
             raise ValueError("multi-statement query must assign `answer`")
         result = namespace["answer"]
 
-    if hasattr(result, "item") and getattr(result, "size", 1) == 1:
+    if isinstance(result, (pd.Series, pd.DataFrame)):
+        if result.size == 1:
+            result = result.item()
+        else:
+            raise ValueError(
+                f"query trả về {type(result).__name__} shape={result.shape} thay vì scalar; "
+                f"dùng .iloc[0] hoặc .values[0] để lấy ô đơn"
+            )
+    elif hasattr(result, "item"):
         result = result.item()
     value = float(result)
     if not math.isfinite(value):
         raise ValueError(f"query returned non-finite {value!r}")
     return value
+
+
+def exec_in_namespace(code: str, namespace: dict) -> str:
+    """Execute code in a persistent namespace; return stdout + errors as string.
+
+    Extends SAFE_GLOBALS with print/repr/type and common exceptions so LLM
+    can inspect values and write try/except in exploration code.
+    Exceptions are caught and returned as strings so the REPL loop continues.
+    """
+    safe = {
+        **SAFE_GLOBALS,
+        "__builtins__": {
+            **SAFE_GLOBALS["__builtins__"],
+            "print": print, "repr": repr, "type": type, "hasattr": hasattr,
+            "getattr": getattr, "bool": bool, "isinstance": isinstance,
+            "Exception": Exception, "ValueError": ValueError, "TypeError": TypeError,
+            "IndexError": IndexError, "KeyError": KeyError, "AttributeError": AttributeError,
+        },
+    }
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            exec(compile(code, "<repl>", "exec"), safe, namespace)
+        out = buf.getvalue().strip()
+        return out if out else "(no output — use print() to inspect values)"
+    except Exception as exc:  # noqa: BLE001
+        return f"{type(exc).__name__}: {exc}"
 
 
 # --------------------------------------------------------------------------- validate

@@ -10,17 +10,15 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from finance_qa.execution.query import run_query
-from finance_qa.planning.ir import (
+from finance_qa.planning.ir import compile_plan, parse_plan_response, validate_plan
+from finance_qa.planning.repairs import (
     binding_alignment_errors,
-    compile_plan,
-    parse_plan_response,
     prune_unused_bindings,
     repair_binding_alignment,
     repair_binding_column,
     repair_formula_binding_names,
     repair_repeated_select_answers,
     repair_select_answer_years,
-    validate_plan,
 )
 
 
