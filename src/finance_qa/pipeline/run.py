@@ -24,8 +24,8 @@ hand-editing the JSONL.
 (one `build_pools` per chunk); only the LLM calls fan out, at the same 4 workers
 the judge experiments used, because the vLLM endpoint is a shared service.
 
-The planner defaults mirror `evaluation.planner` (`thinking=False`,
-`verify=False`) so an end-to-end number is comparable to the ground-truth-table
+The planner defaults mirror `evaluation.planner` (`thinking=False`, REPL
+`fallback=True`) so an end-to-end number is comparable to the ground-truth-table
 benchmark instead of measuring a different planner configuration.
 """
 
@@ -99,9 +99,8 @@ def run_question(
     max_tables: int = MAX_TABLES,
     judge_thinking: bool = True,
     plan_thinking: bool = False,
-    verify_fallback: bool = False,
+    fallback: bool = True,
     use_planner: bool = True,
-    use_simple: bool = False,
 ) -> dict[str, Any]:
     """One question through judge -> planner -> item -> validate.
 
@@ -144,10 +143,8 @@ def run_question(
             question["question"],
             table_ids,
             thinking=plan_thinking,
-            verify=verify_fallback,
-            review_thinking=plan_thinking,
             use_planner=use_planner,
-            use_simple=use_simple,
+            fallback=fallback,
         )
     except Exception as exc:  # noqa: BLE001 - reported per stage, run continues
         record["plan_seconds"] = round(time.monotonic() - plan_started, 3)
@@ -282,19 +279,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--thinking", action="store_true", help="enable thinking for the planner"
     )
     parser.add_argument(
-        "--verify-fallback",
+        "--no-fallback",
         action="store_true",
-        help="semantic review when the planner falls back to direct code",
+        help="skip the REPL fallback and report the planner failure directly",
     )
     parser.add_argument(
         "--no-planner",
         action="store_true",
         help="skip planner DSL entirely, go straight to REPL for every question",
-    )
-    parser.add_argument(
-        "--simple",
-        action="store_true",
-        help="use simple chat-loop solver (finance_qa/simple/solver.py)",
     )
     parser.add_argument(
         "--dense-backend",
@@ -408,9 +400,8 @@ def main(argv: list[str] | None = None) -> int:
                             max_tables=args.max_tables,
                             judge_thinking=not args.no_judge_thinking,
                             plan_thinking=args.thinking,
-                            verify_fallback=args.verify_fallback,
+                            fallback=not args.no_fallback,
                             use_planner=not args.no_planner,
-                            use_simple=args.simple,
                         ): question
                         for question, candidate_pool in zip(chunk, pools)
                     }
@@ -440,7 +431,7 @@ def main(argv: list[str] | None = None) -> int:
         "max_tables": args.max_tables,
         "judge_thinking": not args.no_judge_thinking,
         "planner_thinking": bool(args.thinking),
-        "verify_fallback": bool(args.verify_fallback),
+        "fallback": not args.no_fallback,
         "use_planner": not args.no_planner,
         "dense_backend": args.dense_backend,
         "reranker": args.reranker,

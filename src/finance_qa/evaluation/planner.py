@@ -89,15 +89,14 @@ def evaluate_case(
     case: dict[str, Any],
     *,
     thinking: bool = False,
-    verify_fallback: bool = False,
+    fallback: bool = True,
 ) -> dict[str, Any]:
     started = time.monotonic()
     result = generate(
         case["question"],
         case["table_ids"],
         thinking=thinking,
-        verify=verify_fallback,
-        review_thinking=thinking,
+        fallback=fallback,
     )
     latency = time.monotonic() - started
     executable = not bool(result.get("error"))
@@ -250,9 +249,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--thinking", action="store_true", help="enable thinking for every LLM call"
     )
     parser.add_argument(
-        "--verify-fallback",
+        "--no-fallback",
         action="store_true",
-        help="run the extra semantic review when the planner falls back to direct code",
+        help="skip the REPL fallback and report the planner failure directly",
     )
     parser.add_argument(
         "--list", action="store_true", help="print selected cases without calling the LLM"
@@ -298,7 +297,7 @@ def main(argv: list[str] | None = None) -> int:
             record = evaluate_case(
                 case,
                 thinking=args.thinking,
-                verify_fallback=args.verify_fallback,
+                fallback=not args.no_fallback,
             )
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
             fh.flush()
@@ -317,7 +316,7 @@ def main(argv: list[str] | None = None) -> int:
         "created_at": datetime.now(timezone.utc).isoformat(),
         "results_path": str(output),
         "selected_qids": sorted(selected_ids),
-        "verify_fallback": bool(args.verify_fallback),
+        "fallback": not args.no_fallback,
         "thinking": bool(args.thinking),
         **summarize(records),
     }

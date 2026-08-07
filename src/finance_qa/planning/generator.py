@@ -193,10 +193,8 @@ def generate(
     question: str,
     table_ids: list[str],
     thinking: bool = False,
-    verify: bool = True,
-    review_thinking: bool = True,
     use_planner: bool = True,
-    use_simple: bool = False,
+    fallback: bool = True,
 ) -> dict:
     """question + picked tables -> {pandas_query, answer, evidence, error}."""
     def _pos(tid: str) -> int:
@@ -208,10 +206,6 @@ def generate(
     table_ids = sorted(table_ids, key=_pos)
     names = {f"df{i}": tid for i, tid in enumerate(table_ids, 1)}
     frames = {var: load_frame(tid) for var, tid in names.items()}
-
-    if use_simple:
-        from finance_qa.simple.solver import solve
-        return solve(question, frames, names)
 
     # --- Skip planner if disabled ---
     if not use_planner:
@@ -298,5 +292,16 @@ def generate(
             errors="\n".join(f"- {error}" for error in errors),
         ) + _column_hint(errors, frames)
 
-    # --- Fallback: REPL exploration loop ---
+    # --- Fallback: REPL exploration loop (skippable to isolate the planner) ---
+    if not fallback:
+        return {
+            "pandas_query": "",
+            "answer": None,
+            "evidence": [],
+            "error": plan_error or "planner failed",
+            "attempts": plan_attempts,
+            "planner": True,
+            "plan": last_plan,
+            "plan_adjustments": [],
+        }
     return repl_generate(question, frames, names, plan_error, last_plan)
