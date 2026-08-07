@@ -294,20 +294,24 @@ def exec_in_namespace(code: str, namespace: dict) -> str:
     can inspect values and write try/except in exploration code.
     Exceptions are caught and returned as strings so the REPL loop continues.
     """
-    safe = {
-        **SAFE_GLOBALS,
-        "__builtins__": {
-            **SAFE_GLOBALS["__builtins__"],
-            "print": print, "repr": repr, "type": type, "hasattr": hasattr,
-            "getattr": getattr, "bool": bool, "isinstance": isinstance,
-            "Exception": Exception, "ValueError": ValueError, "TypeError": TypeError,
-            "IndexError": IndexError, "KeyError": KeyError, "AttributeError": AttributeError,
-        },
+    safe_builtins = {
+        **SAFE_GLOBALS["__builtins__"],
+        "print": print, "repr": repr, "type": type, "hasattr": hasattr,
+        "getattr": getattr, "bool": bool, "isinstance": isinstance,
+        "Exception": Exception, "ValueError": ValueError, "TypeError": TypeError,
+        "IndexError": IndexError, "KeyError": KeyError, "AttributeError": AttributeError,
+        # numpy/pandas do lazy internal imports; user import lines are stripped upstream.
+        "__import__": __import__,
     }
+    # Single dict for globals AND locals. With separate globals/locals, a function
+    # the LLM defines gets __globals__ = globals dict, so names injected only into
+    # locals (get_val, dataframes, pd) are invisible inside the function → NameError.
+    namespace.setdefault("__builtins__", safe_builtins)
+    namespace.setdefault("pd", SAFE_GLOBALS["pd"])
     buf = io.StringIO()
     try:
         with contextlib.redirect_stdout(buf):
-            exec(compile(code, "<repl>", "exec"), safe, namespace)
+            exec(compile(code, "<repl>", "exec"), namespace)
         out = buf.getvalue().strip()
         return out if out else "(no output — use print() to inspect values)"
     except Exception as exc:  # noqa: BLE001

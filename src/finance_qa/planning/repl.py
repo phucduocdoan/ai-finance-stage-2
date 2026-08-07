@@ -104,6 +104,8 @@ def _schema_block(var: str, table_id: str, df: pd.DataFrame) -> str:
 
 def _llm_tool_call(messages: list[dict]) -> dict:
     """POST to vLLM or Gemini with run_code tool. Returns the raw assistant message dict."""
+    # temp=0 makes the REPL loop on identical failing code; sampling lets it escape.
+    temperature = float(os.environ.get("REPL_TEMP", "0.7"))
     if _REPL_BACKEND == "gemini":
         payload = {
             "model": _GEMINI_MODEL,
@@ -111,6 +113,7 @@ def _llm_tool_call(messages: list[dict]) -> dict:
             "tools": _TOOLS,
             "tool_choice": "required",
             "max_tokens": 4096,
+            "temperature": temperature,
         }
         endpoint = _GEMINI_ENDPOINT
         key = _GEMINI_KEY
@@ -121,6 +124,7 @@ def _llm_tool_call(messages: list[dict]) -> dict:
             "tools": _TOOLS,
             "tool_choice": "required",
             "max_tokens": 4096,
+            "temperature": temperature,
             "chat_template_kwargs": {"enable_thinking": False},
         }
         endpoint = ENDPOINT
@@ -134,6 +138,48 @@ def _llm_tool_call(messages: list[dict]) -> dict:
     with urllib.request.urlopen(req, timeout=180) as resp:
         body = json.loads(resp.read())
     return body["choices"][0]["message"]
+
+
+def _render_state(
+    ledger: list[tuple[str, str]],
+    namespace: dict,
+    initial_keys: set[str],
+) -> str:
+    """Persistent memory injected every turn: all prior code→output + live scalars.
+
+    Replaces the old sliding window. The namespace already accumulates Python
+    state across steps; this makes that state *visible* to the model so it never
+    re-explores what it already computed.
+    """
+    lines = ["========== TRẠNG THÁI (các bước đã chạy) =========="]
+    for i, (code, output) in enumerate(ledger, 1):
+        lines.append(f"[{i}] >>> {code}")
+        out = output.strip()
+        if out:
+            if len(out) > 600:
+                out = out[:600] + " …(cắt)"
+            lines.append(f"    → {out}")
+
+    snap = []
+    for k, v in namespace.items():
+        if k in initial_keys or k == "result":
+            continue
+        if getattr(v, "ndim", 0) and getattr(v, "ndim", 0) > 0:
+            continue  # arrays / Series / DataFrame — không phải scalar
+        try:
+            snap.append(f"  {k} = {float(v):.6g}")
+        except (TypeError, ValueError):
+            continue
+    if snap:
+        lines.append("\nBiến scalar hiện có trong namespace:")
+        lines.extend(snap)
+
+    lines.append("==================================================")
+    lines.append(
+        "Chạy BƯỚC TIẾP THEO dựa trên trạng thái trên. "
+        "KHÔNG chạy lại code đã có ở trên. Gán result=<số> khi đã đủ dữ liệu."
+    )
+    return "\n".join(lines)
 
 
 def _evidence_from_codes(
@@ -172,7 +218,7 @@ def repl_generate(
     def _get_val(df: pd.DataFrame, keyword: str, col: str | None = None):
         """Find first row where any string column contains keyword, return value from col."""
         for c in df.columns:
-            if df[c].dtype == object:
+            if not pd.api.types.is_numeric_dtype(df[c]):
                 mask = df[c].astype(str).str.contains(keyword, na=False, case=False)
                 if mask.any():
                     rows = df[mask]
@@ -197,29 +243,30 @@ def repl_generate(
     df_vars = ", ".join(frames.keys())
     planner_ctx = f"Planner đã thử nhưng gặp lỗi: {planner_error[:400]}\n\n" if planner_error else ""
 
-    messages: list[dict] = [
-        {
-            "role": "system",
-            "content": _SYSTEM_TMPL.format(
-                question=question,
-                schema_blocks=schema_blocks,
-                df_vars=df_vars,
-                planner_context=planner_ctx,
-            ),
-        },
-        {
-            "role": "user",
-            "content": "Tính toán và gán result = <đáp án cuối> khi xong.",
-        },
-    ]
+    system_content = _SYSTEM_TMPL.format(
+        question=question,
+        schema_blocks=schema_blocks,
+        df_vars=df_vars,
+        planner_context=planner_ctx,
+    )
+    task = "Tính toán và gán result = <đáp án cuối> khi xong."
+    initial_keys = set(namespace)
+    ledger: list[tuple[str, str]] = []  # (code, output) for every step, never dropped
 
     for step in range(MAX_REPL_STEPS):
+        # Rebuild context each turn from the persistent ledger + namespace snapshot
+        # so the model always sees every prior observation and current variable values.
+        user_content = task
+        if ledger:
+            user_content += "\n\n" + _render_state(ledger, namespace, initial_keys)
+        messages = [
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": user_content},
+        ]
         try:
             asst = _llm_tool_call(messages)
         except Exception as exc:
             return _fail(code_history, names, planner_error, f"LLM error step {step}: {exc}")
-
-        messages.append(asst)
 
         tool_calls = asst.get("tool_calls") or []
         if not tool_calls:
@@ -234,25 +281,19 @@ def repl_generate(
                 args = {}
 
             code = args.get("code", "").strip()
-            if code:
-                # Strip import lines — pd/np/dfs already in namespace; __import__ blocked
-                clean = "\n".join(
-                    ln for ln in code.splitlines()
-                    if not ln.lstrip().startswith("import ") and not ln.lstrip().startswith("from ")
-                ).strip()
-                code_history.append(clean or code)
-                output = exec_in_namespace(clean or code, namespace)
-            else:
-                output = "(empty code)"
-
+            if not code:
+                continue
+            # Strip import lines — pd/np/dfs already in namespace; __import__ blocked
+            clean = "\n".join(
+                ln for ln in code.splitlines()
+                if not ln.lstrip().startswith("import ") and not ln.lstrip().startswith("from ")
+            ).strip()
+            run = clean or code
+            output = exec_in_namespace(run, namespace)
             if len(output) > 2000:
                 output = output[:2000] + "\n...(truncated)"
-
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tc["id"],
-                "content": output,
-            })
+            code_history.append(run)
+            ledger.append((run, output))
 
         # Termination: any code in this turn assigned result = <scalar>
         raw = namespace.get("result")
@@ -266,10 +307,6 @@ def repl_generate(
             except (TypeError, ValueError):
                 pass
             del namespace["result"]  # bad value or zero → clear and keep going
-
-        # Sliding window: keep system + user + last 10 messages
-        if len(messages) > 12:
-            messages = messages[:2] + messages[-10:]
 
     return _fail(code_history, names, planner_error, f"REPL: no result after {MAX_REPL_STEPS} steps")
 
