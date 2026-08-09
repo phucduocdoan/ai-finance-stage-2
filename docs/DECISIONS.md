@@ -1,7 +1,7 @@
 # DECISIONS — ViFinQA Stage 2
 
 Sổ ghi quyết định (decision log). Ghi *đã quyết cái gì*, *vì sao*, và *hoãn cái gì cho tương lai*.
-Cập nhật gần nhất: **2026-08-06**.
+Cập nhật gần nhất: **2026-08-09**.
 
 ---
 
@@ -1081,3 +1081,723 @@ qid  lvl    path     result
 3. Đường rẻ nhất nâng 6/8→8/8: 2 repair deterministic cho 363/524 (không đụng model). Đường nền tảng:
    schema-linking (fix gốc đoán-cột cả planner lẫn REPL). Đường trần cao: SFT+GRPO kiểu MoFin.
 Scaffolding debug phiên này (REPL_THINKING toggle, REPL_DUMP) đã revert khỏi `repl.py`; thinking-on CHƯA đo.
+
+---
+
+## Phiên 2026-08-08 — Row Canonicalization + get_metric()
+
+### Bối cảnh
+
+Gold20 eval (repl_v4): 6/20 ok, 14 fail — tất cả fail là REPL timeout "no result after 10 steps" trên L6
+questions (D/E, ROE, interest coverage). Root cause: REPL tiêu 4–5 steps để inspect table structure (column
+names, dtypes, row labels) trước khi tính bất cứ thứ gì. Data access đang là bottleneck, không phải reasoning.
+
+### Decision 1: Row Canonicalization (implemented)
+
+**Vấn đề:** REPL nhận raw DataFrame với column names tiếng Việt (`Số cuối năm`, `Năm nay`), không có row
+labels rõ ràng → LLM phải inspect, mất step budget trước khi tính.
+
+**Fix:** Với main financial statement tables (BS/IS/CF) có mã số column, thay schema block bằng canonical view:
+`{metric_id: {year: float}}` pre-computed từ Thông tư 200 codes.
+
+**Thiết kế:**
+- `src/finance_qa/preprocessing/canonical.py` (NEW): MA_SO_BS/IS/CF dicts + `canonical_frame()` +
+  `canonical_schema_block()` với priority ordering (D/E inputs trước)
+- `src/finance_qa/planning/repl.py` (MODIFIED): `_schema_block()` dùng canonical khi có; inject
+  `canonical = {var: {metric_id: {year: float}}}` vào namespace; `_TOTAL_SCHEMA_CAP` 5k→12k
+
+**Các gotcha đã fix:**
+- Unicode NFD/NFC: `"Mã số".casefold()` không match nếu DataFrame column là NFD → dùng
+  `unicodedata.normalize("NFC", ...)` + strip spaces (xử lý luôn OCR "Mãsố" variant)
+- Float mã số: `normalize_frame()` đổi cột "Mã số" thành float64 → `str(100.0)` = `"100.0"` ≠ `"100"` →
+  thêm `int(float(raw))` conversion
+- Date column year mapping: `01/01/2022` = beginning of year → prior year (2021); `31/12/2022` = current year
+
+**Kết quả verify:** `total_assets`, `total_debt`, `equity`, `net_profit`, `interest_expense` extract đúng.
+D/E (MWG 2015) = 0.004 verified. Interest coverage (KBC 2020) = 3.319 = expected answer Q363 verified.
+Note tables fall back to old schema (correct). `eval_clean_fullchain.py`: 6/8 (không đổi so baseline vì L6
+vẫn fail — xem bên dưới).
+
+**Tại sao L6 vẫn fail sau canonical:**
+Q363 (KBC D/E max year 2016–2020): canonical đã có đủ data. Vấn đề là BS split 2 tables — `total_debt`
+ở df1/df3/df5, `equity` ở df2/df4/df6. LLM cần cross-reference 7 df để aggregate D/E theo year. 10 steps
+không đủ cho routing + aggregation + interest coverage.
+→ Data access solved; routing vẫn là bottleneck.
+
+### Decision 2: get_metric() helper — không build metrics = {year: {metric}}
+
+**Trade-off đã xét:**
+
+`metrics = {year: {metric_id: value}}` (flatten canonical qua tất cả df):
+- Pros: Q363 giải trong 2 bước
+- Cons: **Overfit** — collision silent cho multi-company questions (FPT và HPG cùng có `total_debt[2022]`)
+
+`get_metric(metric_id, year, ticker=None)` (function search canonical có filter):
+- Pros: General — works cho single-company và multi-company via ticker filter
+- No silent collision: caller tự xác định scope
+- Cons: LLM phải gọi function thay vì dict lookup
+
+→ **Chọn get_metric()**.
+
+### Decision 3: REPL + get_metric() trước, planner L6 sau
+
+**Trade-off:**
+
+| | REPL + get_metric() | Planner L6 extension |
+|---|---|---|
+| Effort | ~0.5 ngày | ~2–4 tuần |
+| Risk | Additive | Touch IR → regression risk |
+| Ceiling L6 | ~70% (LLM viết formula) | ~90% (deterministic) |
+| Impact full dataset | +2–3% | +4–5% |
+
+**Planner L6 extension nghĩa là gì cụ thể:** IR hiện tại `row_index` là static integer. L6 cần dynamic
+binding — "find row where year = argmax(D/E)". Hai hướng: (A) canonical-backed bindings `{"metric":
+"total_debt", "year": 2020}` compile ra `canonical_data["total_debt"][2020]`; (B) thêm repair function
+resolve `row_index` từ canonical. Cả hai đều không trivial và risk regression L3-L5.
+
+**Quyết định:** Build REPL + get_metric() để validate L6 patterns trước. Nếu REPL + get_metric() vẫn
+không ổn định (LLM viết sai formula), THEN đầu tư planner extension với canonical-backed bindings.
+
+### get_metric() spec (implementing)
+
+```python
+get_metric(metric_id: str, year: int, ticker: str | None = None) -> float | None
+```
+- Search qua tất cả `canonical_data[var]`, filter theo ticker nếu cung cấp
+- Ticker lấy từ `tables_metadata_v2.jsonl` field `ticker` (đã có sẵn)
+- First match wins; caller dùng ticker để disambiguate multi-company
+- Inject vào REPL namespace cùng `get_val()` và `canonical`
+
+Pattern được document trong system prompt:
+```python
+# Multi-year single-company (L6.1):
+de = {yr: get_metric("total_debt", yr) / get_metric("equity", yr)
+      for yr in range(2016, 2021)
+      if get_metric("total_debt", yr) and get_metric("equity", yr)}
+max_yr = max(de, key=de.get)
+
+# Multi-company (L6.2):
+debt_fpt = get_metric("total_debt", 2022, "FPT")
+debt_hpg = get_metric("total_debt", 2022, "HPG")
+```
+
+---
+
+## Phiên 2026-08-08 (tiếp) — REPL hardening + benchmark đóng băng retrieval
+
+### Kết quả đo đạc
+
+| Benchmark | Trước | Sau | Ghi chú |
+|---|---|---|---|
+| `eval_clean_fullchain.py` (8 câu, frozen gt_tables) | 6/8 = 75% | **7/8 = 87.5%** | Q363 pass, Q524 vẫn fail |
+| `eval_targeted.py` (15 câu, full retrieval) | — | 1/15 = 7% | Retrieval noise áp đảo |
+
+**Kết luận quan trọng:** Với retrieval đúng (frozen), code quality đạt 87.5%. Với retrieval mở (10 tables retrieved), score 7% vì retrieval sai bảng → sai hoàn toàn. Retrieval vẫn là bottleneck chính khi không đóng băng.
+
+### Decision 4: REPL exception guard
+
+**Vấn đề phát hiện (Q524):** LLM dùng `result = 0` làm biến trung gian trong loop. Code block ném `UFuncTypeError` mid-loop, namespace giữ lại `result = <intermediate value>` sai → REPL kết thúc sớm với wrong answer.
+
+**Fix:** `turn_had_exception` flag trong REPL loop — nếu bất kỳ code block nào trong turn sinh ra `Error/Traceback/Exception` trong output, xóa `result` khỏi namespace trước khi check termination.
+
+```python
+if turn_had_exception and "result" in namespace:
+    del namespace["result"]
+```
+
+**Trade-off:** False positive nếu LLM bắt exception hợp lệ và set result sau. Chấp nhận được vì pattern này hiếm và exception thường báo hiệu tính toán dở.
+
+### Decision 5: Note table hint trong schema block
+
+**Vấn đề phát hiện (Q524 sau exception fix):** Bank/note tables không có mã số → `canonical_schema_block()` trả None → REPL dùng raw schema → LLM gọi `get_metric()` và nhận None tất cả → loop 10 steps không có kết quả.
+
+**Fix:** Với non-canonical tables, append `[NOTE — dùng get_val(df, keyword, col), KHÔNG dùng get_metric()]` vào header của schema block. LLM đọc hint và chuyển sang `get_val()`.
+
+**Kết quả:** LLM chuyển đúng sang `get_val()`. Nhưng Q524 vẫn fail vì vấn đề khác (xem dưới).
+
+### Known issue: Q524 blocked by OCR data corruption
+
+**Root cause:** OCB 2021 loan table (`OCB_financial_statements_2021_consolidated|31`) có merged cells từ OCR — nhiều giá trị số bị ghép thành 1 string dài: `"101.578.366.954.676277.259.041.753..."`. LLM cố parse bằng `.replace('.', '')` → 57-digit number → result sai hoàn toàn.
+
+**Không fix ở code level:** Đây là data corruption tại bước preprocessing/OCR, nằm ngoài phạm vi code generation. Bảng 2022 của cùng công ty sạch và accessible; bảng 2021 hỏng.
+
+**Tình trạng:** Q524 = known failure, 1 trong 8 câu benchmark. Benchmark ổn định ở **7/8** qua nhiều run.
+
+### Luồng pipeline hiện tại (code gen)
+
+```
+question + table_ids
+│
+├─ generate()
+│   ├─ load_frame(tid) × N tables  [sort by table position]
+│   │
+│   ├─ [PLANNER PATH]
+│   │   ├─ rewrite_to_indicator()   → LLM call: trích chỉ tiêu tài chính ngắn gọn
+│   │   ├─ build_plan_prompt()      → render_tables() (full rows hoặc truncate theo budget)
+│   │   ├─ call_llm()              → Qwen3 w/ thinking → JSON plan
+│   │   ├─ Repair chain (7 fns, deterministic):
+│   │   │   repair_formula_binding_names → repair_binding_column →
+│   │   │   repair_repeated_select_answers → repair_select_answer_years →
+│   │   │   repair_select_answer_periods → prune_unused_bindings →
+│   │   │   repair_non_numeric_bindings
+│   │   ├─ validate_plan() → repair_prior_year_coverage → repair_binding_alignment
+│   │   │   → binding_concept_errors → repair_plan_output_unit → repair_plan_order
+│   │   │   → plan_contract_errors
+│   │   ├─ compile_plan() → run_query() → semantic_errors()
+│   │   └─ Retry up to MAX_REPAIRS=2 lần với PLAN_REPAIR prompt
+│   │
+│   └─ [REPL FALLBACK nếu planner fail]
+│       ├─ _schema_block() per df:
+│       │   ├─ canonical_schema_block() → {metric_id: {year: val}} block [BS/IS/CF]
+│       │   └─ raw schema + [NOTE hint] [note/bank tables]
+│       ├─ Inject namespace: df1..dfN, pd, np, canonical, get_metric, get_val
+│       ├─ REPL loop (max 10 steps, temp=0.7):
+│       │   ├─ LLM call với run_code tool (tool_choice=required)
+│       │   ├─ Execute all code blocks → exec_in_namespace()
+│       │   ├─ turn_had_exception guard → xóa result nếu có exception
+│       │   ├─ render_state() → persistent ledger [code→output] + live scalars
+│       │   └─ Terminate khi result = <float> trong namespace
+│       └─ Return {answer, evidence, error}
+```
+
+### Đánh giá mức độ general / stable / scalable
+
+**Strengths:**
+- Planner + repair chain: deterministic, không phụ thuộc LLM sample → ổn định L3-L5
+- canonical.py: covers 100% Thông tư 200 mã số → không cần update khi thêm công ty mới
+- get_metric() API general: single-company, multi-company (ticker filter), multi-year đều handle được
+- Additive architecture: thêm repair function không risk regression; thêm MA_SO không break existing
+
+**Weaknesses:**
+- REPL non-deterministic (temp=0.7): cùng câu hỏi có thể ra kết quả khác nhau giữa các run
+- 10 steps limit: L6 phức tạp (nhiều df, multi-step aggregate) vẫn có thể timeout
+- Note/bank tables: get_val() với OCR-corrupted data → không giải quyết được ở code level
+- Multi-company REPL: nếu LLM không dùng ticker filter → silent collision
+
+**Scale:**
+- Thêm công ty/năm mới: zero work (canonical.py decode tự động từ mã số)
+- Thêm dạng câu hỏi mới: thêm repair function hoặc thêm pattern vào REPL system prompt
+- Thêm statement type mới (ví dụ banks — VAS 22 thay vì TT200): cần MA_SO dict mới + statement_type routing
+
+### Quyết định về submission tiếp theo
+
+**Câu hỏi:** Có nên chạy full benchmark và submit không, đóng băng retrieval như base 0.2549?
+
+**Phân tích:**
+- Base 0.2549 dùng retrieval từ `full_1012.jsonl` (đã có sẵn artifacts)
+- Planner: 773/1012 ok, 239 fail → fallback REPL
+- REPL trước: timeout hầu hết L6 → ~0% on 239 fail cases
+- REPL sau (phiên này): 7/8 = 87.5% trên frozen benchmark → expect ~40-60% trên 239 REPL cases
+- Delta ước tính: +96 đến +143 câu đúng → score tăng ~9-14 điểm phần trăm
+
+**Khuyến nghị: Nên submit.** Effort nộp thấp (dùng lại full_1012.jsonl artifacts, không re-run retrieval).
+Risk thấp (planner path unchanged → L3-L5 không regress). Upside: đo được delta thực từ REPL hardening.
+
+**Việc cần làm để submit:**
+1. Chạy lại generate() trên 239 planner-fail questions dùng table_ids từ full_1012.jsonl (frozen retrieval)
+2. Merge kết quả REPL với 773 planner-ok answers từ base run
+3. Dựng ZIP theo submission_rule.txt
+4. Nộp
+
+---
+
+## Phiên 2026-08-08 (tiếp 2) — Leaderboard 0.2628 + Phân tích pipeline + Kiến trúc LangGraph
+
+### Kết quả leaderboard (submission_patched)
+
+| Metric | Giá trị |
+|---|---|
+| ANSWER_ACCURACY | **0.2628** |
+| EXECUTION_ACCURACY | **0.2628** |
+| DOCS_F2MACRO | 0.9268 |
+| TABLES_F2MACRO | 0.0 |
+
+**So với base 0.2549:** +0.0079 (~4 câu) từ: fix REPL `pandas_query` format (multi-line → `repr(answer)`)
++ 9 self-subtraction planner câu được tính lại.
+
+**TABLES vẫn 0.0:** Đã thử chuyển sang 0-indexed (submission_v2.zip) nhưng không thay đổi. Ground truth
+leaderboard nhiều khả năng không có gt_tables hoặc dùng format khác — xác nhận từ local evalset.json
+(`gt_tables` dùng 1-indexed, giống corpus ta). Tạm bỏ qua, không đầu tư thêm.
+
+---
+
+### Phân tích chi tiết pipeline 0.2628 — số liệu từ `regen_frozen_patched.jsonl`
+
+#### Breakdown theo method
+
+| Group | Số câu | Zero-answer | Ghi chú |
+|---|---|---|---|
+| Planner non-zero | **751** | 17 (2%) | Đang chạy được |
+| REPL non-zero | **95** | — | Có answer, chưa biết đúng sai |
+| REPL zero | **148** | 148 (61%) | Answer = 0.0 — chắc chắn sai |
+| Planner zero | **17** | 17 | Câu planner trả 0 |
+
+#### Breakdown planner non-zero 751 câu
+
+| answer_shape | Số câu | Ước tính accuracy | Ghi chú |
+|---|---|---|---|
+| single_cell | **216** | ~65% | iloc thường bind đúng hàng |
+| derived | **535** | ~5% | Formula/unit sai, REPL bị chặn |
+
+Kiểm tra thực tế (5 câu single_cell ngẫu nhiên): 4/5 iloc bind đúng label hàng mong đợi.
+→ Nguồn điểm chính: **~140 câu planner single_cell đúng**.
+
+#### REPL zero 148 câu — tại sao fail
+
+| Dimension | Tỉ lệ |
+|---|---|
+| multi_year = True | 68% (101/148) |
+| multi_company = True | 57% (84/148) |
+| answer_shape = derived | 97% (144/148) |
+
+→ **REPL fail chủ yếu vì multi-year/multi-company derived** — cần data nhiều năm/công ty mà
+retrieval đóng băng chỉ có 1-2 bảng mỗi năm.
+
+#### Coverage canonical cho formula solver
+
+| Tập | Canonical coverage |
+|---|---|
+| Planner derived (535) | 268/535 = **50%** có ít nhất 1 bảng BS/IS/CF với mã số |
+| REPL zero (148) | 116/148 = **78%** |
+| Formula solver target (canonical + not multi_company) | **~216 câu** |
+| Formula solver target (canonical, kể cả multi_company) | **~387 câu** |
+
+---
+
+### Ước tính accuracy theo nhóm (cho 506 gold câu)
+
+Giả sử 506 gold phân bố tương đối đều theo type:
+
+| Nhóm (≈ gold proportional) | Ước tính đúng | Lý do |
+|---|---|---|
+| Planner single_cell (~108 gold) | ~70 câu | 65% accuracy |
+| Planner derived (~268 gold) | ~15 câu | 5% accuracy |
+| REPL nonzero (~48 gold) | ~15 câu | ~30% accuracy |
+| REPL zero (~74 gold) | 0 câu | answer=0.0 |
+| **Tổng ước tính** | **~100 câu** | **≈ 0.26** |
+
+**Kết luận:** Score 0.2628 đến từ **planner single_cell là chủ yếu**. Derived questions (53% tổng số)
+đóng góp rất ít. REPL zero là waste 30% câu hỏi hoàn toàn.
+
+---
+
+### Lỗi gold-20 (0/20 đúng — toàn derived)
+
+Xem xét 5 câu planner và 15 câu REPL trong gold-20 (đây là tập khó, không ngẫu nhiên):
+
+| Pattern | Ví dụ | Nguyên nhân |
+|---|---|---|
+| Raw VND thay ratio | Q378: 7.6e12 vs 9.037% | Planner bind gross_profit, không tính gross_profit/revenue |
+| Unit nhân nhầm | Q429: 1.5e-11 vs 2.08 | × 1e9 thay vì ÷ 1e9 |
+| Wrong row | Q440: 3.338 vs 5.039 | iloc[15]/iloc[7] ≠ total_debt/equity |
+| REPL zero | Q363, Q371, Q372, ... | Hết 10 steps, không compute được |
+
+---
+
+### Decision: Kiến trúc LangGraph
+
+**Vấn đề gốc:** Planner làm quá nhiều việc trong 1-2 LLM call — phân tích, tìm hàng,
+viết formula, sinh code — dẫn đến: (1) derived fail vì single-shot không đủ, (2) khó debug,
+(3) khó extend.
+
+**Kiến trúc mới (Phase 1 đã implement):**
+
+```
+classify → retrieve → load → router ──► lookup_solver (single_cell) → END
+                              └────► repl_solver (derived/complex)  → END
+```
+
+**Files:**
+```
+src/finance_qa/graph/
+    state.py          ← FinanceState TypedDict
+    graph.py          ← compile graph, run_question()
+    nodes/
+        classify.py   ← reads questions_enriched.jsonl (answer_shape, multi_year...)
+        retrieve.py   ← frozen cache (Phase 1) → real retriever (Phase 2)
+        load.py       ← load_frame() per table_id
+        solvers/
+            lookup.py ← wraps planner (single_cell, not multi)
+            repl.py   ← wraps REPL (derived, complex)
+```
+
+**Test Phase 1 (2026-08-08):**
+- Q1 (single_cell) → lookup → 208253.20 ✓ (khớp frozen)
+- Q363 (derived, multi_year) → repl → 0.0 (same as frozen — REPL vẫn fail do thiếu data)
+
+**Routing Phase 1:** `single_cell AND NOT multi_year AND NOT multi_company → lookup; else → repl`
+
+**Phase 2 (planned):** `formula_solver` node — nhận dạng pattern từ question (1 LLM call)
+→ tính công thức chuẩn tài chính (D/E, ROE, ROA, argmax/argmin theo năm) từ canonical_data
+thuần Python, không cần LLM loop.
+
+#### Trade-offs formula_solver
+
+| Pro | Con |
+|---|---|
+| Deterministic compute | Coverage giới hạn: chỉ canonical tables (50% derived) |
+| Nhanh (1 LLM call pattern detection) | Pattern detection sai → confident wrong answer |
+| Debuggable node-by-node | Ngân hàng/bảo hiểm không có TT200 mã số → không áp dụng |
+| | Retrieval vẫn là bottleneck (thiếu bảng multi-year) |
+
+**Coverage thực tế:**
+- Formula solver (canonical + not multi_company): ~216 câu
+- Formula solver (canonical, kể cả multi_company): ~387 câu
+- Nhưng nếu retrieval thiếu bảng → formula solver cũng trả 0
+
+**ROI so sánh:**
+- Fix retrieval (đủ bảng multi-year) → giúp cả REPL lẫn formula solver (+40-60 câu)
+- Formula solver đơn độc → +30-60 câu (nếu retrieval tốt)
+- Fix planner derived unit conversion → +10-20 câu nhỏ
+
+#### Việc tiếp theo (theo priority)
+
+| # | Việc | Tác động ước tính | Độ khó |
+|---|---|---|---|
+| 1 | Fix retrieval multi-year (đủ bảng cho mỗi năm trong range câu hỏi) | +40-60 câu | Trung bình |
+| 2 | Formula solver node (graph Phase 2) | +30-60 câu | Trung bình |
+| 3 | Planner derived: unit/formula fix | +10-20 câu | Khó |
+| 4 | REPL steps increase cho complex | +5-10 câu | Thấp |
+
+**Quyết định hiện tại:** Build formula_solver (Phase 2 graph) song song với phân tích retrieval
+multi-year gap. Đo coverage thực tế và ROI trước khi commit vào retrieval overhaul.
+
+---
+
+## Phiên 2026-08-09 — LangGraph migration: understand + retrieve_targeted + routing
+
+### Leaderboard submission_v2: **0.2688** (+0.0060 so 0.2628)
+
+Improvement đến từ: canonical view trong REPL schema block (LLM thấy `{metric_id: {year: value}}`
+thay vì raw DataFrame), REPL fixes (state memory, function scoping, temperature=0.7), planner
+stability fixes. 23 câu chuyển từ planner sang REPL (266 vs 243).
+
+---
+
+### Decision 6: Migration classify → understand node
+
+**Vấn đề:** `classify` đọc từ file `questions_enriched.jsonl` pre-computed — không semantic, không
+extract `metric` hay `operation`. Routing dựa vào regex cứng `_FORMULA_RE`.
+
+**Fix:** Node `understand` (LLM, 1 call, ~300ms):
+- Extract `{tickers, years, metric, operation, doc_type, multi_year, multi_company, unit_hint, answer_shape}`
+- `operation` = `lookup|formula|compare|multi_step` — semantic, không phải regex
+- `doc_type` = `separate|consolidated|unknown` — detect "công ty mẹ" → separate, "hợp nhất" → consolidated
+- Year range expansion: "2016-2020" → `[2016,2017,2018,2019,2020]` tự động
+- Ticker từ parentheses hoặc tên công ty → LLM biết mapping VN ("Hòa Phát" → HPG)
+
+**Files:** `src/finance_qa/graph/nodes/understand.py` (NEW),
+`src/finance_qa/graph/state.py` (+`metric`, `operation`, `doc_type`)
+
+---
+
+### Decision 7: Migration retrieve (frozen cache) → retrieve_targeted (live CandidateRetriever)
+
+**Vấn đề gốc (§12b):** Frozen retrieval `full_1012.jsonl` thiếu bảng multi-year:
+- Q363 chỉ có KBC 2016-2018, thiếu 2019-2020 → D/E argmax không tính được
+- Root cause: BM25/dense rank theo text → recent years rank cao hơn; `add_primary_statements`
+  append ở tail; judge fill MAX_PICKS=10 từ 2016-2018 trước khi đến 2019-2020
+
+**Fix:** `retrieve_targeted` dùng `CandidateRetriever` với tickers/years từ `understand`:
+1. `shortlist(tickers, years)` → hard filter đúng công ty × đúng năm
+2. BM25 top-K + dense top-K → union pool (nhỏ hơn 226, vì đã filter)
+3. `assemble_pool` với `expand_primary=True` → đảm bảo BS/IS/CF vào pool
+4. LLM judge (thinking=False, pool nhỏ nên đủ chất lượng) → picks
+5. picks + primary statements (explicit union) → table_ids gửi load node
+6. Fallback to frozen cache nếu tickers/years rỗng hoặc retriever lỗi
+
+**Kết quả Q363:**
+- Frozen: KBC 2016-2018 only (thiếu IS tables cho ICR)
+- Targeted: KBC 2016-2020, đủ BS+IS+CF cho tất cả 5 năm
+
+**Bug fix quan trọng:** `doc_type=None` → `scope_ok()` filter hết candidates → phải truyền
+`doc_type="unknown"` (không phải None) để `prefer_consolidated()` hoạt động đúng.
+
+**Files:** `src/finance_qa/graph/nodes/retrieve_targeted.py` (NEW, replaces retrieve.py)
+
+---
+
+### Decision 8: Routing — multi_step → formula node
+
+**Thay đổi:** `_route()` trong `graph.py` thêm `multi_step` vào formula path:
+
+```python
+if op in ("formula", "compare", "multi_step"):
+    return "formula"
+```
+
+**Lý do:** Formula node (tool-calling: `get_ratio`, `get_metric`, `list_data`) phù hợp hơn
+REPL cho multi_step questions vì:
+- Không cần explore DataFrame (canonical data đã pre-computed)
+- Tool call stateless → không bị mutable namespace confusion
+- `get_ratio(KBC, 2017, de_ratio)` → ngay ra số, không cần 4-5 steps khám phá
+
+Formula node vẫn fallback `formula_skip → repl` nếu không có canonical data.
+
+**Kết quả:** Q363 end-to-end: **3.319357** ✓ (gold = 3.319357, trước = 0.0)
+
+---
+
+### Luồng graph hiện tại (2026-08-09)
+
+```
+understand (LLM)
+  ↓  extract {tickers, years, metric, operation, doc_type, ...}
+retrieve_targeted
+  ↓  shortlist(ticker×year) → BM25+dense → judge → picks ∪ primary_statements
+load
+  ↓  load_frame() per table_id → {frames, names}
+_route (semantic, dựa operation từ understand):
+  operation=lookup + single_cell  ──→ lookup_solver → END
+  operation=formula|compare|multi_step ──→ formula_solver
+                                          ├─ (has canonical data) → tool loop → synthesis → END
+                                          └─ formula_skip → repl_solver → END
+  else ──→ repl_solver → END
+```
+
+**State fields:**
+```
+id, question                      # input
+tickers, years, metric            # từ understand
+operation, doc_type               # từ understand (semantic routing)
+multi_year, multi_company         # từ understand
+unit_hint, answer_shape           # từ understand
+table_ids                         # từ retrieve_targeted
+frames, names                     # từ load
+answer, pandas_query, evidence    # từ solver
+solver, errors                    # debug
+```
+
+---
+
+### Kết quả verify (2026-08-09)
+
+| Q | Expected | Got | Status |
+|---|---|---|---|
+| Q1 (VJC 2018, công ty mẹ, lookup) | 208253.2 | 208253.2 | ✓ doc_type=separate detected |
+| Q363 (KBC D/E max year 2016-2020, ICR) | 3.319357 | 3.319357 | ✓ fixed (was 0) |
+| Q371 (BSR/PLX/PVT gross_margin → ICR) | ~5.47 | wrong company | ✗ formula synthesis |
+
+Q371 vẫn sai vì formula solver synthesis (thinking=False) chọn sai công ty trong step 2.
+Root cause: multi_step với 2 chỉ tiêu khác nhau (gross_margin → ICR) — phase 2 synthesis
+cần context đủ để chain 2 bước.
+
+---
+
+### Cần làm tiếp
+
+| # | Việc | Priority |
+|---|---|---|
+| 1 | Chạy eval full 1012 với graph mới → đo tác động thực tế | P0 — cần số thật |
+| 2 | Formula solver synthesis: chọn đúng công ty sau multi_step gather | P1 |
+| 3 | Retrieval: `doc_type` unknown + prefer_consolidated có thể miss separate companies | P2 |
+| 4 | REPL: vẫn fail trên complex multi-step (10 steps limit) | P2 |
+
+**Bottleneck tiếp theo:** Formula solver synthesis quality (Q371 sai công ty) + chạy full
+
+---
+
+## Phiên 2026-08-09 (tiếp) — Retrieval: reranker + pipeline confirm
+
+### Vấn đề phát hiện khi debug
+
+Khi test Q5 ("Chi phí phạt SCR 2017") vs Q1 ("Lãi tiền gửi VJC 2018"):
+
+- **Q5 sai** (7.476 thay vì 5.535) dù table `|60` là **BM25 rank 1** trong pool 31 tables.  
+  Root cause: judge (thinking=False) với ~31 tables không pick `|60` — chọn các table chính thay vì note table ngắn 40 chars.
+- **Q50 sai** (187902 thay vì 2720958) — reranker fix được.
+- **Q100 sai** (0.0 thay vì 700886434) — reranker fix được.
+
+### Các approach đã thử (và loại)
+
+**Attempt 1 — Full shortlist → judge (bỏ BM25/dense top-K):**
+- Pass tất cả ~70 tables/report thẳng vào judge
+- Q5 ✓, Q50 ✓, Q100 ✓ — nhưng Q1 **regression** (sign flip: −208253)
+- Q363 HTTP 400 (KBC 5 năm × 70 tables = 350 → 33k tokens > 32k limit)
+- Bỏ: judge thinking=False kém hơn với pool lớn hơn (nhiều noise hơn)
+
+**Attempt 2 — Hybrid (shortlist ≤120 → full, >120 → BM25 top-N):**
+- Q363 hết HTTP 400, Q5 ✓ — nhưng Q1 vẫn regression
+- Bỏ: threshold arbitrary, vẫn có regression
+
+**Decision 9 — Giữ CHANNEL_K=20 + thêm Qwen3-Reranker-0.6B:**
+
+```python
+CandidateRetriever(
+    load_judge_text=True,
+    reranker="qwen3-0.6b",  # cross-encoder rerank ~40 tables → best-ordered
+    judge_top_n=20,          # judge thấy top-20 sau rerank
+)
+```
+
+Flow hoàn chỉnh sau thay đổi:
+```
+shortlist(ticker×year) → ~70 tables
+  → BM25 top-20 + BGE-M3 dense top-20 → RRF union ~40 tables
+  → Qwen3-Reranker-0.6B (DeepInfra API) → rerank ~40 → best ordering
+  → judge_top_n=20: judge (thinking=False) thấy 20 tables đã reranked
+  → picks ≤10 + union primary statements (BS/IS/CF)
+```
+
+Vì sao reranker fix được Q5 dù |60 đã trong pool:
+- BM25 pool có |60 ở rank 1 → reranker (cross-encoder) score nó cao cho "chi phí phạt" → nằm chắc trong top-20 judge
+- Judge thấy |60 ở vị trí đầu pool → pick ngay (không bị lạc giữa 31 tables unordered)
+
+Vì sao không tăng CHANNEL_K lên 30:
+- Test với channel_k=30: Q100 regression (reranker select khác → judge pick table không có cột đúng)
+- CHANNEL_K=20 đã được measure optimize cho ~40-table pool
+- Reranker cải thiện ordering trong pool đó, không cần pool lớn hơn
+
+### Kết quả verify sau reranker (CHANNEL_K=20, judge_top_n=20)
+
+| Q | Trước (no reranker) | Sau (reranker) | Ghi chú |
+|---|---|---|---|
+| Q1 VJC 2018 lãi tiền gửi | 208253 ✓ | 208253 ✓ | giữ nguyên |
+| Q5 SCR 2017 chi phí phạt | 7.476 ✗ | **5.535 ✓** | reranker đưa |60| lên top |
+| Q50 ABB 2023 VAMC bond | 187902 ✗ | **2720958 ✓** | fixed |
+| Q100 BVH 2018 cổ phần | 0.0 ✗ | **700886434 ✓** | fixed |
+| Q363 KBC D/E→ICR 2016-2020 | 3.319357 ✓ | 3.319357 ✓ | giữ nguyên |
+| Q3 ngân hàng Sài Gòn Tài Lộc | -3036974 ✓ | -3036974 ✓ | frozen fallback (no ticker) |
+
+### Solver flow hiện tại (confirm)
+
+**lookup_solver** (`operation=lookup + single_cell`):
+```
+generate(use_planner=True, fallback=False)
+  → LLM viết pandas query: df6.iloc[0]['2018VND'] / 1e6
+  → eval → answer
+```
+
+**formula_solver** (`operation=formula|compare|multi_step`) — **one-shot node** (2026-08-09):
+```
+_collect_canonical(frames, names) → {ticker: {year: {metric: value}}}
+  đã nạp TOÀN BỘ dữ liệu vào memory bằng mã số Thông tư 200.
+
+_solve():
+  1. _render() → in ra bảng: mọi tỷ số đã tính sẵn (_ratios_for) + vài raw
+                  metric đầu bảng (_HEADLINE), mỗi ticker/năm 1 dòng.
+  2. reason  (1 LLM call, thinking=ON, KHÔNG bind tool) → suy luận từng bước,
+              kết thúc "ĐÁP SỐ: <số>".
+  3. emit    (1 LLM call nhỏ, final_answer JSON float) → trích số chính xác.
+
+Falls back to formula_skip → repl nếu:
+  - Không match _FORMULA_RE regex
+  - Không có canonical data (note tables, ngân hàng thiếu mã số)
+  - reason trả về rỗng / emit không lấy được số
+```
+
+**Vì sao KHÔNG dùng ReAct tool-loop** (bỏ, 2026-08-09): `_collect_canonical`
+đã có sẵn toàn bộ data trong RAM → các tool `get_ratio/get_metric/list_data`
+chỉ đọc lại thứ ta đã có, không explore gì. ReAct chỉ thêm: round-trip thừa,
+loop-detection hack, và tools-JSON lớn hơn → kích hoạt bug HTTP 400 của vLLM
+(cắt cụt tools JSON với vài nội dung tiếng Việt) khiến node bịa số. Node này
+là "router công thức 1 lần", không phải code-gen hay explore.
+
+**Vì sao 2 LLM call chứ không 1**: vLLM server (port 8990, dùng chung) KHÔNG bật
+`--enable-auto-tool-choice` → chỉ có `tool_choice="required"`. Mà required ép
+gọi tool NGAY → `<think>` rỗng → model chộp số lớn nhất (VD trả max ICR thay vì
+ICR của năm max D/E). Nên phải tách: reason bằng text (thinking) rồi emit số
+bằng 1 call final_answer (JSON float tránh bug rớt dấu "." khi parse text).
+
+**LLM client** (2026-08-09): dùng LangChain `@tool` + `ChatOpenAI.bind_tools`
+thay cho urllib + JSON tay. LangChain lo schema/HTTP/tool_call_id.
+
+**repl_solver** (fallback từ formula_skip hoặc operation khác):
+```
+repl_generate(question, frames, names)
+  → LLM viết Python iterative, tối đa 10 steps
+  → exec() trong namespace có df1, df2, ...
+  → answer = biến "result" trong namespace
+```
+
+### Eval bộ 20 câu KHÓ (extended_gold.jsonl, 2026-08-09)
+
+Bộ này = **toàn bộ câu derived + multi_company** (theo docstring eval_gold.py):
+nested argmax→đọc chỉ tiêu khác, lọc theo median/điều kiện, so sánh nhiều công
+ty. KHÔNG có câu single_cell dễ nào. Đây là lớp khó nhất.
+
+Kết quả one-shot node qua graph: **4/20** (Q363 giờ ĐÚNG tuyệt đối, Q387, Q407,
+Q396). Trước đó ReAct bịa số trên lỗi 400 → chỉ 1/20.
+
+### Known issues (chưa fix)
+
+| Issue | Q | Root cause |
+|---|---|---|
+| understand miss ticker | Q3, Q10 | Câu hỏi dùng tên đầy đủ không có ticker → frozen fallback OK |
+| **canonical mã số sai** | Q378, Q439 (+Q372/Q381?) | **Mã 70 = EPS (lãi cơ bản/cp) đang map nhầm thành `net_profit_attributable_to_owners`; giá trị thực ~1186 đồng/cp chứ không phải tỷ VND → `roe`/`net_margin` ra rác ~1e-11, model đọc trúng số rác. Đúng phải là mã 62.** Lever lớn nhất còn lại. |
+| formula unit VND | Q390 | Trả 6.7e10 (VND thô) thay vì quy ra tỷ — reason không đổi đơn vị |
+| 8B chọn sai entity (bất ổn định) | Q371 | multi_step lọc 2 điều kiện: đúng/sai đổi theo run vì thay đổi prompt nhỏ (giới hạn model 8B) |
+| source data lệch | Q440 | interest_expense trong tài liệu gốc khác → ICR 3.34 vs gold 5.04, không sửa được từ canonical |
+
+### Cần làm tiếp
+
+| # | Việc | Priority |
+|---|---|---|
+| 1 | **Fix canonical mã 62 vs 70** (net_profit_attributable_to_owners) — 1 dòng, mở khoá vài câu | **P0** |
+| 2 | **Chạy eval full 1012** với pipeline mới (understand+reranker+routing) | **P0** |
+| 3 | Fix formula unit VND→tỷ (Q390) | P1 |
+| 4 | Improve understand: extract ticker từ tên đầy đủ không có ticker symbol | P2 |
+
+---
+
+## 10. Phiên 2026-08-09 (tiếp 2) — 3 fix tầng DATA cho graph pipeline (gold20)
+
+Bối cảnh: tiếp tục đào 20 câu KHÓ (`data/eval/extended_gold.jsonl`) qua **graph pipeline**
+(`graph/graph.py::run_question`, KHÔNG phải `run_pipeline.py`/planner cũ). Mục tiêu phiên này:
+tách bạch lỗi còn lại theo **tầng** (retrieval / canonical / understand / solver-LLM) rồi fix
+những cái **general, không hardcode, dùng đúng nguồn dữ liệu chuẩn của BTC**.
+
+### 10a. Kết luận chẩn đoán (bằng chứng, không đoán)
+
+- **Retrieval KHÔNG còn là bug** với gold20 khi chạy **live** (GPU còn ~2GB đủ encode query;
+  dense index precomputed). Q363 (0→3.319357 ✓) và Q371 (10.5 sai với frozen → 5.472919 ✓ với
+  live) chứng minh: nhiều câu "sai" trước đây là do **frozen fallback data cũ** trong
+  `retrieve_targeted._get_frozen`, KHÔNG phải model dở. 8B suy luận đúng trên data sạch & đủ.
+- Sau khi loại retrieval, lỗi còn lại nằm ở 3 tầng: **canonical (data)**, **understand (ticker)**,
+  và **solver-LLM (reasoning + đơn vị)**. Ba fix dưới đóng lại toàn bộ tầng data; phần còn lại
+  thuần là giới hạn suy luận của 8B.
+
+### 10b. Ba fix đã làm & verify (tất cả general, 0 hardcode)
+
+| # | File | Fix | Root cause | Verify |
+|---|---|---|---|---|
+| **D1** | `preprocessing/canonical.py` `MA_SO_IS` | Map lại mã **62** = `net_profit_attributable_to_owners` (LNST cổ đông công ty mẹ); mã **70** = `eps_basic` (Lãi cơ bản trên cổ phiếu), **71** = `eps_diluted` | Trước: mã 70 bị nhét vào `net_profit_attributable_to_owners`. EPS ~1186 đồng/cp (không phải tỷ VND) → `roe`/`net_margin` ra rác ~1e-11, model đọc trúng số rác | HPG IS bảng `\|8`: label mã 70 = "Lãi cơ bản trên cổ phiếu" ✓. `formula.py` dùng `m.get("net_profit_attributable_to_owners", m.get("net_profit",0))` → fallback mềm về mã 60 |
+| **D2** | `preprocessing/canonical.py` `_build_year_map` | Fallback theo **vị trí cột** khi header OCR mất năm: parse `report_year` từ table_id, gán cột monetary trái nhất = report_year, kế = report_year−1 (quy ước TT200 in kỳ này trước kỳ trước). `setdefault` → không đè năm parse từ header | Header kiểu "Tại ngày", "Unnamed: N" (HSG/NKG) không có năm khôi phục được → `canonical_frame` bỏ hết cột giá trị → mất data | NKG inventory 2024 = 6.690482934519e12; `_monetary_cols` dùng ngưỡng magnitude ≥1e4 tách cột giá trị khỏi cột mã số/thuyết minh ✓ |
+| **D3** | `graph/nodes/understand.py` | Resolve ticker **rule-based TRƯỚC** khi gọi LLM: `find_tickers(question, code_stock.csv, MANUAL_ALIASES)`. Kết quả vừa **bơm vào prompt** ("Mã cổ phiếu đã xác định sẵn: …") vừa dùng làm **đáp án chính**; LLM chỉ fallback khi rule-based rỗng | 8B **bịa ticker**: "Nam Kim" → NKM thay vì NKG (NKG có trong `code_stock.csv` của BTC). LLM không nên quyết field có nguồn chuẩn | 0/20 lệch so với enriched metadata; Q390 giờ resolve đủ [HPG, HSG, NKG] (3 ticker) end-to-end |
+
+Nguyên tắc chung rút ra (áp cho các field khác): **field có nguồn chân lý (ticker, mã số TT200) →
+resolve deterministic từ nguồn đó, KHÔNG để 8B đoán**; LLM chỉ giữ phần không có nguồn chuẩn
+(operation / metric / answer_shape).
+
+### 10c. Còn lại = thuần tầng LLM (bug #3), KHÔNG phải data
+
+Sau D1–D3, gold20 live ~5/20. Các câu đỏ còn lại đã cô lập về **suy luận multi-step + đổi đơn vị** của 8B:
+
+| Q | Got | Gold | Bản chất |
+|---|---|---|---|
+| Q390 | 0.4608 | 6.690483 | Trả nhầm đại lượng (ra tỷ số thay vì hàng tồn kho) + **không đổi nghìn tỷ**. 3 ticker đã đúng |
+| Q414 | 9.55 | 2.704898 | Sai suy luận multi-step (lọc DOL → OPM). 3 ticker đã đúng |
+| Q378/Q381/Q392/Q396/Q409/Q422/Q423/Q429/Q439/Q440 | — | — | multi-step reasoning / entity-pick bất ổn của 8B (xem §9h "Multi-company screening") |
+
+### 10d. Hướng fix bug #3 (general, chưa greenlit — chờ user)
+
+Xếp theo bang-for-buck, không hardcode:
+1. **Đổi đơn vị deterministic** [rẻ nhất]: đã có `detect_unit()` trong `questions.py` trích
+   `unit_hint` (nghìn tỷ/tỷ/triệu/%/lần) → ép chia/nhân sau khi model ra số **thô**, thay vì tin
+   model tự đổi. Chặn trực tiếp lỗi Q390.
+2. **Structured pick + tra deterministic**: model chỉ xuất JSON "chọn năm/công ty nào", code tự
+   đọc chỉ số từ canonical dict → bỏ số học sai của 8B.
+3. **Abstain**: thiếu metric / magnitude vô lý → trả None → repl (thay vì bịa số).
+
+### 10e. Cách reproduce (GPU cần ~2GB free để encode query live)
+
+```bash
+# 1 câu qua graph, in solver + match + reasoning tail:
+PYTHONPATH=src .venv_bge/bin/python scripts/test_formula_solver.py 390
+# coverage canonical 1 câu (understand→retrieve→load, in statement-type + metric booleans):
+PYTHONPATH=src .venv_bge/bin/python scripts/_probe_coverage.py 390
+# full gold20 qua graph (solver breakdown + by-solver):
+PYTHONPATH=src .venv_bge/bin/python scripts/eval_graph20.py
+```
+
+**Trạng thái file:** `graph/` và `preprocessing/canonical.py` hiện **untracked** (chưa commit).
