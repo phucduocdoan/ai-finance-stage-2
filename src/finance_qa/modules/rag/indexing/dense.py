@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,12 +39,41 @@ OUT_PATH = DENSE_INDEX_PATH
 MODEL = "BAAI/bge-m3"
 MAX_LEN = 512
 BATCH = 64
+_MIN_FREE_VRAM = 3 * 2**30  # bge-m3 fp16 is ~1.1 GB; leave room for activations
 
 
-def load_model():
+def _pick_device() -> str:
+    """CUDA when it has room, CPU otherwise.
+
+    Building the index wants the GPU, but at query time this encodes one short
+    string -- and the GPU is routinely full (a local vLLM holds ~57 GB of 79).
+    Hardcoding .cuda() made that OutOfMemoryError propagate out of
+    CandidateRetriever.build_pool, which the retrieve node catches as
+    "retrieve: error: ... -> frozen fallback": every question in the 1012 run
+    silently retrieved from a stale cache instead of live.
+    """
+    if not torch.cuda.is_available():
+        return "cpu"
+    free, _total = torch.cuda.mem_get_info()
+    return "cuda" if free > _MIN_FREE_VRAM else "cpu"
+
+
+def load_model(device: str | None = None):
+    device = device or _pick_device()
     tok = AutoTokenizer.from_pretrained(MODEL)
-    model = AutoModel.from_pretrained(MODEL, dtype=torch.float16).cuda().eval()
+    # fp16 on CPU is not supported by every op in XLM-R; fp32 is, and one query
+    # is cheap either way.
+    dtype = torch.float16 if device == "cuda" else torch.float32
+    model = AutoModel.from_pretrained(MODEL, dtype=dtype).to(device).eval()
     return tok, model
+
+
+@torch.no_grad()
+def _forward(chunk: list[str], tok, model) -> torch.Tensor:
+    enc = tok(
+        chunk, padding=True, truncation=True, max_length=MAX_LEN, return_tensors="pt",
+    ).to(model.device)
+    return model(**enc).last_hidden_state[:, 0]
 
 
 @torch.no_grad()
@@ -55,11 +85,21 @@ def encode(texts: list[str], tok, model, batch: int = BATCH) -> np.ndarray:
     order = np.argsort([len(t) for t in texts])
     for start in range(0, len(order), batch):
         idx = order[start : start + batch]
-        enc = tok(
-            [texts[i] for i in idx],
-            padding=True, truncation=True, max_length=MAX_LEN, return_tensors="pt",
-        ).to("cuda")
-        vecs = model(**enc).last_hidden_state[:, 0]
+        chunk = [texts[i] for i in idx]
+        try:
+            vecs = _forward(chunk, tok, model)
+        except torch.OutOfMemoryError:
+            # _pick_device only measures free VRAM once, at load time. The GPU is
+            # shared with a local vLLM whose footprint moves, so room at query 1
+            # is no guarantee at query 500. Degrade once and stay on CPU: an
+            # escaping OOM here is caught by retrieve_table_ids and turns into a
+            # silent frozen-cache fallback for every remaining question.
+            if model.device.type == "cpu":
+                raise
+            print("dense: CUDA OOM -> encoder moved to CPU for the rest of the process")
+            model.float().to("cpu")  # in-place on the module the caller cached
+            torch.cuda.empty_cache()
+            vecs = _forward(chunk, tok, model)
         vecs = torch.nn.functional.normalize(vecs, p=2, dim=-1)
         out[idx] = vecs.cpu().numpy().astype(np.float16)
     return out
@@ -78,11 +118,17 @@ class BgeM3Embedder:
 
     def __init__(self) -> None:
         self._loaded = None
+        self._lock = threading.Lock()
 
     def _model(self):
-        if self._loaded is None:
-            self._loaded = load_model()
-        return self._loaded
+        # Same check-then-set hazard as get_retriever, one level down: concurrent
+        # first calls from the run_graph worker pool each loaded bge-m3 (four
+        # "Loading weights" lines in one run). Inference on the shared module is
+        # thread-safe; only construction needs guarding.
+        with self._lock:
+            if self._loaded is None:
+                self._loaded = load_model()
+            return self._loaded
 
     def embed_documents(self, texts):
         return encode(list(texts), *self._model())

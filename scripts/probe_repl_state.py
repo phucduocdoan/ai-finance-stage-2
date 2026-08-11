@@ -47,11 +47,11 @@ def main() -> None:
     names = {f"df{i}": tid for i, tid in enumerate(table_ids, 1)}
     frames = {v: load_frame(t) for v, t in names.items()}
 
-    # Wrap _llm_tool_call to show the STATE block the model receives each turn.
-    orig = repl._llm_tool_call
+    # Wrap _allm_tool_call to show the STATE block the model receives each turn.
+    orig = repl._allm_tool_call
     turn = {"n": 0}
 
-    def spy(messages):
+    async def spy(messages):
         turn["n"] += 1
         user = messages[-1]["content"]
         state = user.split("TRẠNG THÁI", 1)
@@ -61,11 +61,11 @@ def main() -> None:
         else:
             print("(no state yet — first turn)")
         print()
-        return orig(messages)
+        return await orig(messages)
 
-    repl._llm_tool_call = spy
+    repl._allm_tool_call = spy
     result = repl.repl_generate(question, frames, names)
-    repl._llm_tool_call = orig
+    repl._allm_tool_call = orig
 
     print("===== RESULT =====")
     print(f"answer   = {result['answer']}")

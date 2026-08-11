@@ -20,7 +20,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field, model_validator
 
-from finance_qa.modules.codegen.fact_plan import plan_and_execute_fact_plan
+from finance_qa.modules.codegen.fact_plan import aplan_and_execute_fact_plan
 from finance_qa.modules.codegen.prompts import EXTRACT_PROMPT, FORMULA_PROMPT, FORMULA_SYSTEM
 from finance_qa.modules.tools.metrics import (
     execute_canonical_plan,
@@ -30,6 +30,7 @@ from finance_qa.modules.tools.metrics import (
     planner_metric_ids,
     ratios_for,
 )
+from finance_qa.core.http import run_sync
 from finance_qa.core.llm import get_chat_model
 from finance_qa.modules.data.canonical import canonical_frame, _get_table_meta
 from finance_qa.modules.data.preprocessing.questions import detect_unit
@@ -236,12 +237,12 @@ Ví dụ mapping:
   select.metric=gross_margin; answer.metric=icr."""
 
 
-def infer_canonical_plan(question: str) -> CanonicalPlan | None:
+async def ainfer_canonical_plan(question: str) -> CanonicalPlan | None:
     """Infer the structured canonical plan without executing it."""
     try:
-        plan_obj = get_chat_model(thinking=False, max_tokens=768).with_structured_output(
+        plan_obj = await get_chat_model(thinking=False, max_tokens=768).with_structured_output(
             CanonicalPlan
-        ).invoke([HumanMessage(_canonical_plan_prompt(question))])
+        ).ainvoke([HumanMessage(_canonical_plan_prompt(question))])
     except Exception as e:
         if _TRACE:
             print(f"[formula] canonical plan error: {e}")
@@ -254,21 +255,31 @@ def infer_canonical_plan(question: str) -> CanonicalPlan | None:
     return plan_obj
 
 
-def _plan_and_execute_canonical_plan(
+def infer_canonical_plan(question: str) -> CanonicalPlan | None:
+    """Sync `ainfer_canonical_plan`, for the offline failure audits."""
+    return run_sync(ainfer_canonical_plan(question))
+
+
+async def _aplan_and_execute_canonical_plan(
     question: str,
     data: dict[str, dict[str, dict[str, float]]],
     tickers: list[str] | None,
     years: list[int] | None,
     unit_hint: str | None,
     resolved: dict[str, Any] | None = None,
+    diag: dict[str, Any] | None = None,
 ) -> tuple[float, str] | None:
     """Let the model fill a Pydantic plan; Python validates and executes."""
-    plan_obj = infer_canonical_plan(question)
+    plan_obj = await ainfer_canonical_plan(question)
     if plan_obj is None:
         return None
     if plan_obj.unsupported:
+        if diag is not None:
+            diag["canonical_plan"] = "unsupported"
         return None
     plan = plan_obj.model_dump(exclude_none=True)
+    if diag is not None:
+        diag["canonical_plan"] = plan
     return execute_canonical_plan(
         data,
         plan,
@@ -312,7 +323,7 @@ def final_answer(answer: float) -> float:
     return answer
 
 
-def _extract_number(reasoning: str) -> float | None:
+async def _aextract_number(reasoning: str) -> float | None:
     """Second call: turn the reasoning's final answer into an exact JSON float.
 
     The server has no auto tool-choice, so we cannot let the model reason and
@@ -324,7 +335,7 @@ def _extract_number(reasoning: str) -> float | None:
     )
     prompt = EXTRACT_PROMPT + reasoning
     try:
-        ai: AIMessage = llm.invoke([HumanMessage(prompt)])
+        ai: AIMessage = await llm.ainvoke([HumanMessage(prompt)])
     except Exception as e:
         if _TRACE:
             print(f"[formula] extract error: {e}")
@@ -353,12 +364,12 @@ def _postprocess_formula_answer(question: str, answer: float, unit_hint: str | N
     return answer
 
 
-def _solve(question: str, data: dict, thinking: bool, max_tokens: int) -> float | None:
+async def _asolve(question: str, data: dict, thinking: bool, max_tokens: int) -> float | None:
     """Reason over the full data table, then emit the number."""
     llm = get_chat_model(thinking=thinking, max_tokens=max_tokens)  # no tools — let the model reason freely
     prompt = FORMULA_PROMPT.format(table=_render(data), question=question)
     try:
-        ai: AIMessage = llm.invoke([SystemMessage(FORMULA_SYSTEM), HumanMessage(prompt)])
+        ai: AIMessage = await llm.ainvoke([SystemMessage(FORMULA_SYSTEM), HumanMessage(prompt)])
     except Exception as e:
         if _TRACE:
             print(f"[formula] solve error: {e}")
@@ -369,7 +380,7 @@ def _solve(question: str, data: dict, thinking: bool, max_tokens: int) -> float 
     if _TRACE:
         tail = reasoning.strip().splitlines()[-1] if reasoning.strip() else ""
         print(f"  reasoning tail: {tail}")
-    return _extract_number(reasoning)
+    return await _aextract_number(reasoning)
 
 
 # ── Public service ────────────────────────────────────────────────────────────
@@ -423,6 +434,7 @@ def _packaged(
     resolved: dict[str, Any],
     names: dict[str, str],
     prior_errors: list[str],
+    diag: dict[str, Any],
 ) -> dict:
     """Ship a runnable `pandas_query`, or a literal when no source cell is traceable.
 
@@ -446,16 +458,26 @@ def _packaged(
         )
     query = expr or repr(float(result))
     contributing = {var for var, _row, _col in provenance.values()}
+    diag.update(trace=trace, resolved=dict(resolved), traceable=bool(expr))
+    row = data.get(str(resolved.get("ticker") or ""), {}).get(str(resolved.get("year") or ""))
+    if row:
+        # The canonical row the answer was read from: this is what separates an
+        # extraction fault (row is wrong) from a mapping fault (row is right).
+        diag["row"] = {
+            "ratios": {k: round(v, 6) for k, v in sorted(ratios_for(row).items())},
+            "raw": {k: row[k] for k in _HEADLINE if k in row},
+        }
     return {
         "answer": result,
         "pandas_query": query,
         "evidence": _evidence(names, query, contributing or set(names)),
         "solver": "formula",
         "errors": prior_errors if expr else prior_errors + [f"formula: query not traceable to cells ({trace})"],
+        "diag": diag,
     }
 
 
-def solve_formula(
+async def asolve_formula(
     *,
     question: str,
     frames: dict[str, Any],
@@ -473,57 +495,116 @@ def solve_formula(
     caller should route to a broader fallback such as REPL.
     """
     prior_errors = list(errors or [])
+    effective_unit = unit_hint or detect_unit(question)
+    diag: dict[str, Any] = {
+        "solver": "formula",
+        "unit_hint": unit_hint or "",
+        "unit_used": effective_unit,
+        "tickers": list(tickers or []),
+        "years": list(years or []),
+    }
 
     def _skip(reason: str) -> dict:
-        return {"solver": _SKIP, "errors": prior_errors + [f"formula_skip: {reason}"]}
+        diag["path"] = "skip"
+        return {
+            "solver": _SKIP,
+            "errors": prior_errors + [f"formula_skip: {reason}"],
+            "diag": {**diag, "skip_reason": reason},
+        }
 
     provenance: dict[tuple[str, str, str], tuple[str, int, int]] = {}
     data = _collect_canonical(frames, names, provenance)
+    diag["canonical"] = {t: sorted(data[t]) for t in sorted(data)}
     if not data:
         return _skip("no canonical data")
 
     prefer_fact = _prefers_fact_plan(question)
+    diag["prefers_fact_plan"] = prefer_fact
     resolved: dict[str, Any] = {}
     deterministic = None
     if prefer_fact:
-        deterministic = plan_and_execute_fact_plan(
+        deterministic = await aplan_and_execute_fact_plan(
             question,
             data,
             tickers=tickers or [],
             years=years or [],
-            unit_hint=unit_hint or detect_unit(question),
+            unit_hint=effective_unit,
             resolved=resolved,
+            diag=diag,
         )
+        diag["path"] = "fact_plan"
 
     if deterministic is None:
-        deterministic = _plan_and_execute_canonical_plan(
+        deterministic = await _aplan_and_execute_canonical_plan(
             question,
             data,
             tickers=tickers or [],
             years=years or [],
-            unit_hint=unit_hint or detect_unit(question),
+            unit_hint=effective_unit,
             resolved=resolved,
+            diag=diag,
         )
+        diag["path"] = "canonical_plan"
 
     if deterministic is None and not prefer_fact:
-        deterministic = plan_and_execute_fact_plan(
+        deterministic = await aplan_and_execute_fact_plan(
             question,
             data,
             tickers=tickers or [],
             years=years or [],
-            unit_hint=unit_hint or detect_unit(question),
+            unit_hint=effective_unit,
             resolved=resolved,
+            diag=diag,
         )
+        diag["path"] = "fact_plan"
 
     if deterministic is not None:
         result, trace = deterministic
-        return _packaged(result, trace, data, provenance, resolved, names, prior_errors)
+        return _packaged(result, trace, data, provenance, resolved, names, prior_errors, diag)
 
-    result = _solve(question, data, thinking=thinking, max_tokens=max_tokens)
+    result = await _asolve(question, data, thinking=thinking, max_tokens=max_tokens)
+    diag["path"] = "oneshot"
     if result is None:
         return _skip("solver returned no answer")
+    raw = result
     result = _postprocess_formula_answer(question, result, unit_hint or "")
+    diag["oneshot_raw"] = raw
 
     return _packaged(
-        result, f"formula_oneshot({len(data)} tickers)", data, provenance, {}, names, prior_errors
+        result,
+        f"formula_oneshot({len(data)} tickers)",
+        data,
+        provenance,
+        {},
+        names,
+        prior_errors,
+        diag,
+    )
+
+
+def solve_formula(
+    *,
+    question: str,
+    frames: dict[str, Any],
+    names: dict[str, str],
+    tickers: list[str] | None = None,
+    years: list[int] | None = None,
+    unit_hint: str | None = None,
+    errors: list[str] | None = None,
+    thinking: bool = True,
+    max_tokens: int = 8192,
+) -> dict:
+    """Sync `asolve_formula`, for single-question scripts."""
+    return run_sync(
+        asolve_formula(
+            question=question,
+            frames=frames,
+            names=names,
+            tickers=tickers,
+            years=years,
+            unit_hint=unit_hint,
+            errors=errors,
+            thinking=thinking,
+            max_tokens=max_tokens,
+        )
     )

@@ -110,17 +110,17 @@ def _explicit_separate_scope(question: str) -> bool:
 def make_understand(cfg):
     """Build the understand node bound to agent config `cfg`."""
 
-    def understand(state: FinanceState) -> dict:
+    async def understand(state: FinanceState) -> dict:
         resolved = _resolve_tickers(state["question"])
         stated_separate = _explicit_separate_scope(state["question"])
         try:
             user = state["question"]
             if resolved:
                 user += f"\n\n(Mã cổ phiếu đã xác định sẵn: {', '.join(resolved)})"
-            result = get_chat_model(
+            result = await get_chat_model(
                 thinking=cfg.understand_thinking,
                 max_tokens=512,
-            ).with_structured_output(UnderstandIntent).invoke(
+            ).with_structured_output(UnderstandIntent).ainvoke(
                 [
                     SystemMessage(content=UNDERSTAND_SYSTEM),
                     HumanMessage(content=user),

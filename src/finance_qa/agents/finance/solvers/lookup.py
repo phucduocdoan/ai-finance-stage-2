@@ -6,11 +6,11 @@ If planner returns 0 or errors, the graph can route to repl_solver as a second a
 from __future__ import annotations
 
 from finance_qa.agents.finance.state import FinanceState
-from finance_qa.modules.codegen.service import generate_lookup_solution
+from finance_qa.modules.codegen.service import agenerate_lookup_solution
 
 
-def lookup_solver(state: FinanceState) -> dict:
-    result = generate_lookup_solution(state["question"], state.get("table_ids") or [])
+async def lookup_solver(state: FinanceState) -> dict:
+    result = await agenerate_lookup_solution(state["question"], state.get("table_ids") or [])
     failed = bool(result.get("error"))
     return {
         "answer":       float(result.get("answer") or 0.0),

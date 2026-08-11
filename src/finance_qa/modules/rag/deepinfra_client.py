@@ -9,12 +9,13 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
+import httpx
+
+from finance_qa.core.http import client as http_client
+from finance_qa.core.http import run_sync
 from finance_qa.core.paths import PROJECT_ROOT
 
 
@@ -44,10 +45,11 @@ def api_key() -> str:
 
 @dataclass(frozen=True)
 class DeepInfraClient:
-    """Synchronous HTTP client with an async-compatible boundary.
+    """Async HTTP client over the shared connection pool.
 
-    `apost()` currently delegates to a thread. A real aiohttp/httpx transport can
-    replace this class without changing embedder/reranker APIs.
+    `apost` is the implementation; `post` is the sync wrapper the offline index
+    builders use. The retry backoff sleeps on the event loop, so a retrying
+    reranker call no longer parks a thread for up to 8 seconds.
     """
 
     key: str | None = None
@@ -57,30 +59,29 @@ class DeepInfraClient:
     def resolved_key(self) -> str:
         return self.key or api_key()
 
-    def post(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    async def apost(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
         """POST JSON with backoff. 4xx is terminal; 5xx and transport errors retry."""
-        body = json.dumps(payload).encode("utf-8")
-        headers = {
-            "Authorization": f"Bearer {self.resolved_key()}",
-            "Content-Type": "application/json",
-        }
+        headers = {"Authorization": f"Bearer {self.resolved_key()}"}
         last = ""
         for attempt in range(self.retries):
-            request = urllib.request.Request(url, data=body, headers=headers)
             try:
-                with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                    return json.loads(response.read())
-            except urllib.error.HTTPError as exc:
-                detail = exc.read().decode("utf-8", "replace")[:400]
-                if exc.code < 500 and exc.code != 429:
-                    raise DeepInfraError(f"HTTP {exc.code} from {url}: {detail}") from exc
-                last = f"HTTP {exc.code}: {detail}"
-            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+                response = await http_client().post(
+                    url, json=payload, headers=headers, timeout=self.timeout
+                )
+                if response.status_code >= 400:
+                    detail = response.text[:400]
+                    if response.status_code < 500 and response.status_code != 429:
+                        raise DeepInfraError(
+                            f"HTTP {response.status_code} from {url}: {detail}"
+                        )
+                    last = f"HTTP {response.status_code}: {detail}"
+                else:
+                    return response.json()
+            except (httpx.HTTPError, json.JSONDecodeError) as exc:
                 last = f"{type(exc).__name__}: {exc}"
             if attempt < self.retries - 1:
-                time.sleep(2**attempt)
+                await asyncio.sleep(2**attempt)
         raise DeepInfraError(f"{url} failed after {self.retries} attempts: {last}")
 
-    async def apost(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """Async facade for future gather-based pipelines."""
-        return await asyncio.to_thread(self.post, url, payload)
+    def post(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return run_sync(self.apost(url, payload))

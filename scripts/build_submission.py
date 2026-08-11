@@ -128,12 +128,6 @@ def validate_format(items: list[dict], expected_ids: set[int] | None) -> list[st
 
 # --------------------------------------------------------------------- packaging
 
-def _to_0indexed(tid: str) -> str:
-    """Convert 1-indexed table_id (our corpus) to 0-indexed (organizer ground truth)."""
-    doc, pos = tid.rsplit("|", 1)
-    return f"{doc}|{int(pos) - 1}"
-
-
 def stage(items: list[dict], out_dir: Path) -> tuple[int, list[str]]:
     """Write submission.json + copy every referenced CSV into out_dir/data/.
 
@@ -167,8 +161,12 @@ def stage(items: list[dict], out_dir: Path) -> tuple[int, list[str]]:
                     warnings.append(f"load_frame {tid} failed ({exc.__class__.__name__}), raw CSV shipped")
                     shutil.copyfile(src, data_dir / name)
                 copied.add(name)
-            # Organizer ground truth uses 0-indexed positions; convert before submission.
-            kept_tables.append(_to_0indexed(tid))
+            # Submit the position verbatim: `table_pos` is the 1-based ordinal of the
+            # table's `<table>` tag in the organizer's own OCR text (verified equal on
+            # 40/40 sampled reports), which is what `<report_id>|<vị trí>` asks for.
+            # A `pos - 1` conversion here, added without evidence, is what scored
+            # TABLES_F2MACRO=0.0 on submission_graph_v3 while DOCS scored 0.9248.
+            kept_tables.append(tid)
         it["relevant_tables"] = kept_tables
         it["relevant_docs"] = list({t.rsplit("|", 1)[0]: None for t in kept_tables})
         # drop evidence whose CSV was dropped

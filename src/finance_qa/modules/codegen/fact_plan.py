@@ -168,15 +168,15 @@ Ví dụ:
 """
 
 
-def infer_fact_plan(question: str) -> FactPlan | None:
+async def ainfer_fact_plan(question: str) -> FactPlan | None:
     """Infer a typed fact-table plan without executing it."""
     prompt = _fact_plan_prompt(question)
     for method in ("json_schema", "function_calling"):
         try:
-            plan_obj = get_chat_model(thinking=False, max_tokens=2048).with_structured_output(
+            plan_obj = await get_chat_model(thinking=False, max_tokens=2048).with_structured_output(
                 FactPlan,
                 method=method,
-            ).invoke([HumanMessage(prompt)])
+            ).ainvoke([HumanMessage(prompt)])
         except Exception:
             continue
         if isinstance(plan_obj, FactPlan):
@@ -416,7 +416,7 @@ def execute_fact_plan(
     return converted, query
 
 
-def plan_and_execute_fact_plan(
+async def aplan_and_execute_fact_plan(
     question: str,
     data: CanonicalData,
     *,
@@ -424,10 +424,13 @@ def plan_and_execute_fact_plan(
     years: list[int] | None = None,
     unit_hint: str | None = None,
     resolved: dict[str, Any] | None = None,
+    diag: dict[str, Any] | None = None,
 ) -> tuple[float, str] | None:
-    plan = infer_fact_plan(question)
+    plan = await ainfer_fact_plan(question)
     if plan is None:
         return None
+    if diag is not None:
+        diag["fact_plan"] = plan.model_dump(exclude_none=True)
     return execute_fact_plan(
         data,
         plan,

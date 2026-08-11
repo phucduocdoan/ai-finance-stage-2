@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -27,7 +28,7 @@ class FakeStructuredModel:
         check("understand requests Pydantic structured output", schema is UnderstandIntent)
         return self
 
-    def invoke(self, messages):
+    async def ainvoke(self, messages):
         check("understand sends system and human messages", len(messages) == 2)
         return self.result
 
@@ -49,7 +50,7 @@ understand_mod.get_chat_model = lambda **_: FakeStructuredModel(
     )
 )
 state = make_initial_state(1, "Trong giai đoạn 2018-2020, HPG có ROE cao nhất năm nào?")
-patch = make_understand(cfg)(state)
+patch = asyncio.run(make_understand(cfg)(state))
 check("rule-resolved ticker overrides model guess", patch["tickers"] == ["HPG"])
 check("year range is expanded after structured extraction", patch["years"] == [2018, 2019, 2020])
 check("multi_year is inferred from expanded range", patch["multi_year"] is True)
@@ -57,7 +58,7 @@ check("semantic fields come from structured model", patch["operation"] == "compa
 
 understand_mod.get_chat_model = lambda **_: FakeStructuredModel({"years": [2022], "operation": "lookup", "answer_shape": "single_cell"})
 state = make_initial_state(2, "Doanh thu HPG năm 2022 là bao nhiêu?")
-patch = make_understand(cfg)(state)
+patch = asyncio.run(make_understand(cfg)(state))
 check("dict structured output is validated through Pydantic", patch["operation"] == "lookup")
 check("Pydantic defaults fill omitted fields", patch["doc_type"] == "unknown" and patch["metric"] == "")
 

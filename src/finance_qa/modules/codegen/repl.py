@@ -10,16 +10,15 @@ from __future__ import annotations
 import json
 import math
 import os
-import urllib.request
 
 import pandas as pd
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
 
-from finance_qa.core.llm import get_chat_model
+from finance_qa.core.http import client, run_sync
+from finance_qa.core.llm import API_KEY, ENDPOINT, MODEL, get_chat_model
 from finance_qa.modules.codegen.prompts import REPL_SYSTEM
 from finance_qa.modules.data.canonical import canonical_frame, canonical_schema_block, _get_table_meta
-from finance_qa.modules.rag.judge import ENDPOINT, MODEL, _API_KEY
 from finance_qa.modules.tools.python_exec import exec_in_namespace, query_names
 from finance_qa.modules.data.table_store import submission_csv_name
 
@@ -141,42 +140,31 @@ def _schema_block(var: str, table_id: str, df: pd.DataFrame) -> str:
     return block
 
 
-def _llm_tool_call(messages: list[dict]) -> dict:
-    """POST to vLLM or Gemini with run_code tool. Returns the raw assistant message dict."""
+def _tool_call_request(messages: list[dict]) -> tuple[str, dict, dict]:
+    """Endpoint + body + headers for one run_code turn, per backend."""
     # temp=0 makes the REPL loop on identical failing code; sampling lets it escape.
     temperature = float(os.environ.get("REPL_TEMP", "0.7"))
-    if _REPL_BACKEND == "gemini":
-        payload = {
-            "model": _GEMINI_MODEL,
-            "messages": messages,
-            "tools": _TOOLS,
-            "tool_choice": "required",
-            "max_tokens": 4096,
-            "temperature": temperature,
-        }
-        endpoint = _GEMINI_ENDPOINT
-        key = _GEMINI_KEY
-    else:
-        payload = {
-            "model": MODEL,
-            "messages": messages,
-            "tools": _TOOLS,
-            "tool_choice": "required",
-            "max_tokens": 4096,
-            "temperature": temperature,
-            "chat_template_kwargs": {"enable_thinking": False},
-        }
-        endpoint = ENDPOINT
-        key = _API_KEY
+    gemini = _REPL_BACKEND == "gemini"
+    body = {
+        "model": _GEMINI_MODEL if gemini else MODEL,
+        "messages": messages,
+        "tools": _TOOLS,
+        "tool_choice": "required",
+        "max_tokens": 4096,
+        "temperature": temperature,
+    }
+    endpoint, key = (_GEMINI_ENDPOINT, _GEMINI_KEY) if gemini else (ENDPOINT, API_KEY)
+    if not gemini:
+        body["chat_template_kwargs"] = {"enable_thinking": False}
+    return endpoint, body, ({"Authorization": f"Bearer {key}"} if key else {})
 
-    data = json.dumps(payload, ensure_ascii=False).encode()
-    headers = {"Content-Type": "application/json"}
-    if key:
-        headers["Authorization"] = f"Bearer {key}"
-    req = urllib.request.Request(endpoint, data=data, headers=headers)
-    with urllib.request.urlopen(req, timeout=180) as resp:
-        body = json.loads(resp.read())
-    return body["choices"][0]["message"]
+
+async def _allm_tool_call(messages: list[dict]) -> dict:
+    """POST to vLLM or Gemini with run_code tool. Returns the raw assistant message dict."""
+    endpoint, body, headers = _tool_call_request(messages)
+    response = await client().post(endpoint, json=body, headers=headers, timeout=180)
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]
 
 
 def _render_state(
@@ -254,7 +242,7 @@ def _print_trace(ledger: list[tuple[str, str]], answer: float | None = None) -> 
     print(sep, file=sys.stderr)
 
 
-def repl_generate(
+async def arepl_generate(
     question: str,
     frames: dict[str, pd.DataFrame],
     names: dict[str, str],
@@ -337,7 +325,7 @@ def repl_generate(
             {"role": "user", "content": user_content},
         ]
         try:
-            asst = _llm_tool_call(messages)
+            asst = await _allm_tool_call(messages)
         except Exception as exc:
             if _REPL_TRACE:
                 _print_trace(ledger)
@@ -395,6 +383,17 @@ def repl_generate(
     if _REPL_TRACE:
         _print_trace(ledger)
     return _fail(code_history, names, planner_error, f"REPL: no result after {MAX_REPL_STEPS} steps")
+
+
+def repl_generate(
+    question: str,
+    frames: dict[str, pd.DataFrame],
+    names: dict[str, str],
+    planner_error: str = "",
+    last_plan: dict | None = None,
+) -> dict:
+    """Sync `arepl_generate`, for the offline planner probes."""
+    return run_sync(arepl_generate(question, frames, names, planner_error, last_plan))
 
 
 def _success(
@@ -521,7 +520,7 @@ def _strip_imports(code: str) -> str:
     return "\n".join(kept).strip() or code
 
 
-def solve_repl(
+async def asolve_repl(
     *,
     question: str,
     frames: dict[str, pd.DataFrame],
@@ -532,7 +531,7 @@ def solve_repl(
 ) -> dict:
     """LangChain tool-calling REPL used by the finance graph.
 
-    `repl_generate()` above remains the urllib batch fallback for the planner
+    `arepl_generate()` above remains the batch fallback for the planner
     generator. This service is state-shaped for graph adapters.
     """
     prior_errors = list(errors or [])
@@ -585,7 +584,7 @@ def solve_repl(
     last_err_out = None
     for _ in range(max_steps):
         try:
-            ai: AIMessage = llm.invoke(messages)
+            ai: AIMessage = await llm.ainvoke(messages)
         except Exception as exc:  # noqa: BLE001
             llm_errors += 1
             if llm_errors <= 2:
@@ -640,3 +639,25 @@ def solve_repl(
             namespace.pop("result", None)
 
     return _out(0.0, "0.0", code_history, f"repl: no answer after {max_steps} steps")
+
+
+def solve_repl(
+    *,
+    question: str,
+    frames: dict[str, pd.DataFrame],
+    names: dict[str, str],
+    unit_hint: str = "",
+    errors: list[str] | None = None,
+    max_steps: int = _LANGCHAIN_REPL_MAX_STEPS,
+) -> dict:
+    """Sync `asolve_repl`, for single-question scripts."""
+    return run_sync(
+        asolve_repl(
+            question=question,
+            frames=frames,
+            names=names,
+            unit_hint=unit_hint,
+            errors=errors,
+            max_steps=max_steps,
+        )
+    )

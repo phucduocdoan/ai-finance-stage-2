@@ -24,7 +24,7 @@ class FakeStructuredModel:
         check("planner requests Pydantic structured output", schema is OperationPlan)
         return self
 
-    def invoke(self, messages):
+    async def ainvoke(self, messages):
         check("planner sends the rendered prompt", "CÁC BẢNG" in messages[0].content)
         return OperationPlan(
             bindings=[
@@ -43,10 +43,14 @@ class FakeStructuredModel:
         )
 
 
+async def fake_indicator(_question: str) -> str:
+    return ""
+
+
 originals = {
     "get_chat_model": generator.get_chat_model,
     "load_frame": generator.load_frame,
-    "rewrite_to_indicator": generator.rewrite_to_indicator,
+    "arewrite_to_indicator": generator.arewrite_to_indicator,
     "_get_meta": generator._get_meta,
 }
 
@@ -55,7 +59,7 @@ try:
     generator.load_frame = lambda _tid: pd.DataFrame(
         {"Chỉ tiêu": ["Doanh thu"], "2023": [123_000_000.0]}
     )
-    generator.rewrite_to_indicator = lambda _question: ""
+    generator.arewrite_to_indicator = fake_indicator
     generator._get_meta = lambda _tid: {
         "caption": "",
         "period_cols": set(),

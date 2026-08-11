@@ -36,6 +36,7 @@ BM25 IDF, dense index, bge-m3 on GPU) and is what callers construct.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -48,11 +49,13 @@ from finance_qa.modules.rag.retrievers.clients import (
     RERANKER_BACKENDS,
     EmbeddingClient,
     RerankerClient,
+    arerank_order,
     embedding_client,
     rerank_order,
     reranker_client,
 )
 from finance_qa.modules.rag.retrievers.filters import index_by_ticker_year, load_tables, shortlist
+from finance_qa.modules.rag.judge import ajudge as ajudge_pool_llm
 from finance_qa.modules.rag.judge import judge as judge_pool_llm
 
 
@@ -318,19 +321,48 @@ class CandidateRetriever:
 
     # -- pools -------------------------------------------------------------
 
-    def build_pools(self, questions: Sequence[Mapping]) -> list[Pool]:
-        """Pools for a batch of questions; queries are encoded in one GPU pass."""
+    async def abuild_pools(self, questions: Sequence[Mapping]) -> list[Pool]:
+        """Pools for a batch of questions. The encode goes to a thread (it is GPU
+        work, not IO); the rerank calls all wait concurrently on the event loop."""
         queries = [self.query_for(q) for q in questions]
-        qvecs = self._encode(queries) if self._dense is not None else None
-        return [
-            self._build_pool(q, queries[i], None if qvecs is None else qvecs[i])
+        qvecs = (
+            await asyncio.to_thread(self._encode, queries)
+            if self._dense is not None
+            else None
+        )
+        pools = [
+            self._fuse(q, queries[i], None if qvecs is None else qvecs[i])
             for i, q in enumerate(questions)
         ]
+        await asyncio.gather(
+            *(self._arerank(q, pool) for q, pool in zip(questions, pools))
+        )
+        return pools
+
+    async def abuild_pool(self, question: Mapping) -> Pool:
+        return (await self.abuild_pools([question]))[0]
+
+    def build_pools(self, questions: Sequence[Mapping]) -> list[Pool]:
+        """Sync `abuild_pools`, for the offline evaluator and the pool probes."""
+        queries = [self.query_for(q) for q in questions]
+        qvecs = self._encode(queries) if self._dense is not None else None
+        pools = [
+            self._fuse(q, queries[i], None if qvecs is None else qvecs[i])
+            for i, q in enumerate(questions)
+        ]
+        for question, pool in zip(questions, pools):
+            texts = self._rerank_inputs(pool)
+            if texts is not None:
+                pool.ranked = rerank_order(
+                    self.reranker, question["question"], pool.ranked, texts
+                )
+        return pools
 
     def build_pool(self, question: Mapping) -> Pool:
         return self.build_pools([question])[0]
 
-    def _build_pool(self, question: Mapping, query: str, qvec) -> Pool:
+    def _fuse(self, question: Mapping, query: str, qvec) -> Pool:
+        """Filter + channels + fusion. Everything before the reranker, all local."""
         cands = shortlist(question, self.index, all_tables=self.tables)
         keys = [table_key(t) for t in cands]
 
@@ -354,22 +386,27 @@ class CandidateRetriever:
             self.statement_types,
             expand_primary=self.expand_primary,
         )
-
-        if self.reranker is not None and ranked:
-            # Keep the fused order so a rerank can be diagnosed against what it
-            # replaced -- pool membership is unchanged, only the order moves.
-            rankings["fused"] = list(ranked)
-            # The original question, not the stripped query: the cross-encoder is
-            # not behind a hard filter, so it needs the year and the entity that
-            # `query_for` removed -- same reason the judge reads the original.
-            ranked = rerank_order(
-                self.reranker,
-                question["question"],
-                ranked,
-                [self.doc_texts[key] for key in ranked],
-            )
-
         return Pool(query=query, keys=keys, ranked=ranked, rankings=rankings)
+
+    def _rerank_inputs(self, pool: Pool) -> list[str] | None:
+        """The texts to score, or None when there is nothing to rerank."""
+        if self.reranker is None or not pool.ranked:
+            return None
+        # Keep the fused order so a rerank can be diagnosed against what it
+        # replaced -- pool membership is unchanged, only the order moves.
+        pool.rankings["fused"] = list(pool.ranked)
+        return [self.doc_texts[key] for key in pool.ranked]
+
+    async def _arerank(self, question: Mapping, pool: Pool) -> None:
+        texts = self._rerank_inputs(pool)
+        if texts is None:
+            return
+        # The original question, not the stripped query: the cross-encoder is not
+        # behind a hard filter, so it needs the year and the entity that
+        # `query_for` removed -- same reason the judge reads the original.
+        pool.ranked = await arerank_order(
+            self.reranker, question["question"], pool.ranked, texts
+        )
 
     # -- judge -------------------------------------------------------------
 
@@ -386,7 +423,17 @@ class CandidateRetriever:
         keys = pool.ranked if self.judge_top_n is None else pool.ranked[: self.judge_top_n]
         return [(key, self.judge_texts[key]) for key in keys]
 
-    def select(
+    @staticmethod
+    def _selection(pool: Pool, picks: list[str]) -> dict:
+        return {
+            "query": pool.query,
+            "n_candidates": len(pool.keys),
+            "pool_size": len(pool.ranked),
+            "picks": picks,
+            "ranked": rerank_with_picks(pool.ranked, picks),
+        }
+
+    async def aselect(
         self, question: Mapping, pool: Pool | None = None, *, thinking: bool = True
     ) -> dict:
         """Judge one pool: the tables to report as evidence, best first.
@@ -396,13 +443,17 @@ class CandidateRetriever:
         caller should fall back to when the judge returns nothing.
         """
         if pool is None:
+            pool = await self.abuild_pool(question)
+        items = self.judge_items(pool)
+        picks = await ajudge_pool_llm(question["question"], items, thinking=thinking)
+        return self._selection(pool, picks)
+
+    def select(
+        self, question: Mapping, pool: Pool | None = None, *, thinking: bool = True
+    ) -> dict:
+        """Sync `aselect`, for the offline evaluator and the pool probes."""
+        if pool is None:
             pool = self.build_pool(question)
         items = self.judge_items(pool)
         picks = judge_pool_llm(question["question"], items, thinking=thinking)
-        return {
-            "query": pool.query,
-            "n_candidates": len(pool.keys),
-            "pool_size": len(pool.ranked),
-            "picks": picks,
-            "ranked": rerank_with_picks(pool.ranked, picks),
-        }
+        return self._selection(pool, picks)

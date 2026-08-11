@@ -6,14 +6,14 @@ file only adapts FinanceState/config to a LangGraph node patch.
 from __future__ import annotations
 
 from finance_qa.agents.finance.state import FinanceState
-from finance_qa.modules.codegen.service import generate_formula_solution
+from finance_qa.modules.codegen.service import agenerate_formula_solution
 
 
 def make_formula_solver(cfg):
     """Build the formula solver node bound to agent config `cfg`."""
 
-    def formula_solver(state: FinanceState) -> dict:
-        return generate_formula_solution(
+    async def formula_solver(state: FinanceState) -> dict:
+        return await agenerate_formula_solution(
             question=state["question"],
             frames=state.get("frames") or {},
             names=state.get("names") or {},

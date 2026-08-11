@@ -6,11 +6,11 @@ This file only adapts FinanceState to a LangGraph node patch.
 from __future__ import annotations
 
 from finance_qa.agents.finance.state import FinanceState
-from finance_qa.modules.codegen.service import generate_repl_solution
+from finance_qa.modules.codegen.service import agenerate_repl_solution
 
 
-def repl_solver(state: FinanceState) -> dict:
-    return generate_repl_solution(
+async def repl_solver(state: FinanceState) -> dict:
+    return await agenerate_repl_solution(
         question=state["question"],
         frames=state.get("frames") or {},
         names=state.get("names") or {},

@@ -1,14 +1,18 @@
-"""Public code generation service."""
+"""Public code generation service.
+
+Async-only: the graph solver nodes are the only callers. Offline scripts import
+the sync wrappers from the implementation modules directly.
+"""
 from __future__ import annotations
 
 from typing import Any
 
-from finance_qa.modules.codegen.generator import generate
-from finance_qa.modules.codegen.formula import solve_formula
-from finance_qa.modules.codegen.repl import solve_repl
+from finance_qa.modules.codegen.generator import agenerate
+from finance_qa.modules.codegen.formula import asolve_formula
+from finance_qa.modules.codegen.repl import asolve_repl
 
 
-def generate_solution(
+async def agenerate_solution(
     question: str,
     table_ids: list[str],
     *,
@@ -17,7 +21,7 @@ def generate_solution(
     fallback: bool = True,
 ) -> dict[str, Any]:
     """Generate pandas code and answer for a question over selected tables."""
-    return generate(
+    return await agenerate(
         question,
         table_ids,
         thinking=thinking,
@@ -26,12 +30,12 @@ def generate_solution(
     )
 
 
-def generate_lookup_solution(question: str, table_ids: list[str]) -> dict[str, Any]:
+async def agenerate_lookup_solution(question: str, table_ids: list[str]) -> dict[str, Any]:
     """Planner-only single-cell lookup generation used by the graph lookup solver."""
-    return generate_solution(question, table_ids, use_planner=True, fallback=False)
+    return await agenerate_solution(question, table_ids, use_planner=True, fallback=False)
 
 
-def generate_formula_solution(
+async def agenerate_formula_solution(
     *,
     question: str,
     frames: dict[str, Any],
@@ -44,7 +48,7 @@ def generate_formula_solution(
     max_tokens: int = 8192,
 ) -> dict[str, Any]:
     """Canonical formula planning/execution used by the graph formula solver."""
-    return solve_formula(
+    return await asolve_formula(
         question=question,
         frames=frames,
         names=names,
@@ -57,7 +61,7 @@ def generate_formula_solution(
     )
 
 
-def generate_repl_solution(
+async def agenerate_repl_solution(
     *,
     question: str,
     frames: dict[str, Any],
@@ -66,7 +70,7 @@ def generate_repl_solution(
     errors: list[str] | None = None,
 ) -> dict[str, Any]:
     """Tool-calling REPL solution used by the graph fallback solver."""
-    return solve_repl(
+    return await asolve_repl(
         question=question,
         frames=frames,
         names=names,

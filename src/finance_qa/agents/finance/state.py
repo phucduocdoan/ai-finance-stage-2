@@ -35,3 +35,4 @@ class FinanceState(TypedDict):
 
     # ── debug ───────────────────────────────────────────────────────────────
     errors: list[str]
+    diag: dict[str, Any]     # solver internals, for offline failure taxonomy

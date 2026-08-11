@@ -22,14 +22,14 @@ server belongs to another project; keep concurrency modest.
 
 from __future__ import annotations
 
-import json
 import re
-import urllib.error
-import urllib.request
 
-# Connection config lives in finance_qa.core.llm; the judge only reads it.
-from finance_qa.core.llm import API_KEY as _API_KEY
-from finance_qa.core.llm import ENDPOINT, MODEL
+import httpx
+
+# The transport and the vLLM/DeepInfra branching live in finance_qa.core.llm; the
+# judge only builds a prompt and reads the reply.
+from finance_qa.core.http import run_sync
+from finance_qa.core.llm import achat
 
 MAX_PICKS = 10   # Q7: top-K final = 5-10
 
@@ -96,41 +96,29 @@ def build_prompt(question: str, pool: list[tuple[str, str]]) -> str:
     return prompt
 
 
+async def acall_llm(
+    prompt: str,
+    thinking: bool = False,
+    timeout: int = 600,
+    max_tokens: int | None = None,
+) -> str:
+    """Single-turn completion. Kept as a named function because `generator` and two
+    probe scripts call it directly with a bare prompt."""
+    return await achat(
+        [{"role": "user", "content": prompt}],
+        thinking=thinking,
+        max_tokens=max_tokens,
+        timeout=timeout,
+    )
+
+
 def call_llm(
     prompt: str,
     thinking: bool = False,
     timeout: int = 600,
     max_tokens: int | None = None,
 ) -> str:
-    is_deepinfra = _API_KEY != ""
-    if is_deepinfra:
-        # Qwen3 on DeepInfra: thinking is ON by default; /no_think disables it.
-        content = prompt if thinking else f"/no_think\n{prompt}"
-        body = {
-            "model": MODEL,
-            "messages": [{"role": "user", "content": content}],
-            "max_tokens": max_tokens or (8192 if thinking else 4096),
-            "temperature": 0,
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {_API_KEY}",
-        }
-    else:
-        body = {
-            "model": MODEL,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": max_tokens or (4096 if thinking else 256),
-            "temperature": 0,
-            "chat_template_kwargs": {"enable_thinking": thinking},
-        }
-        headers = {"Content-Type": "application/json"}
-
-    req = urllib.request.Request(
-        ENDPOINT, data=json.dumps(body).encode(), headers=headers,
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read())["choices"][0]["message"]["content"]
+    return run_sync(acall_llm(prompt, thinking, timeout, max_tokens))
 
 
 def parse_picks(raw: str, n_pool: int) -> list[int]:
@@ -147,26 +135,32 @@ def parse_picks(raw: str, n_pool: int) -> list[int]:
     return picks[:MAX_PICKS]
 
 
-def judge(
+async def ajudge(
     question: str, pool: list[tuple[str, str]], thinking: bool = True
 ) -> list[str]:
     """Pool of (key, doc_text) -> keys the LLM considers evidence, best first.
 
     `thinking` defaults on: without it the model fills the 10-pick quota with junk
     (recall@15 69.3% vs 84-89%). It costs ~15x the latency, which retrieval can
-    afford -- 1,012 questions at 4 workers is ~2 hours, run once.
+    afford because the whole batch waits concurrently on one event loop.
 
     Returns [] if the call fails; the caller decides whether to fall back to the
     retrieval order rather than having that policy buried here.
     """
     try:
-        raw = call_llm(build_prompt(question, pool), thinking=thinking)
-    except urllib.error.HTTPError as exc:
+        raw = await acall_llm(build_prompt(question, pool), thinking=thinking)
+    except httpx.HTTPStatusError as exc:
         # Loud, because the one time this fired it was a context overflow that cost
         # a question outright and looked like a judge quality problem for two runs.
-        print(f"  judge HTTP {exc.code}: {exc.read()[:300]!r}")
+        print(f"  judge HTTP {exc.response.status_code}: {exc.response.text[:300]!r}")
         return []
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+    except (httpx.HTTPError, TimeoutError, OSError) as exc:
         print(f"  judge call failed: {exc}")
         return []
     return [pool[i][0] for i in parse_picks(raw, len(pool))]
+
+
+def judge(
+    question: str, pool: list[tuple[str, str]], thinking: bool = True
+) -> list[str]:
+    return run_sync(ajudge(question, pool, thinking))

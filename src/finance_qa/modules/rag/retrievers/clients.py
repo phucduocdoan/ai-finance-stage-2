@@ -17,6 +17,7 @@ behaviour for free.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Protocol, Sequence
 
@@ -40,7 +41,14 @@ class EmbeddingClient(Protocol):
 
 
 class RerankerClient(Protocol):
-    """A cross-encoder over (query, document) pairs."""
+    """A cross-encoder over (query, document) pairs.
+
+    `scores` is the only required method. A hosted backend should also offer
+    `async def ascores(...)` so `arerank_order` can await it on the event loop
+    instead of parking a thread on a network round trip; an in-process model
+    backend has nothing to gain from that, and `arerank_order` runs its `scores`
+    in a thread, which is where CPU/GPU work belongs anyway.
+    """
 
     name: str
 
@@ -78,18 +86,45 @@ def reranker_client(name: str) -> RerankerClient:
     )
 
 
-def rerank_order(
+def _ordered(
+    client: RerankerClient, keys: Sequence[str], scores: Sequence[float]
+) -> list[str]:
+    if len(scores) != len(keys):
+        raise ValueError(f"{client.name} returned {len(scores)} scores for {len(keys)} keys")
+    return [keys[i] for i in sorted(range(len(keys)), key=lambda i: (-scores[i], i))]
+
+
+def _checked(keys: Sequence[str], texts: Sequence[str]) -> bool:
+    """True if there is anything to score. Raises on a caller misalignment."""
+    if len(keys) != len(texts):
+        raise ValueError(f"{len(keys)} keys but {len(texts)} texts")
+    return bool(keys)
+
+
+async def arerank_order(
     client: RerankerClient,
     query: str,
     keys: Sequence[str],
     texts: Sequence[str],
 ) -> list[str]:
     """Keys sorted by score, best first; ties keep the incoming order."""
-    if len(keys) != len(texts):
-        raise ValueError(f"{len(keys)} keys but {len(texts)} texts")
-    if not keys:
+    if not _checked(keys, texts):
         return []
-    scores = client.scores(query, texts)
-    if len(scores) != len(keys):
-        raise ValueError(f"{client.name} returned {len(scores)} scores for {len(keys)} keys")
-    return [keys[i] for i in sorted(range(len(keys)), key=lambda i: (-scores[i], i))]
+    ascores = getattr(client, "ascores", None)
+    if ascores is None:
+        scores = await asyncio.to_thread(client.scores, query, texts)
+    else:
+        scores = await ascores(query, texts)
+    return _ordered(client, keys, scores)
+
+
+def rerank_order(
+    client: RerankerClient,
+    query: str,
+    keys: Sequence[str],
+    texts: Sequence[str],
+) -> list[str]:
+    """Sync `arerank_order`, for the offline probes and the pool unit tests."""
+    if not _checked(keys, texts):
+        return []
+    return _ordered(client, keys, client.scores(query, texts))

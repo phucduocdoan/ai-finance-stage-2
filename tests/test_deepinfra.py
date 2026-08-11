@@ -10,11 +10,8 @@ Nothing here proves the models are good; it proves the plumbing is.
 
 from __future__ import annotations
 
-import io
 import json
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
@@ -41,37 +38,54 @@ def check(name: str, condition: bool) -> None:
 
 
 KEY = "test-key-not-a-real-one"
-deepinfra_client.time.sleep = lambda _seconds: None  # backoff must not slow the tests
 
 
-class Response(io.BytesIO):
-    """Minimal stand-in for the urlopen context manager."""
+class NoBackoff:
+    """`asyncio` stand-in for the client module: backoff must not slow the tests.
 
-    def __enter__(self):
-        return self
+    Only the module-global name inside `deepinfra_client` is rebound, so the real
+    asyncio the event loop runs on is untouched.
+    """
 
-    def __exit__(self, *_exc):
-        return False
+    @staticmethod
+    async def sleep(_seconds):
+        return None
+
+
+deepinfra_client.asyncio = NoBackoff
+
+
+class Response:
+    """Minimal stand-in for an httpx.Response."""
+
+    def __init__(self, status_code: int, body: str) -> None:
+        self.status_code = status_code
+        self.text = body
+
+    def json(self):
+        return json.loads(self.text)
 
 
 def install(handler):
     """Route every deepinfra POST to `handler(url, payload)`; returns the call log."""
     calls: list[tuple[str, dict]] = []
+    encode = json.dumps  # `post` shadows the name `json` with httpx's kwarg
 
-    def urlopen(request, timeout=None):  # noqa: ARG001 - signature must match
-        payload = json.loads(request.data)
-        calls.append((request.full_url, payload))
-        return Response(json.dumps(handler(request.full_url, payload)).encode())
+    class FakeClient:
+        async def post(self, url, json=None, headers=None, timeout=None):  # noqa: A002
+            calls.append((url, json))
+            result = handler(url, json)
+            return result if isinstance(result, Response) else Response(200, encode(result))
 
-    deepinfra_client.urllib.request.urlopen = urlopen
+    deepinfra_client.http_client = lambda: FakeClient()
     return calls
 
 
 def http_error(code: int, body: str):
-    def raise_it(url, payload):  # noqa: ARG001
-        raise urllib.error.HTTPError(url, code, "boom", {}, io.BytesIO(body.encode()))
+    def respond(url, payload):  # noqa: ARG001
+        return Response(code, body)
 
-    return raise_it
+    return respond
 
 
 # -- embeddings -------------------------------------------------------------
@@ -173,7 +187,7 @@ attempts: list[int] = []
 def flaky(url, payload):  # noqa: ARG001
     attempts.append(1)
     if len(attempts) < 3:
-        raise urllib.error.HTTPError(url, 500, "boom", {}, io.BytesIO(b"{}"))
+        return Response(500, "{}")
     return {"data": [{"index": 0, "embedding": [1.0, 0.0]}]}
 
 

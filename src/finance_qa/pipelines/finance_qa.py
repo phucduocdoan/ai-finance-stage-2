@@ -32,6 +32,7 @@ from finance_qa.agents.finance.solvers.lookup import lookup_solver
 from finance_qa.agents.finance.solvers.repl import repl_solver
 from finance_qa.agents.finance.state import FinanceState
 from finance_qa.agents.finance.understand import make_understand
+from finance_qa.core.http import run_sync
 from finance_qa.modules.data.service import load_node
 from finance_qa.modules.rag.service import make_retrieve_node
 
@@ -85,7 +86,7 @@ def make_initial_state(question_id: int, question: str) -> FinanceState:
         "frames": {}, "names": {},
         # solver fills:
         "answer": 0.0, "pandas_query": "0.0", "evidence": [], "solver": "",
-        "errors": [],
+        "errors": [], "diag": {},
     }
 
 
@@ -100,6 +101,11 @@ def get_graph():
     return _graph
 
 
-def run_question(question_id: int, question: str) -> FinanceState:
+async def arun_question(question_id: int, question: str) -> FinanceState:
     """Run a single question through the default-config graph and return final state."""
-    return get_graph().invoke(make_initial_state(question_id, question))
+    return await get_graph().ainvoke(make_initial_state(question_id, question))
+
+
+def run_question(question_id: int, question: str) -> FinanceState:
+    """Sync `arun_question`, for single-question scripts."""
+    return run_sync(arun_question(question_id, question))

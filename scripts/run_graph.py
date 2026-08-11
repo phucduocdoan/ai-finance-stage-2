@@ -24,16 +24,15 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import sys
-import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, "src")
 
-from finance_qa.agents.finance.graph import make_initial_state, run_question
+from finance_qa.agents.finance.graph import arun_question, make_initial_state
 from finance_qa.core.paths import QUESTION_METADATA_PATH
 from finance_qa.pipelines.submission import submission_item
 
@@ -71,12 +70,12 @@ def load_gold() -> dict[int, float]:
     return gold
 
 
-def run_one(qrow: dict) -> dict:
+async def run_one(qrow: dict) -> dict:
     """One question through the graph -> a build_submission-compatible record."""
     qid = int(qrow["id"])
     t0 = time.monotonic()
     try:
-        st = run_question(qid, qrow["question"])
+        st = await arun_question(qid, qrow["question"])
     except Exception as exc:  # noqa: BLE001 - per-question error is data, run continues
         return {
             "id": qid, "question": qrow["question"], "status": "error",
@@ -98,6 +97,8 @@ def run_one(qrow: dict) -> dict:
         "table_ids": table_ids,
         "solver": st.get("solver", "?"),
         "seconds": round(time.monotonic() - t0, 1),
+        "diag": st.get("diag") or {},
+        "errors": st.get("errors") or [],
     }
 
 
@@ -108,7 +109,7 @@ def _match(pred, expected: float) -> bool:
     return abs(float(pred) - expected) / denom < 0.01
 
 
-def main() -> None:
+async def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     grp = ap.add_mutually_exclusive_group(required=True)
     grp.add_argument("--all", action="store_true", help="run all 1012 questions")
@@ -125,7 +126,7 @@ def main() -> None:
     )
     ap.add_argument(
         "--workers", type=int, default=1,
-        help="questions in flight at once (each is I/O-bound on LLM calls)",
+        help="questions in flight at once (async: the cap is the LLM server, not threads)",
     )
     args = ap.parse_args()
 
@@ -164,23 +165,20 @@ def main() -> None:
         exp_s = f"{exp:.6g}" if exp is not None else "?"
         print(f"{qid:>4} {mark:>5} {rec['solver']:>14} {rec['seconds']:>5.0f}  {exp_s:>16}  {ans}")
 
-    write_lock = threading.Lock()
+    # No write lock: the write/flush/report block has no await point, so a
+    # coroutine cannot be preempted part-way through it.
+    limit = asyncio.Semaphore(max(1, args.workers))
     with args.out.open("a" if args.resume else "w", encoding="utf-8") as fh:
-        def run_and_write(qid: int) -> dict:
-            rec = run_one(questions[qid])
-            with write_lock:
-                fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
-                fh.flush()
-                records.append(rec)
-                report(rec)
+        async def run_and_write(qid: int) -> dict:
+            async with limit:
+                rec = await run_one(questions[qid])
+            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            fh.flush()
+            records.append(rec)
+            report(rec)
             return rec
 
-        if args.workers > 1:
-            with ThreadPoolExecutor(max_workers=args.workers) as pool:
-                list(pool.map(run_and_write, ids))
-        else:
-            for qid in ids:
-                run_and_write(qid)
+        await asyncio.gather(*(run_and_write(qid) for qid in ids))
 
     # ── scoring summary (only over ids we have gold for) ─────────────────────
     scored = [r for r in records if r["id"] in gold]
@@ -200,4 +198,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

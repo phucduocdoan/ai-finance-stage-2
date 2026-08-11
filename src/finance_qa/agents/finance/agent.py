@@ -5,8 +5,8 @@ formula solver, etc. via FinanceAgentConfig):
 
     from finance_qa.agents.finance import FinanceAgent, FinanceAgentConfig
     agent = FinanceAgent(FinanceAgentConfig(enable_formula_solver=False))
-    state = agent.invoke(id=390, question="...")
-    for step in agent.stream(id=390, question="..."):
+    state = await agent.ainvoke(id=390, question="...")   # or agent.invoke(...) from sync code
+    async for step in agent.astream(id=390, question="..."):
         ...
 
 For the default-config functional entry point used by scripts, see

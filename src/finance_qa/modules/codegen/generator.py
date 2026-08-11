@@ -7,12 +7,14 @@ validators.py; all prompt strings live in prompts.py.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 
 from langchain_core.messages import HumanMessage
 import pandas as pd
 
+from finance_qa.core.http import run_sync
 from finance_qa.core.llm import get_chat_model
 from finance_qa.modules.codegen.table_profile import profile_table
 from finance_qa.modules.tools.python_exec import (
@@ -26,7 +28,7 @@ from finance_qa.modules.data.table_store import (
 from finance_qa.core.paths import TABLE_METADATA_PATH
 from finance_qa.modules.codegen.ir import OperationPlan, compile_plan, validate_plan
 from finance_qa.modules.codegen.prompts import PLAN_PROMPT, PLAN_REPAIR
-from finance_qa.modules.codegen.repl import repl_generate
+from finance_qa.modules.codegen.repl import arepl_generate
 from finance_qa.modules.codegen.repairs import (
     binding_alignment_errors,
     prune_unused_bindings,
@@ -47,7 +49,7 @@ from finance_qa.modules.codegen.validators import (
     plan_order_errors,
     semantic_errors,
 )
-from finance_qa.modules.rag.judge import call_llm
+from finance_qa.modules.rag.judge import acall_llm
 
 META_PATH = TABLE_METADATA_PATH
 
@@ -68,14 +70,14 @@ Câu hỏi: {question}
 Chỉ in tên chỉ tiêu, không giải thích."""
 
 
-def rewrite_to_indicator(question: str) -> str:
+async def arewrite_to_indicator(question: str) -> str:
     """Extract the core financial indicator(s) from a question using the local LLM.
 
     Returns a short phrase like "lợi nhuận sau thuế" for use in row alignment,
     replacing the stopword-based _tokens(question) fallback.
     """
     try:
-        raw = call_llm(_INDICATOR_PROMPT.format(question=question), thinking=False, max_tokens=64)
+        raw = await acall_llm(_INDICATOR_PROMPT.format(question=question), thinking=False, max_tokens=64)
         raw = raw.split("</think>")[-1].strip().strip('"').strip("'")
         return raw.splitlines()[0].strip().casefold()
     except Exception:  # noqa: BLE001
@@ -151,15 +153,20 @@ def render_tables(
     return "\n\n".join(blocks)
 
 
-def build_plan_prompt(question: str, frames, table_ids) -> str:
+async def abuild_plan_prompt(question: str, frames, table_ids) -> str:
     budget = int((CTX_TOKENS - THINK_TOKENS) * CHARS_PER_TOKEN * 0.95)
-    indicator = rewrite_to_indicator(question)
+    indicator = await arewrite_to_indicator(question)
     annotated = question + (f"\nChỉ tiêu tài chính cần tra: {indicator}" if indicator else "")
     for rows in ROW_LADDER:
         prompt = PLAN_PROMPT.format(question=annotated, tables=render_tables(frames, table_ids, rows))
         if len(prompt) <= budget:
             return prompt
     return prompt
+
+
+def build_plan_prompt(question: str, frames, table_ids) -> str:
+    """Sync `abuild_plan_prompt`, for the offline prompt probes."""
+    return run_sync(abuild_plan_prompt(question, frames, table_ids))
 
 
 def _evidence(names: dict[str, str], query: str) -> list[dict[str, str]]:
@@ -193,18 +200,18 @@ def _column_hint(errors: list[str], frames: dict[str, pd.DataFrame]) -> str:
     return "\n".join(lines)
 
 
-def _request_plan(prompt: str, *, thinking: bool, max_tokens: int) -> dict:
+async def _arequest_plan(prompt: str, *, thinking: bool, max_tokens: int) -> dict:
     """Ask the model for a typed planner IR and return the historical dict shape."""
-    result = get_chat_model(
+    result = await get_chat_model(
         thinking=thinking,
         max_tokens=max_tokens,
-    ).with_structured_output(OperationPlan).invoke([HumanMessage(content=prompt)])
+    ).with_structured_output(OperationPlan).ainvoke([HumanMessage(content=prompt)])
     if not isinstance(result, OperationPlan):
         result = OperationPlan.model_validate(result)
     return result.to_plan_dict()
 
 
-def generate(
+async def agenerate(
     question: str,
     table_ids: list[str],
     thinking: bool = False,
@@ -220,14 +227,17 @@ def generate(
 
     table_ids = sorted(table_ids, key=_pos)
     names = {f"df{i}": tid for i, tid in enumerate(table_ids, 1)}
-    frames = {var: load_frame(tid) for var, tid in names.items()}
+    # Parquet reads: disk IO plus pandas parsing, so off the loop rather than on it.
+    frames = await asyncio.to_thread(
+        lambda: {var: load_frame(tid) for var, tid in names.items()}
+    )
 
     # --- Skip planner if disabled ---
     if not use_planner:
-        return repl_generate(question, frames, names)
+        return await arepl_generate(question, frames, names)
 
     # --- Planner path ---
-    plan_base = build_plan_prompt(question, frames, names)
+    plan_base = await abuild_plan_prompt(question, frames, names)
     plan_prompt = plan_base
     plan_error = ""
     last_plan = None
@@ -238,7 +248,7 @@ def generate(
         plan = None
         adjustments = []
         try:
-            plan = _request_plan(
+            plan = await _arequest_plan(
                 plan_prompt,
                 thinking=plan_thinking,
                 max_tokens=8192 if plan_thinking else 4096,
@@ -323,4 +333,23 @@ def generate(
             "plan": last_plan,
             "plan_adjustments": [],
         }
-    return repl_generate(question, frames, names, plan_error, last_plan)
+    return await arepl_generate(question, frames, names, plan_error, last_plan)
+
+
+def generate(
+    question: str,
+    table_ids: list[str],
+    thinking: bool = False,
+    use_planner: bool = True,
+    fallback: bool = True,
+) -> dict:
+    """Sync `agenerate`, for the offline evaluators and the planner experiments."""
+    return run_sync(
+        agenerate(
+            question,
+            table_ids,
+            thinking=thinking,
+            use_planner=use_planner,
+            fallback=fallback,
+        )
+    )
