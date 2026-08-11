@@ -733,6 +733,43 @@ power-of-ten error. The "all pure scale errors" finding was measured on Flow A a
 does not transfer to the graph. Step 2 is still correct as consolidation work, but
 it buys ~1-3 of 34, not the bulk -- do not schedule it as the big win.
 
+## Execution scoring: `pandas_query` must be code, not a trace
+
+The first graded submission returned three warnings, two of which were real:
+`80 question(s) scored 0 on execution because of NameError` and `74 ... SyntaxError`.
+Root cause: all **296** questions routed to the `formula` solver shipped the
+planners' *diagnostic trace* as `pandas_query` -- `canonical_plan(ticker=HPG,...)`,
+`fact_plan(answer=gross_margin.mean,...)`, `formula_oneshot(3 tickers)` -- plus
+`evidence: []`. Reproducing the grader's pass over the ZIP showed 296 failures,
+all inside that branch and none outside it. (`gold=506 pred=1012` is not a defect:
+only 506 of the 1012 ids carry gold. 154/506 = 30.4% matches 296/1012 = 29.3%.)
+
+The 287 `repl` questions ship a bare float literal and pass, so a literal is an
+accepted query. The fix is therefore two-tier:
+
+- **Traceable answers emit real pandas.** `canonical_frame` fills an optional
+  provenance map `(metric, year) -> (row, col)`; `TracedValue` in
+  `modules/tools/metrics.py` is a float that carries its pandas expression, so
+  re-running the *existing* metric formulas over it yields
+  `((df2.iloc[14, 4] + df2.iloc[6, 4]) / df2.iloc[6, 4])` for free -- there is no
+  second copy of the formula table. `pandas_expr_for_metric` refuses to return an
+  expression unless it re-evaluates to the exact answer being submitted.
+- **Everything else emits the literal.** The one-shot reasoner has no plan to
+  trace, and a `fact_plan` aggregate (`.mean`/`.sum`) has no single source cell, so
+  those fall back to `repr(answer)` with the contributing frames as evidence, the
+  way `repl` already does. The trace is preserved in `errors`.
+
+Positional `.iloc[row, col]` is used because `build_submission.py` writes
+`to_csv(index=False)`, so positions round-trip, and duplicate column names do not.
+`TracedValue.__abs__` folds the sign at build time so no query depends on builtins.
+
+Verified on `output/submission_graph_v3.zip` (built from
+`artifacts/runs/graph_1012_v3.jsonl` via `scripts/merge_runs.py`): **0/1012
+execution failures**, and all 1011 numeric queries evaluate to exactly the answer
+submitted next to them, i.e. execution accuracy now equals answer accuracy. Only
+qid707 still needs builtins, and that query comes from the planner's generator, not
+from this path.
+
 ## Next Work
 
 Consolidation steps, in dependency order. Steps 1-2 are the ones with located

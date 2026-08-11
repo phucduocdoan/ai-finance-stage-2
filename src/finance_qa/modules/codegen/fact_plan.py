@@ -8,6 +8,7 @@ release. The model fills a Pydantic plan; Python owns all calculations.
 from __future__ import annotations
 
 import math
+from typing import Any
 from typing import Literal
 
 from langchain_core.messages import HumanMessage
@@ -315,8 +316,14 @@ def execute_fact_plan(
     default_tickers: list[str] | None = None,
     default_years: list[int] | None = None,
     unit_hint: str | None = None,
+    resolved: dict[str, Any] | None = None,
 ) -> tuple[float, str] | None:
-    """Execute a typed fact-table plan deterministically."""
+    """Execute a typed fact-table plan deterministically.
+
+    On success, `resolved` (when given) records the row and unit the answer was
+    read from -- only for single-row answers, since an aggregate over many rows
+    has no single source cell.
+    """
     if isinstance(plan, dict):
         try:
             plan = FactPlan.model_validate(plan)
@@ -385,7 +392,12 @@ def execute_fact_plan(
         unit_metric = "net_revenue"
     elif answer.metric == "scenario_icr":
         unit_metric = "icr"
-    converted = convert_unit(value, unit_metric if unit_metric in METRICS else "", unit_hint or answer.unit)
+    unit = unit_hint or answer.unit
+    converted = convert_unit(value, unit_metric if unit_metric in METRICS else "", unit)
+    if resolved is not None and selected is not None:
+        resolved.update(
+            ticker=selected.ticker, year=selected.year, metric=answer.metric, unit=unit
+        )
     query = "fact_plan("
     if selected is not None:
         query += f"ticker={selected.ticker},year={selected.year},"
@@ -411,6 +423,7 @@ def plan_and_execute_fact_plan(
     tickers: list[str] | None = None,
     years: list[int] | None = None,
     unit_hint: str | None = None,
+    resolved: dict[str, Any] | None = None,
 ) -> tuple[float, str] | None:
     plan = infer_fact_plan(question)
     if plan is None:
@@ -421,4 +434,5 @@ def plan_and_execute_fact_plan(
         default_tickers=tickers or [],
         default_years=years or [],
         unit_hint=unit_hint,
+        resolved=resolved,
     )

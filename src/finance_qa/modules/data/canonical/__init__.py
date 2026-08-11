@@ -283,11 +283,16 @@ def canonical_frame(
     df: pd.DataFrame,
     table_id: str,
     statement_type: str,
+    provenance: dict[tuple[str, int], tuple[int, int]] | None = None,
 ) -> dict[str, dict[int, float]]:
     """Convert a financial statement DataFrame to {metric_id: {year: float}}.
 
     Returns empty dict if no mã số column found or statement_type is not
     one of {balance_sheet, income_statement, cash_flow}.
+
+    When `provenance` is passed, it is filled with {(metric_id, year):
+    (row_position, column_position)} for every value written, so callers can
+    point back at the exact source cell (`df.iloc[row, col]`).
     """
     ma_so_dict = _DICT_BY_TYPE.get(statement_type)
     if ma_so_dict is None:
@@ -312,8 +317,11 @@ def canonical_frame(
         return {}
 
     columns = [str(col) for col in df.columns]
+    col_positions: dict[str, int] = {}
+    for pos, col in enumerate(df.columns):
+        col_positions.setdefault(str(col), pos)
     result: dict[str, dict[int, float]] = {}
-    for _, row in df.iterrows():
+    for row_pos, (_, row) in enumerate(df.iterrows()):
         code = _metric_code(_normalize_ma_so(row[ma_col]), ma_so_dict)
         row_value_cols = value_cols
         if code is None:
@@ -329,6 +337,8 @@ def canonical_frame(
                 if f != f:  # nan
                     continue
                 result.setdefault(metric_id, {})[yr] = f
+                if provenance is not None and str(col) in col_positions:
+                    provenance[(metric_id, yr)] = (row_pos, col_positions[str(col)])
             except (TypeError, ValueError):
                 continue
 

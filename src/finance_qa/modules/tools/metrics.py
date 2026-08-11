@@ -22,6 +22,72 @@ def _safe_div(a: float, b: float) -> float | None:
 
 
 @dataclass(frozen=True)
+class TracedValue:
+    """A float that carries the pandas expression it was computed from.
+
+    Metric formulas are plain arithmetic over a {metric: float} mapping, so
+    running them over TracedValue instead of float yields the expression for
+    free -- there is no second copy of the formula table to keep in sync.
+    """
+
+    value: float
+    expr: str
+
+    def __float__(self) -> float:
+        return self.value
+
+    def __bool__(self) -> bool:
+        return bool(self.value)
+
+    def _combine(self, other: Any, symbol: str, flip: bool) -> "TracedValue":
+        if isinstance(other, TracedValue):
+            other_value, other_expr = other.value, other.expr
+        else:
+            try:
+                other_value = float(other)
+            except (TypeError, ValueError):
+                return NotImplemented
+            other_expr = repr(other_value)
+        left, right = (other_expr, self.expr) if flip else (self.expr, other_expr)
+        lhs, rhs = (other_value, self.value) if flip else (self.value, other_value)
+        if symbol == "+":
+            value = lhs + rhs
+        elif symbol == "-":
+            value = lhs - rhs
+        elif symbol == "*":
+            value = lhs * rhs
+        else:
+            if not rhs:
+                raise ZeroDivisionError(right)
+            value = lhs / rhs
+        return TracedValue(value, f"({left} {symbol} {right})")
+
+    def __add__(self, other): return self._combine(other, "+", flip=False)
+    def __radd__(self, other): return self._combine(other, "+", flip=True)
+    def __sub__(self, other): return self._combine(other, "-", flip=False)
+    def __rsub__(self, other): return self._combine(other, "-", flip=True)
+    def __mul__(self, other): return self._combine(other, "*", flip=False)
+    def __rmul__(self, other): return self._combine(other, "*", flip=True)
+    def __truediv__(self, other): return self._combine(other, "/", flip=False)
+    def __rtruediv__(self, other): return self._combine(other, "/", flip=True)
+
+    def __abs__(self) -> "TracedValue":
+        # Fold the sign now rather than emitting abs(): the value is already
+        # known, and the shipped query must not depend on builtins being in scope.
+        return TracedValue(
+            abs(self.value), self.expr if self.value >= 0 else f"(-{self.expr})"
+        )
+
+    def __neg__(self) -> "TracedValue":
+        return TracedValue(-self.value, f"(-{self.expr})")
+
+
+def _num(value: Any) -> Any:
+    """float() that lets a TracedValue through, so tracing survives context building."""
+    return value if isinstance(value, TracedValue) else float(value)
+
+
+@dataclass(frozen=True)
 class Metric:
     id: str
     unit_kind: str
@@ -198,17 +264,17 @@ def _metrics_with_context(ticker_data: dict[str, dict[str, float]], year: int) -
     prev_metrics = ticker_data.get(str(year - 1))
     if prev_metrics:
         for key, value in prev_metrics.items():
-            row_metrics.setdefault(f"prev_{key}", float(value))
+            row_metrics.setdefault(f"prev_{key}", _num(value))
         for equity_key in ("equity", "owners_equity"):
             now = row_metrics.get(equity_key)
             prev = prev_metrics.get(equity_key)
             if now is not None and prev is not None:
-                row_metrics.setdefault("avg_equity", (float(now) + float(prev)) / 2.0)
+                row_metrics.setdefault("avg_equity", (_num(now) + _num(prev)) / 2.0)
                 break
         now_fixed_assets = row_metrics.get("fixed_assets")
         prev_fixed_assets = prev_metrics.get("fixed_assets")
         if now_fixed_assets is not None and prev_fixed_assets is not None:
-            row_metrics.setdefault("avg_fixed_assets", (float(now_fixed_assets) + float(prev_fixed_assets)) / 2.0)
+            row_metrics.setdefault("avg_fixed_assets", (_num(now_fixed_assets) + _num(prev_fixed_assets)) / 2.0)
     return row_metrics
 
 
@@ -303,6 +369,7 @@ def execute_canonical_plan(
     default_tickers: list[str] | None = None,
     default_years: list[int] | None = None,
     unit_hint: str | None = None,
+    resolved: dict[str, Any] | None = None,
 ) -> tuple[float, str] | None:
     """Execute a validated canonical query plan.
 
@@ -313,6 +380,9 @@ def execute_canonical_plan(
       "select": {"metric": "quick_ratio", "direction": "min", "offset_years": 1},
       "answer": {"metric": "icr", "unit": "lần"}
     }
+
+    On success, `resolved` (when given) records the row and unit the answer was
+    read from, so the caller can rebuild it as a runnable pandas expression.
     """
     if not isinstance(plan, dict):
         return None
@@ -368,7 +438,12 @@ def execute_canonical_plan(
     value = metric_value(selected["metrics"], answer_metric)
     if value is None:
         return None
-    converted = convert_unit(value, answer_metric, answer.get("unit") or unit_hint)
+    unit = answer.get("unit") or unit_hint
+    converted = convert_unit(value, answer_metric, unit)
+    if resolved is not None:
+        resolved.update(
+            ticker=selected["ticker"], year=selected["year"], metric=answer_metric, unit=unit
+        )
 
     query = (
         f"canonical_plan(ticker={selected['ticker']},year={selected['year']},"
@@ -383,6 +458,61 @@ def execute_canonical_plan(
         query += f",filters={len(filters)}"
     query += ")"
     return converted, query
+
+
+def pandas_expr_for_metric(
+    data: CanonicalData,
+    provenance: dict[tuple[str, str, str], tuple[str, int, int]],
+    *,
+    ticker: str,
+    year: int | str,
+    metric_id: str,
+    unit: str | None,
+    expected: float,
+) -> str | None:
+    """Rebuild `metric_id` for (ticker, year) as a runnable pandas expression.
+
+    `provenance` maps (ticker, year, raw metric) -> (dataframe variable, row
+    position, column position). Returns None unless every input cell is
+    traceable and the rebuilt expression evaluates back to `expected` -- we
+    never ship a query that disagrees with the answer we submit.
+    """
+    if metric_id not in METRICS or not provenance:
+        return None
+    try:
+        year_int = int(year)
+    except (TypeError, ValueError):
+        return None
+
+    traced: dict[str, dict[str, Any]] = {}
+    for yr in (year_int, year_int - 1):
+        cells = {
+            name: TracedValue(float(value), f"{src[0]}.iloc[{src[1]}, {src[2]}]")
+            for name, value in (data.get(ticker, {}).get(str(yr)) or {}).items()
+            if (src := provenance.get((ticker, str(yr), name))) is not None
+        }
+        if cells:
+            traced[str(yr)] = cells
+    if str(year_int) not in traced:
+        return None
+
+    context = _metrics_with_context(traced, year_int)
+    if context is None:
+        return None
+    cell = context.get(metric_id)
+    if cell is None:
+        cell = ratios_for(context).get(metric_id)
+    if cell is None and metric_id == "net_profit_attributable_to_owners":
+        cell = context.get("net_profit")
+    if not isinstance(cell, TracedValue):
+        return None
+
+    cell = convert_unit(cell, metric_id, unit)
+    if not isinstance(cell, TracedValue) or not math.isfinite(cell.value):
+        return None
+    if abs(cell.value - expected) > max(1e-9, abs(expected) * 1e-9):
+        return None
+    return cell.expr
 
 
 def execute_nested_selection(

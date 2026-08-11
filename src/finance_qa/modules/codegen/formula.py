@@ -26,12 +26,15 @@ from finance_qa.modules.tools.metrics import (
     execute_canonical_plan,
     execute_nested_selection,
     metric_catalog,
+    pandas_expr_for_metric,
     planner_metric_ids,
     ratios_for,
 )
 from finance_qa.core.llm import get_chat_model
 from finance_qa.modules.data.canonical import canonical_frame, _get_table_meta
 from finance_qa.modules.data.preprocessing.questions import detect_unit
+from finance_qa.modules.data.table_store import submission_csv_name
+from finance_qa.modules.tools.python_exec import query_names
 
 _TRACE = os.environ.get("FORMULA_TRACE", "") not in ("", "0")
 
@@ -44,8 +47,14 @@ _CANONICAL_STMTS = {"balance_sheet", "income_statement", "cash_flow"}
 def _collect_canonical(
     frames: dict[str, Any],
     names: dict[str, str],
+    provenance: dict[tuple[str, str, str], tuple[str, int, int]] | None = None,
 ) -> dict[str, dict[str, dict[str, float]]]:
-    """Return {ticker: {year_str: {metric_id: float}}} from all loaded frames."""
+    """Return {ticker: {year_str: {metric_id: float}}} from all loaded frames.
+
+    When `provenance` is passed, it is filled with (ticker, year, metric) ->
+    (frame variable, row position, column position) for every value kept, which
+    is what lets the solver emit a runnable pandas query over those cells.
+    """
     data: dict[str, dict[str, dict[str, float]]] = {}
     priority: dict[tuple[str, str, str], int] = {}
     for var, table_id in names.items():
@@ -61,7 +70,8 @@ def _collect_canonical(
         ticker = meta.get("ticker") or "unknown"
         report_match = re.search(r"financial_statements_(20\d{2})", table_id)
         report_year = int(report_match.group(1)) if report_match else None
-        canon = canonical_frame(df, table_id, stmt)
+        frame_prov: dict[tuple[str, int], tuple[int, int]] = {}
+        canon = canonical_frame(df, table_id, stmt, frame_prov)
         for metric_id, yr_vals in canon.items():
             for yr_int, val in yr_vals.items():
                 yr = str(yr_int)
@@ -75,6 +85,9 @@ def _collect_canonical(
                 if rank >= priority.get(key, 0):
                     data.setdefault(ticker, {}).setdefault(yr, {})[metric_id] = val
                     priority[key] = rank
+                    cell = frame_prov.get((metric_id, yr_int))
+                    if provenance is not None and cell is not None:
+                        provenance[key] = (var, cell[0], cell[1])
     return data
 
 
@@ -247,6 +260,7 @@ def _plan_and_execute_canonical_plan(
     tickers: list[str] | None,
     years: list[int] | None,
     unit_hint: str | None,
+    resolved: dict[str, Any] | None = None,
 ) -> tuple[float, str] | None:
     """Let the model fill a Pydantic plan; Python validates and executes."""
     plan_obj = infer_canonical_plan(question)
@@ -261,6 +275,7 @@ def _plan_and_execute_canonical_plan(
         default_tickers=tickers,
         default_years=years,
         unit_hint=unit_hint,
+        resolved=resolved,
     )
 
 
@@ -384,6 +399,62 @@ def _prefers_fact_plan(question: str) -> bool:
     return any(indicator in q for indicator in indicators)
 
 
+def _evidence(
+    names: dict[str, str], query: str, fallback: set[str] | None = None
+) -> list[dict[str, str]]:
+    """Evidence is whatever frames the query actually reads -- nothing wider.
+
+    A literal query reads no frame, so `fallback` names the frames the answer was
+    actually computed from; the REPL solver reports evidence the same way.
+    """
+    used = query_names(query) or (fallback or set())
+    return [
+        {"variable": var, "csv_path": f"data/{submission_csv_name(tid)}"}
+        for var, tid in names.items()
+        if var in used
+    ]
+
+
+def _packaged(
+    result: float,
+    trace: str,
+    data: dict[str, dict[str, dict[str, float]]],
+    provenance: dict[tuple[str, str, str], tuple[str, int, int]],
+    resolved: dict[str, Any],
+    names: dict[str, str],
+    prior_errors: list[str],
+) -> dict:
+    """Ship a runnable `pandas_query`, or a literal when no source cell is traceable.
+
+    The submission is scored by re-running `pandas_query`, so the trace string
+    the planners build for diagnostics cannot be the query itself. When the
+    answer comes from one identifiable row we rebuild it over the real CSV
+    cells; the one-shot reasoner has no plan to trace, so it falls back to the
+    literal answer -- the same thing the REPL solver already ships. The trace is
+    kept in `errors` so the fallback stays visible.
+    """
+    expr = None
+    if resolved:
+        expr = pandas_expr_for_metric(
+            data,
+            provenance,
+            ticker=str(resolved.get("ticker") or ""),
+            year=resolved.get("year") or 0,
+            metric_id=str(resolved.get("metric") or ""),
+            unit=resolved.get("unit"),
+            expected=result,
+        )
+    query = expr or repr(float(result))
+    contributing = {var for var, _row, _col in provenance.values()}
+    return {
+        "answer": result,
+        "pandas_query": query,
+        "evidence": _evidence(names, query, contributing or set(names)),
+        "solver": "formula",
+        "errors": prior_errors if expr else prior_errors + [f"formula: query not traceable to cells ({trace})"],
+    }
+
+
 def solve_formula(
     *,
     question: str,
@@ -406,11 +477,13 @@ def solve_formula(
     def _skip(reason: str) -> dict:
         return {"solver": _SKIP, "errors": prior_errors + [f"formula_skip: {reason}"]}
 
-    data = _collect_canonical(frames, names)
+    provenance: dict[tuple[str, str, str], tuple[str, int, int]] = {}
+    data = _collect_canonical(frames, names, provenance)
     if not data:
         return _skip("no canonical data")
 
     prefer_fact = _prefers_fact_plan(question)
+    resolved: dict[str, Any] = {}
     deterministic = None
     if prefer_fact:
         deterministic = plan_and_execute_fact_plan(
@@ -419,6 +492,7 @@ def solve_formula(
             tickers=tickers or [],
             years=years or [],
             unit_hint=unit_hint or detect_unit(question),
+            resolved=resolved,
         )
 
     if deterministic is None:
@@ -428,6 +502,7 @@ def solve_formula(
             tickers=tickers or [],
             years=years or [],
             unit_hint=unit_hint or detect_unit(question),
+            resolved=resolved,
         )
 
     if deterministic is None and not prefer_fact:
@@ -437,27 +512,18 @@ def solve_formula(
             tickers=tickers or [],
             years=years or [],
             unit_hint=unit_hint or detect_unit(question),
+            resolved=resolved,
         )
 
     if deterministic is not None:
-        result, query = deterministic
-        return {
-            "answer": result,
-            "pandas_query": query,
-            "evidence": [],
-            "solver": "formula",
-            "errors": prior_errors,
-        }
+        result, trace = deterministic
+        return _packaged(result, trace, data, provenance, resolved, names, prior_errors)
 
     result = _solve(question, data, thinking=thinking, max_tokens=max_tokens)
     if result is None:
         return _skip("solver returned no answer")
     result = _postprocess_formula_answer(question, result, unit_hint or "")
 
-    return {
-        "answer": result,
-        "pandas_query": f"formula_oneshot({len(data)} tickers)",
-        "evidence": [],
-        "solver": "formula",
-        "errors": prior_errors,
-    }
+    return _packaged(
+        result, f"formula_oneshot({len(data)} tickers)", data, provenance, {}, names, prior_errors
+    )
