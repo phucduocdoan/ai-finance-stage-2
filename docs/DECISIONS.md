@@ -197,3 +197,53 @@ Decision:
   `scripts/` should remain thin CLI wrappers or experiments.
 
 Current classification is documented in `docs/HANDOFF.md`.
+
+## 10. Report Scope Backstop in `understand`
+
+Decision:
+
+- `understand` promotes `doc_type` from `unknown` to `separate` when the question
+  names the separate/parent-only scope in so many words
+  (`công ty|ngân hàng|tổng công ty mẹ`, `BCTC|báo cáo tài chính|báo cáo riêng`,
+  `riêng lẻ`) and does *not* also say `hợp nhất`.
+- The rule is one-directional: it only fills `unknown`, never overrides a scope
+  the LLM committed to.
+- A question naming both scopes is left `unknown` on purpose.
+
+Rationale:
+
+- Scope is not cosmetic. Across the ~97k (ticker, year, mã số, period) cells that
+  carry both scopes, consolidated and separate differ by >1% in 82% of cases
+  (median relative difference: BS 33%, IS 41%, CF 44%). Picking the wrong one is
+  a wrong answer, not a formatting variant.
+- The 8B returned `unknown` for six questions that state the scope outright
+  (#780, #783, #790, #795, #798, #890). The shortlist filter then applied its
+  unknown-means-consolidated default and all six submitted 100% consolidated
+  tables. After the backstop all six submit 100% separate tables.
+- Measured over all 1012 visible questions: the pattern matches 369, of which 363
+  are exactly the questions the LLM already labelled `separate` (no-ops), 0
+  conflict with an explicit `consolidated`, and 0 LLM-`separate` questions are
+  missed. The 6 promotions are the entire behaviour change, and none of the 15
+  gold-scored questions is among them -- the filter's input for the scored set is
+  provably unchanged, so this cannot move the F2 baseline either way.
+- This is the same rule-before-LLM pattern already used in the same module for
+  tickers, and for the same reason: an explicit surface marker has an
+  authoritative reading, and the 8B is unreliable on it.
+
+Scope and known limits:
+
+- Reading a stated marker is not semantic inference, so this does not conflict
+  with the no-hardcoding principle in `docs/HANDOFF.md`. It carries no question
+  ids and no answer-specific constants.
+- The pattern was fitted on the visible 1012. A private-test question phrasing
+  the scope differently simply falls back to today's behaviour -- no lift, no
+  regression.
+- `doc_type` is one field per question, so per-year scope (#952: "báo cáo công ty
+  mẹ các năm 2022, 2023 và báo cáo hợp nhất các năm 2024, 2025") is not
+  expressible. That question is deliberately left `unknown`; fixing it properly
+  needs a per-(ticker, year) scope, not a wider regex.
+- Correct scope is necessary, not sufficient. Hand-checked against the source
+  reports, the six now retrieve the right documents but only #798 lands near the
+  true value (67.56 tỷ true vs 68.39 tỷ produced, against 31,098 tỷ before);
+  #795 and #890 still answer wrongly for unrelated reasons (line selection and
+  answer shape). The remaining error is downstream of retrieval.
