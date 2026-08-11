@@ -11,9 +11,19 @@ Two tiers, because the batches recorded different things:
                      (batch 2 in full, plus #1 / #100 / #674 from batch 1)
 
 GT is a list of **groups**. A group is a set of interchangeable answers, and
-recall counts a group as hit if any member is retrieved. Two things need this:
+recall counts a group as hit if any member is retrieved. Three things need this:
   - OCR split a logical table in two (#100: BVH entity-info block, |15 or |16)
   - the corpus ships the same report twice under `_1` / `_2` (see DUP_BASES)
+  - the same figure appears in BOTH the main statement and its detail note
+    (#605 NLG |7 vs |36, #752 ABB/MBB |8 vs |91/|78, #100 BVH |16 vs |66).
+    The rules define relevant as "chứa một phần hoặc toàn bộ số liệu cần
+    thiết", so both qualify; the solutions files only recorded whichever the
+    human opened, which scored a correct retrieval as a total miss.
+
+Labels here are NOT exhaustive: they enumerate what the manual solutions
+recorded plus verified equivalents, so measured precision is a lower bound.
+Cross-report equivalents cannot be expressed at all (alt positions are
+per-report), e.g. #605 also answerable from NLG 2023 |34.
 
 Report-level GT enumerates *every* report the question's (ticker, year, scope)
 spans, not the minimal set a human would open. Several solutions note that a
@@ -67,7 +77,7 @@ EVAL: dict[int, tuple[str, str, list[str] | None, dict[str, list[int]]]] = {
     # --- batch 1 (solutions.md): only L1.1 / L1.2 / L2.1 recorded a table_pos ---
     1:   ("L1.1", "solutions.md", ["VJC_financial_statements_2018_separate|50"], {}),
     100: ("L1.2", "solutions.md", ["BVH_financial_statements_2018_consolidated|16"],
-          {"BVH_financial_statements_2018_consolidated|16": [15]}),
+          {"BVH_financial_statements_2018_consolidated|16": [15, 66]}),
     674: ("L2.1", "solutions.md", ["HBC_financial_statements_2016_consolidated|8"], {}),
     656: ("L2.2", "solutions.md", None, {}),
     612: ("L3.1", "solutions.md", None, {}),
@@ -84,11 +94,14 @@ EVAL: dict[int, tuple[str, str, list[str] | None, dict[str, list[int]]]] = {
     17:  ("L1.2", "solutions_batch2.md", ["SHB_financial_statements_2018_consolidated|5"], {}),
     40:  ("L2.1", "solutions_batch2.md", ["VIB_financial_statements_2020_consolidated|10"], {}),
     55:  ("L2.2", "solutions_batch2.md", ["FTS_financial_statements_2020|11"], {}),
-    605: ("L3.1", "solutions_batch2.md", ["NLG_financial_statements_2024_consolidated|7"], {}),
+    605: ("L3.1", "solutions_batch2.md", ["NLG_financial_statements_2024_consolidated|7"],
+          {"NLG_financial_statements_2024_consolidated|7": [36]}),
     582: ("L3.2", "solutions_batch2.md", ["MCH_financial_statements_2021_consolidated|4",
                                           "MCH_financial_statements_2023_consolidated|4"], {}),
     752: ("L4.1", "solutions_batch2.md", ["ABB_financial_statements_2022_consolidated|8",
-                                          "MBB_financial_statements_2022_consolidated|8"], {}),
+                                          "MBB_financial_statements_2022_consolidated|8"],
+          {"ABB_financial_statements_2022_consolidated|8": [91],
+           "MBB_financial_statements_2022_consolidated|8": [78]}),
     754: ("L4.2", "solutions_batch2.md", ["HDB_financial_statements_2021_separate|33",
                                           "ABB_financial_statements_2021_separate|32"], {}),
     818: ("L5.1", "solutions_batch2.md", ["FTS_financial_statements_2018|22",

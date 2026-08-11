@@ -134,7 +134,8 @@
     "gt_tables": [
       [
         "BVH_financial_statements_2018_consolidated|16",
-        "BVH_financial_statements_2018_consolidated|15"
+        "BVH_financial_statements_2018_consolidated|15",
+        "BVH_financial_statements_2018_consolidated|66"
       ]
     ]
   },
@@ -351,7 +352,8 @@
     ],
     "gt_tables": [
       [
-        "NLG_financial_statements_2024_consolidated|7"
+        "NLG_financial_statements_2024_consolidated|7",
+        "NLG_financial_statements_2024_consolidated|36"
       ]
     ]
   },
@@ -468,10 +470,12 @@
     ],
     "gt_tables": [
       [
-        "ABB_financial_statements_2022_consolidated|8"
+        "ABB_financial_statements_2022_consolidated|8",
+        "ABB_financial_statements_2022_consolidated|91"
       ],
       [
-        "MBB_financial_statements_2022_consolidated|8"
+        "MBB_financial_statements_2022_consolidated|8",
+        "MBB_financial_statements_2022_consolidated|78"
       ]
     ]
   },
