@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.paths import FINANCIAL_STATEMENTS_DIR
+from finance_qa.core.paths import FINANCIAL_STATEMENTS_DIR
 
 
 STATEMENTS_DIR = FINANCIAL_STATEMENTS_DIR

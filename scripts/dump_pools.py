@@ -7,7 +7,7 @@ prompt variants without touching the GPU.
 Also prints **union pool recall**, which is the judge's ceiling: the judge can only
 pick what is in the pool, so no prompt work can beat this number.
 
-The pool policy itself lives in `finance_qa.retrieval.candidates` (shared with the
+The pool policy itself lives in `finance_qa.modules.rag.candidates` (shared with the
 evaluator and the batch runner); this script only caches its output.
 
   .venv_bge/bin/python scripts/dump_pools.py [--channel-k 50]
@@ -25,8 +25,8 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 
 from finance_qa.evaluation.retrieval import recall_at_k
-from finance_qa.paths import EVALSET_PATH
-from finance_qa.retrieval.candidates import CHANNEL_K, CandidateRetriever
+from finance_qa.core.paths import EVALSET_PATH
+from finance_qa.modules.rag.candidates import CHANNEL_K, CandidateRetriever
 
 POOLS_PATH = Path("/tmp/pools.json")
 

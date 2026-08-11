@@ -14,7 +14,7 @@ from pathlib import Path
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.graph.graph import run_question
+from finance_qa.agents.finance.graph import run_question
 
 ROOT = Path(__file__).parent.parent
 

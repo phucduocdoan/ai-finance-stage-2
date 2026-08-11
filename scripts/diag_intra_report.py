@@ -24,10 +24,10 @@ import pandas as pd
 import _bootstrap  # noqa: F401
 
 from finance_qa.evaluation.retrieval import DENSE_PATH, EVALSET_PATH
-from finance_qa.paths import DOCUMENT_TEXT_PATH
-from finance_qa.retrieval.bm25 import BM25, load_doc_texts
-from finance_qa.retrieval.dense import encode_queries, load_model
-from finance_qa.retrieval.filters import index_by_ticker_year, load_tables, shortlist
+from finance_qa.core.paths import DOCUMENT_TEXT_PATH
+from finance_qa.modules.rag.indexing.bm25 import BM25, load_doc_texts
+from finance_qa.modules.rag.indexing.dense import encode_queries, load_model
+from finance_qa.modules.rag.retrievers.filters import index_by_ticker_year, load_tables, shortlist
 
 
 def main() -> int:

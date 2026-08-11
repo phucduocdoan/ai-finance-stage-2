@@ -38,8 +38,8 @@ from pathlib import Path
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.paths import QUESTION_METADATA_PATH
-from finance_qa.execution.query import load_frame, source_csv, submission_csv_name
+from finance_qa.core.paths import QUESTION_METADATA_PATH
+from finance_qa.modules.data.table_store import load_frame, source_csv, submission_csv_name
 
 
 def load_questions() -> dict[int, dict]:
@@ -128,6 +128,12 @@ def validate_format(items: list[dict], expected_ids: set[int] | None) -> list[st
 
 # --------------------------------------------------------------------- packaging
 
+def _to_0indexed(tid: str) -> str:
+    """Convert 1-indexed table_id (our corpus) to 0-indexed (organizer ground truth)."""
+    doc, pos = tid.rsplit("|", 1)
+    return f"{doc}|{int(pos) - 1}"
+
+
 def stage(items: list[dict], out_dir: Path) -> tuple[int, list[str]]:
     """Write submission.json + copy every referenced CSV into out_dir/data/.
 
@@ -145,7 +151,7 @@ def stage(items: list[dict], out_dir: Path) -> tuple[int, list[str]]:
     for it in items:
         kept_tables = []
         for tid in it.get("relevant_tables") or []:
-            src = source_csv(tid)
+            src = source_csv(tid)  # source uses 1-indexed path (matches filesystem)
             if not src.exists():
                 warnings.append(f"#{it['id']}: bỏ table thiếu CSV {tid}")
                 continue
@@ -161,7 +167,8 @@ def stage(items: list[dict], out_dir: Path) -> tuple[int, list[str]]:
                     warnings.append(f"load_frame {tid} failed ({exc.__class__.__name__}), raw CSV shipped")
                     shutil.copyfile(src, data_dir / name)
                 copied.add(name)
-            kept_tables.append(tid)
+            # Organizer ground truth uses 0-indexed positions; convert before submission.
+            kept_tables.append(_to_0indexed(tid))
         it["relevant_tables"] = kept_tables
         it["relevant_docs"] = list({t.rsplit("|", 1)[0]: None for t in kept_tables})
         # drop evidence whose CSV was dropped

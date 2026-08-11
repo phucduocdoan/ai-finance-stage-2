@@ -9,20 +9,20 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.planning.repairs import (
+from finance_qa.modules.codegen.repairs import (
     repair_plan_order,
     repair_plan_output_unit,
     repair_non_numeric_bindings,
     repair_prior_year_coverage,
     repair_select_answer_periods,
 )
-from finance_qa.planning.validators import (
+from finance_qa.modules.codegen.validators import (
     binding_concept_errors,
     plan_contract_errors,
     plan_order_errors,
     semantic_errors,
 )
-from finance_qa.preprocessing.questions import detect_unit
+from finance_qa.modules.data.preprocessing.questions import detect_unit
 
 
 def check(name: str, condition: bool) -> None:

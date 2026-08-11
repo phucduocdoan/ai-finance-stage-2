@@ -2,7 +2,7 @@
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.preprocessing.document_text import main
+from finance_qa.modules.data.preprocessing.document_text import main
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ import pandas as pd
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.paths import LONG_FORMAT_PATH, QUESTION_METADATA_PATH
+from finance_qa.core.paths import LONG_FORMAT_PATH, QUESTION_METADATA_PATH
 
 
 PARQUET = LONG_FORMAT_PATH

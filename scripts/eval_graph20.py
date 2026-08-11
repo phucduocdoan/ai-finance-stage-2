@@ -13,7 +13,7 @@ import time
 
 sys.path.insert(0, "src")
 
-from finance_qa.graph.graph import run_question
+from finance_qa.agents.finance.graph import run_question
 
 
 def main() -> None:

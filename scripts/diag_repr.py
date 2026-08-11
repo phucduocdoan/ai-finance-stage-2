@@ -27,10 +27,10 @@ from collections import defaultdict
 import _bootstrap  # noqa: F401
 
 from finance_qa.evaluation.retrieval import EVALSET_PATH
-from finance_qa.preprocessing.document_text import statement_label
-from finance_qa.retrieval.bm25 import BM25
-from finance_qa.retrieval.candidates import strip_entity
-from finance_qa.retrieval.filters import index_by_ticker_year, load_tables, shortlist
+from finance_qa.modules.data.preprocessing.document_text import statement_label
+from finance_qa.modules.rag.indexing.bm25 import BM25
+from finance_qa.modules.rag.candidates import strip_entity
+from finance_qa.modules.rag.retrievers.filters import index_by_ticker_year, load_tables, shortlist
 
 
 def repr_full(rec: dict) -> str:

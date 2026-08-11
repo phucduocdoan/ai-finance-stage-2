@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.retrieval.candidates import (
+from finance_qa.modules.rag.candidates import (
     BOILERPLATE,
     PRIMARY_STATEMENT_TYPES,
     CandidateRetriever,
@@ -24,7 +24,7 @@ from finance_qa.retrieval.candidates import (
     strip_entity,
     table_key,
 )
-from finance_qa.retrieval.filters import MIN_ROWS, has_content
+from finance_qa.modules.rag.retrievers.filters import MIN_ROWS, has_content
 
 
 def check(name: str, condition: bool) -> None:

@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from finance_qa.paths import EVALSET_PATH, EVAL_DIR, RUNS_DIR
-from finance_qa.planning.generator import generate
+from finance_qa.core.paths import EVALSET_PATH, EVAL_DIR, RUNS_DIR
+from finance_qa.modules.codegen.generator import generate
 
 ANSWERS_PATH = EVAL_DIR / "planner_answers.json"
 

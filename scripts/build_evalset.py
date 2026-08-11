@@ -32,7 +32,7 @@ import sys
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.paths import EVALSET_PATH, QUESTION_METADATA_PATH, TABLE_METADATA_PATH
+from finance_qa.core.paths import EVALSET_PATH, QUESTION_METADATA_PATH, TABLE_METADATA_PATH
 
 
 METADATA_PATH = TABLE_METADATA_PATH

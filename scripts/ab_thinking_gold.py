@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, "src")
 
-from finance_qa.planning.generator import generate
+from finance_qa.modules.codegen.generator import generate
 
 WORKERS = 4
 CONFIGS = [("A_base(no-think)", False), ("B_think", True)]

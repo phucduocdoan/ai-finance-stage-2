@@ -24,7 +24,7 @@ from urllib.parse import unquote, urlparse
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.paths import (
+from finance_qa.core.paths import (
     CODE_STOCK_PATH,
     FINANCIAL_STATEMENTS_DIR,
     TABLE_METADATA_PATH,

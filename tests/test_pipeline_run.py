@@ -16,15 +16,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.pipeline import run as runner
-from finance_qa.pipeline.run import (
+from finance_qa.pipelines import submission as runner
+from finance_qa.pipelines.submission import (
     _parse_ids,
     read_records,
     run_question,
     submission_item,
     summarize,
 )
-from finance_qa.retrieval.candidates import Pool
+from finance_qa.modules.rag.candidates import Pool
 
 
 def check(name: str, condition: bool) -> None:

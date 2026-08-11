@@ -22,7 +22,7 @@ from collections import Counter, defaultdict
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.paths import RAW_QUESTIONS_PATH, REPORTS_DIR
+from finance_qa.core.paths import RAW_QUESTIONS_PATH, REPORTS_DIR
 
 
 QUESTIONS = RAW_QUESTIONS_PATH

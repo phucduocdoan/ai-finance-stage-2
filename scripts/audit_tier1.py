@@ -24,7 +24,7 @@ from collections import Counter, defaultdict
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.paths import REPORTS_DIR, TABLE_METADATA_PATH
+from finance_qa.core.paths import REPORTS_DIR, TABLE_METADATA_PATH
 
 
 V2_JSONL = TABLE_METADATA_PATH

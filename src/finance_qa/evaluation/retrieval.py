@@ -20,7 +20,7 @@ Dense/rrf/judge need data/indexes/tables_dense.npy and a GPU.
 The dense channel and the reranker are swappable backends (`--dense-backend`,
 `--reranker`); defaults are the measured ones, bge-m3 with no reranker.
 
-The pool itself comes from `finance_qa.retrieval.candidates`, which is also what
+The pool itself comes from `finance_qa.modules.rag.candidates`, which is also what
 the batch runner uses, so these numbers describe the production policy. Its
 defaults (stripped retrieval query, primary-statement expansion, judge_text for
 the judge prompt) can be switched off with --no-strip / --no-primary to reproduce
@@ -40,15 +40,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from finance_qa.paths import DENSE_INDEX_PATH, EVALSET_PATH
-from finance_qa.retrieval.candidates import (
+from finance_qa.core.paths import DENSE_INDEX_PATH, EVALSET_PATH
+from finance_qa.modules.rag.candidates import (
     CHANNEL_K,
     RRF_K,
     CandidateRetriever,
     rerank_with_picks,
     rrf_fuse,
 )
-from finance_qa.retrieval.clients import EMBEDDING_BACKENDS, RERANKER_BACKENDS
+from finance_qa.modules.rag.retrievers.clients import EMBEDDING_BACKENDS, RERANKER_BACKENDS
 
 
 DENSE_PATH = DENSE_INDEX_PATH

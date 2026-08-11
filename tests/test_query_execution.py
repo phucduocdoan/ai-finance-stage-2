@@ -10,8 +10,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.execution.query import load_frame, parse_number, run_query, validate
-from finance_qa.paths import TABLES_DIR
+from finance_qa.modules.tools.numeric import parse_number
+from finance_qa.modules.tools.python_exec import run_query, validate
+from finance_qa.modules.data.table_store import load_frame
+from finance_qa.core.paths import TABLES_DIR
 
 TID = "AAA_financial_statements_2015_consolidated|4"   # BÁO CÁO KQKD hợp nhất
 CSV = "data/AAA_financial_statements_2015_consolidated_table_4.csv"

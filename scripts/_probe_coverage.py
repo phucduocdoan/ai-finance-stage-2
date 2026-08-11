@@ -1,11 +1,16 @@
 """Probe statement-type / metric coverage that live retrieval delivers."""
 import sys, json
 sys.path.insert(0, "src")
-from finance_qa.graph.nodes.understand import understand
-from finance_qa.graph.nodes.retrieve_targeted import retrieve_targeted
-from finance_qa.graph.nodes.load import load
-from finance_qa.preprocessing.canonical import _get_table_meta
-from finance_qa.graph.nodes.solvers.formula import _collect_canonical
+from finance_qa.agents.finance.config import FinanceAgentConfig
+from finance_qa.agents.finance.understand import make_understand
+from finance_qa.modules.rag.service import make_retrieve_node as make_retrieve
+from finance_qa.modules.data.service import load_node as load
+from finance_qa.modules.data.canonical import _get_table_meta
+from finance_qa.modules.codegen.formula import _collect_canonical
+
+_cfg = FinanceAgentConfig()
+understand = make_understand(_cfg)
+retrieve_targeted = make_retrieve(_cfg)
 
 qid = int(sys.argv[1])
 gold = {int(json.loads(l)["id"]): json.loads(l)["question"]

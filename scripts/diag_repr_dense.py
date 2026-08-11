@@ -36,11 +36,11 @@ import numpy as np
 import torch
 from transformers import AutoModel, AutoTokenizer
 
-from finance_qa.paths import EVALSET_PATH
-from finance_qa.preprocessing.document_text import statement_label
-from finance_qa.retrieval import dense
-from finance_qa.retrieval.candidates import strip_entity
-from finance_qa.retrieval.filters import index_by_ticker_year, load_tables, shortlist
+from finance_qa.core.paths import EVALSET_PATH
+from finance_qa.modules.data.preprocessing.document_text import statement_label
+from finance_qa.modules.rag.indexing import dense
+from finance_qa.modules.rag.candidates import strip_entity
+from finance_qa.modules.rag.retrievers.filters import index_by_ticker_year, load_tables, shortlist
 
 
 KS = (5, 10, 15, 20, 30, 50)

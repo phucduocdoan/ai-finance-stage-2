@@ -2,7 +2,7 @@
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.pipeline.run import main
+from finance_qa.pipelines.submission import main
 
 
 if __name__ == "__main__":

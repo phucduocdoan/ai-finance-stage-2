@@ -9,9 +9,9 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.execution.query import run_query
-from finance_qa.planning.ir import compile_plan, parse_plan_response, validate_plan
-from finance_qa.planning.repairs import (
+from finance_qa.modules.tools.python_exec import run_query
+from finance_qa.modules.codegen.ir import compile_plan, parse_plan_response, validate_plan
+from finance_qa.modules.codegen.repairs import (
     binding_alignment_errors,
     prune_unused_bindings,
     repair_binding_alignment,
@@ -163,6 +163,43 @@ repaired, changes = repair_binding_alignment(
 check(
     "derived binding meaning repairs a mismatched row",
     repaired["bindings"][0]["row_index"] == 0 and len(changes) == 1,
+)
+
+cross_frame_frames = {
+    "df1": pd.DataFrame(
+        {
+            "label": ["Tiền mặt", "TỔNG TÀI SẢN"],
+            "Số cuối năm Triệu đồng": [10.0, 332023043.0],
+        }
+    ),
+    "df2": pd.DataFrame(
+        {
+            "label": ["NỢ PHẢI TRẢ", "Vay các TCTD khác"],
+            "Số cuối năm Triệu đồng": [None, 4767826.0],
+        }
+    ),
+}
+wrong_cross_frame = {
+    "bindings": [
+        {
+            **binding("total_assets_2016", "df2", 1, "Số cuối năm Triệu đồng"),
+            "meaning": "Tổng tài sản cuối năm 2016",
+            "source_unit": "million_vnd",
+        }
+    ],
+    "formula": "total_assets_2016",
+    "output_unit": "million_vnd",
+}
+cross_repaired, cross_changes = repair_binding_alignment(
+    "Tổng tài sản của STB là bao nhiêu triệu đồng vào cuối năm 2016?",
+    wrong_cross_frame,
+    cross_frame_frames,
+)
+check(
+    "clear semantic miss can repair across frames",
+    cross_repaired["bindings"][0]["variable"] == "df1"
+    and cross_repaired["bindings"][0]["row_index"] == 1
+    and len(cross_changes) == 1,
 )
 
 # Currency scale conversion belongs to the compiler.  Accepting it in formula

@@ -21,15 +21,17 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 import numpy as np
 
-from finance_qa.retrieval import deepinfra
-from finance_qa.paths import QWEN3_INDEX_PATH
-from finance_qa.retrieval.candidates import CandidateRetriever
-from finance_qa.retrieval.clients import (
+from finance_qa.core.paths import QWEN3_INDEX_PATH
+from finance_qa.modules.rag import deepinfra_client
+from finance_qa.modules.rag.candidates import CandidateRetriever
+from finance_qa.modules.rag.indexing import deepinfra
+from finance_qa.modules.rag.retrievers.clients import (
     EMBEDDING_BACKENDS,
     embedding_client,
     rerank_order,
     reranker_client,
 )
+from finance_qa.modules.rag.rerankers import deepinfra as deepinfra_reranker
 
 
 def check(name: str, condition: bool) -> None:
@@ -39,7 +41,7 @@ def check(name: str, condition: bool) -> None:
 
 
 KEY = "test-key-not-a-real-one"
-deepinfra.time.sleep = lambda _seconds: None  # backoff must not slow the tests
+deepinfra_client.time.sleep = lambda _seconds: None  # backoff must not slow the tests
 
 
 class Response(io.BytesIO):
@@ -61,7 +63,7 @@ def install(handler):
         calls.append((request.full_url, payload))
         return Response(json.dumps(handler(request.full_url, payload)).encode())
 
-    deepinfra.urllib.request.urlopen = urlopen
+    deepinfra_client.urllib.request.urlopen = urlopen
     return calls
 
 
@@ -179,7 +181,7 @@ install(flaky)
 recovered = deepinfra.embed(["a"], key=KEY)
 check("a transient failure recovers within the retry budget", recovered.shape == (1, 2))
 
-deepinfra.os.environ["DEEPINFRA_API_KEY"] = " env-key "
+deepinfra_client.os.environ["DEEPINFRA_API_KEY"] = " env-key "
 check("api_key comes from the environment, stripped", deepinfra.api_key() == "env-key")
 
 
@@ -190,19 +192,19 @@ def rerank_handler(url, payload):  # noqa: ARG001
 
 
 calls = install(rerank_handler)
-scores = deepinfra.rerank("q", ["aaa", "b"], key=KEY)
-check("rerank uses the inference route for the model", calls[0][0].endswith(deepinfra.RERANK_MODEL))
-check("the default reranker is Qwen3-Reranker-0.6B", deepinfra.RERANK_MODEL == "Qwen/Qwen3-Reranker-0.6B")
+scores = deepinfra_reranker.rerank("q", ["aaa", "b"], key=KEY)
+check("rerank uses the inference route for the model", calls[0][0].endswith(deepinfra_reranker.RERANK_MODEL))
+check("the default reranker is Qwen3-Reranker-0.6B", deepinfra_reranker.RERANK_MODEL == "Qwen/Qwen3-Reranker-0.6B")
 check("the query is paired with every document", calls[0][1]["queries"] == ["q", "q"])
 check("scores come back per document, in input order", scores == [3.0, 1.0])
-check("no request is made for an empty document list", deepinfra.rerank("q", [], key=KEY) == [])
+check("no request is made for an empty document list", deepinfra_reranker.rerank("q", [], key=KEY) == [])
 
 install(rerank_handler)
-check("empty documents are sent as a space here too", deepinfra.rerank("q", [""], key=KEY) == [1.0])
+check("empty documents are sent as a space here too", deepinfra_reranker.rerank("q", [""], key=KEY) == [1.0])
 
 install(lambda url, payload: {"scores": [1.0]})
 try:
-    deepinfra.rerank("q", ["a", "b"], key=KEY)
+    deepinfra_reranker.rerank("q", ["a", "b"], key=KEY)
     mismatch_accepted = True
 except deepinfra.DeepInfraError:
     mismatch_accepted = False
@@ -210,7 +212,7 @@ check("a score/document count mismatch is an error", not mismatch_accepted)
 
 install(lambda url, payload: {"error": "nope"})
 try:
-    deepinfra.rerank("q", ["a"], key=KEY)
+    deepinfra_reranker.rerank("q", ["a"], key=KEY)
     missing_scores_accepted = True
 except deepinfra.DeepInfraError:
     missing_scores_accepted = False
@@ -218,7 +220,7 @@ check("a response without scores is an error", not missing_scores_accepted)
 
 # `rerank_order` is shared by every backend, so it is tested against the hosted
 # client here and against a hand-written one below -- same function, both times.
-hosted_reranker = deepinfra.DeepInfraReranker()
+hosted_reranker = deepinfra_reranker.DeepInfraReranker()
 
 install(rerank_handler)
 check(
@@ -349,7 +351,7 @@ check(
 )
 check(
     "the qwen3-0.6b client is a DeepInfra reranker",
-    isinstance(reranker_client("qwen3-0.6b"), deepinfra.DeepInfraReranker),
+    isinstance(reranker_client("qwen3-0.6b"), deepinfra_reranker.DeepInfraReranker),
 )
 # bge-m3's index cannot be rebuilt, so a second backend sharing its path would be
 # unrecoverable: distinct index files is a data-safety check, not a style one.
@@ -367,7 +369,7 @@ qwen.embed_documents(["tài sản"])
 check("embed_documents goes through the client bare", calls[0][1]["input"] == ["tài sản"])
 
 install(rerank_handler)
-check("the DeepInfra reranker satisfies the protocol", deepinfra.DeepInfraReranker().scores("q", ["aaa"]) == [3.0])
+check("the DeepInfra reranker satisfies the protocol", deepinfra_reranker.DeepInfraReranker().scores("q", ["aaa"]) == [3.0])
 
 # A retriever driven entirely by injected clients: the swap the protocol exists for.
 encoded: list[list[str]] = []

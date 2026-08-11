@@ -18,7 +18,7 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 
 from finance_qa.evaluation.retrieval import recall_at_k
-from finance_qa.retrieval import judge as llm_judge
+from finance_qa.modules.rag import judge as llm_judge
 
 BASE_PROMPT = llm_judge.PROMPT  # captured before any variant overwrites it
 

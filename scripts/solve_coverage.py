@@ -21,7 +21,7 @@ import pandas as pd
 
 import _bootstrap  # noqa: F401
 
-from finance_qa.paths import REPORTS_DIR
+from finance_qa.core.paths import REPORTS_DIR
 from solve import PARQUET, QUESTIONS, solve
 
 OUT_MD = REPORTS_DIR / "solve_coverage.md"
