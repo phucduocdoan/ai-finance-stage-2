@@ -587,9 +587,17 @@ total emitted 121 vs real 36  -> 3.4x inflation
 ```
 
 Only qid44/55/100/820 are clean. **A perfect retriever that returned exactly the
-real gold would score 38.9% recall against the emitted gold set.** Any F2 number
-measured against this artifact is therefore dominated by artifact error, not by
-retriever error -- it cannot be used to accept or reject a retrieval change.
+real gold scores 28.1% (34/121) recall against the emitted gold set** -- so ~72% of
+the artifact is noise, and any F2 measured against it is dominated by artifact
+error, not retriever error. It cannot be used to accept or reject a retrieval
+change.
+
+The ceiling number is defined as: per emitted group, a hit iff its table-id set
+intersects the union of that question's real `gt_tables`; recall = hits / emitted,
+micro-aggregated over the 15 qids. An earlier revision of this section cited 38.9%
+with no derivation recorded; that figure could not be reproduced from the current
+data under any formula variant even though the 121-emitted total reproduces exactly,
+so it is withdrawn in favour of the specified formula above.
 
 The two halves now separate cleanly and need different fixes:
 
