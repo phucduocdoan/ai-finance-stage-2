@@ -247,3 +247,72 @@ Scope and known limits:
   true value (67.56 tỷ true vs 68.39 tỷ produced, against 31,098 tỷ before);
   #795 and #890 still answer wrongly for unrelated reasons (line selection and
   answer shape). The remaining error is downstream of retrieval.
+
+## 11. One Answer Flow: the Graph
+
+Until now the repo carried two drivers that both produced a full 1012-question
+run, and they disagreed:
+
+| | Flow A (legacy) | Flow B (active) |
+|---|---|---|
+| driver | `scripts/run_pipeline.py` | `scripts/run_graph.py` |
+| question metadata | frozen `questions_enriched.jsonl` | live `understand` (LLM, Pydantic) |
+| retrieval | frozen table ids | live `modules.rag.service` |
+| codegen | `generate(use_planner=True, fallback=True)` | same generator, plus formula/REPL branches |
+
+Decision:
+
+- The graph is the only flow that answers questions. `run_pipeline.py` and the
+  batch driver in `pipelines/submission.py` are legacy for answering.
+- `pipelines.submission.submission_item` stays: it is the shared *packaging*
+  function, and `run_graph.py` imports it. Packaging was never the duplicated
+  part.
+- Anything that must hold for a submission (scope backstop, unit handling,
+  repair policy) is implemented on the graph path, not in the legacy driver.
+
+Rationale:
+
+- Two drivers means two behaviours for the same question and no single number to
+  improve. The scope backstop from section 10 lives in `understand`, which only
+  the graph calls, so the legacy driver could not have benefited from it at all.
+- Head-to-head on the 15 gold-scored questions: Flow A 9/15, Flow B 8/15, union
+  11/15, with non-overlapping failures. The near-tie is the point -- Flow B is
+  not behind on analysis. Flow B uniquely wins #363 (formula branch: 3.319357 vs
+  Flow A's 0.0) and #752 (correct sign).
+- **Correction, measured on the full 1012 run.** An earlier draft of this section
+  claimed Flow B's three unique losses (#55, #818, #820) were all unit/scale
+  errors. On the graph path they are not: #55's ratio to gold is 2.0, #818
+  returns 0.0, #820's is 5.2e-9 -- none is a power of ten. Of the 34
+  gold-scored questions in `artifacts/runs/graph_1012.jsonl`, exactly one (#524,
+  ratio 1e9) is a clean scale error. The unit gap in section 12 is a real
+  plumbing defect and worth fixing, but it buys ~1-3 of 34, not three
+  named questions. See `docs/HANDOFF.md` for the per-question table.
+
+Known limits:
+
+- 93% of graph runs still route through `lookup` into the same `generate()` that
+  Flow A used. The graph is not a different code generator; it is the same
+  generator plus live understand/retrieve plus a formula/REPL escape. Expect
+  most answer-quality work to land inside `modules/codegen/`, not in the graph.
+- The graph swallows solver errors and reroutes to REPL, so `status` is now
+  always `ok` in run records. The usable failure signal is `answer == 0.0`.
+
+## 12. `unit_hint` Must Reach Codegen on Every Path
+
+Decision:
+
+- `unit_hint` produced by `understand` is authoritative and must be passed to
+  every solver, including `lookup`.
+
+Current state (the defect, not yet fixed):
+
+- `formula_solver` and `repl_solver` both pass `unit_hint=state.get("unit_hint")`.
+  `lookup_solver` (`agents/finance/solvers/lookup.py`) does not.
+- `generate()` in `modules/codegen/generator.py` has no `unit_hint` parameter at
+  all -- zero occurrences of the name in the file. On the lookup path the unit is
+  re-derived from raw question text inside codegen, discarding what `understand`
+  already decided.
+- This contradicts the constraint already stated in `docs/HANDOFF.md` ("keep
+  `unit_hint` from `understand` authoritative"). The constraint holds on the
+  formula path and silently does not hold on the lookup path, which is 93% of
+  traffic.

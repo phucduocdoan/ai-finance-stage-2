@@ -1,0 +1,1671 @@
+{
+  "seed": 0,
+  "target_sample_size": 100,
+  "excluded_acceptance_test_qids": [
+    1,
+    17,
+    40,
+    44,
+    55,
+    100,
+    363,
+    524,
+    582,
+    605,
+    674,
+    752,
+    754,
+    818,
+    820
+  ],
+  "strata_definition": {
+    "op": "classify_ops-style regex over question text; 8 rules (complex, argmax, growth, ratio, avg, sum, diff, count) then 'lookup' fallback -- see OP_RULES in this script",
+    "bank": "primary ticker's industry_segment in tables_metadata_v2.jsonl == 'bank' -> 'bank', else 'nonbank'"
+  },
+  "allocation_method": "proportional to stratum size, largest-remainder rounding to 100, ties broken by stratum key",
+  "allocation_by_stratum": {
+    "lookup/nonbank": {
+      "alloc": 41,
+      "chosen": 41,
+      "pool": 408
+    },
+    "ratio/nonbank": {
+      "alloc": 21,
+      "chosen": 21,
+      "pool": 213
+    },
+    "lookup/bank": {
+      "alloc": 14,
+      "chosen": 14,
+      "pool": 144
+    },
+    "growth/nonbank": {
+      "alloc": 5,
+      "chosen": 5,
+      "pool": 45
+    },
+    "argmax/nonbank": {
+      "alloc": 4,
+      "chosen": 4,
+      "pool": 44
+    },
+    "diff/nonbank": {
+      "alloc": 3,
+      "chosen": 3,
+      "pool": 28
+    },
+    "ratio/bank": {
+      "alloc": 3,
+      "chosen": 3,
+      "pool": 27
+    },
+    "sum/nonbank": {
+      "alloc": 2,
+      "chosen": 2,
+      "pool": 15
+    },
+    "avg/nonbank": {
+      "alloc": 1,
+      "chosen": 1,
+      "pool": 11
+    },
+    "count/nonbank": {
+      "alloc": 1,
+      "chosen": 1,
+      "pool": 7
+    },
+    "complex/nonbank": {
+      "alloc": 1,
+      "chosen": 1,
+      "pool": 11
+    },
+    "argmax/bank": {
+      "alloc": 1,
+      "chosen": 1,
+      "pool": 7
+    },
+    "growth/bank": {
+      "alloc": 1,
+      "chosen": 1,
+      "pool": 8
+    },
+    "diff/bank": {
+      "alloc": 1,
+      "chosen": 1,
+      "pool": 13
+    },
+    "avg/bank": {
+      "alloc": 1,
+      "chosen": 1,
+      "pool": 9
+    },
+    "count/bank": {
+      "alloc": 0,
+      "chosen": 0,
+      "pool": 2
+    },
+    "sum/bank": {
+      "alloc": 0,
+      "chosen": 0,
+      "pool": 4
+    }
+  },
+  "n_sampled": 100,
+  "questions": [
+    {
+      "qid": 19,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HHV"
+      ],
+      "years": [
+        2023
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 29,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "OGC"
+      ],
+      "years": [
+        2019
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 58,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "PC1"
+      ],
+      "years": [
+        2023
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 65,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "VCB"
+      ],
+      "years": [
+        2016
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 76,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "HHV"
+      ],
+      "years": [
+        2024
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 78,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "VRE"
+      ],
+      "years": [
+        2022
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 79,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "STB"
+      ],
+      "years": [
+        2022
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 80,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "NVL"
+      ],
+      "years": [
+        2020
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 83,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "VIB"
+      ],
+      "years": [
+        2020
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 102,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "MBB"
+      ],
+      "years": [
+        2018
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 106,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "PLX"
+      ],
+      "years": [
+        2016
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 114,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "HHS"
+      ],
+      "years": [
+        2015
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 121,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "GEX"
+      ],
+      "years": [
+        2017
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 129,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "MSB"
+      ],
+      "years": [
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 154,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "NLG"
+      ],
+      "years": [
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 165,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "DLG"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 186,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "MSR"
+      ],
+      "years": [
+        2023
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 191,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "PVT"
+      ],
+      "years": [
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 197,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "VIB"
+      ],
+      "years": [
+        2018
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 212,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "HNG",
+        "HAG"
+      ],
+      "years": [
+        2015
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 227,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "HBC"
+      ],
+      "years": [
+        2015
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 230,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "ACB"
+      ],
+      "years": [
+        2015
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 231,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "SCR"
+      ],
+      "years": [
+        2023
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 234,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "VIF"
+      ],
+      "years": [
+        2020
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 242,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "MBB"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 248,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "MPC"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 263,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "SSI"
+      ],
+      "years": [
+        2019
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 268,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "DXS"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 287,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "VIF"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 298,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "DPM"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 301,
+      "op": "count",
+      "bank": "nonbank",
+      "tickers": [
+        "VJC"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 311,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "HSG"
+      ],
+      "years": [
+        2024
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 319,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "MSN"
+      ],
+      "years": [
+        2016
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 329,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "ACB"
+      ],
+      "years": [
+        2024
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 331,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "BID"
+      ],
+      "years": [
+        2022
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 348,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "HHV"
+      ],
+      "years": [
+        2025
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 352,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "NLG"
+      ],
+      "years": [
+        2019
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 358,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "VIF"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 374,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG",
+        "HSG",
+        "MSR",
+        "NKG"
+      ],
+      "years": [
+        2022,
+        2024,
+        2023
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 24,
+      "scope_warning": null
+    },
+    {
+      "qid": 384,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG",
+        "HSG",
+        "NKG"
+      ],
+      "years": [
+        2024
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 405,
+      "op": "growth",
+      "bank": "nonbank",
+      "tickers": [
+        "VIC"
+      ],
+      "years": [
+        2022,
+        2024,
+        2023
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 415,
+      "op": "complex",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG"
+      ],
+      "years": [
+        2020,
+        2024,
+        2021,
+        2022,
+        2023
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 10,
+      "scope_warning": null
+    },
+    {
+      "qid": 446,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "DBC",
+        "MCH",
+        "MSN",
+        "OGC",
+        "QNS",
+        "VNM"
+      ],
+      "years": [
+        2024
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 14,
+      "scope_warning": null
+    },
+    {
+      "qid": 451,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG",
+        "HSG",
+        "MSR",
+        "NKG"
+      ],
+      "years": [
+        2021,
+        2022,
+        2024,
+        2023
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 32,
+      "scope_warning": null
+    },
+    {
+      "qid": 473,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG",
+        "HSG",
+        "MSR",
+        "NKG"
+      ],
+      "years": [
+        2022,
+        2020,
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 24,
+      "scope_warning": null
+    },
+    {
+      "qid": 493,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG",
+        "HSG",
+        "MSR",
+        "NKG"
+      ],
+      "years": [
+        2023,
+        2021,
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 24,
+      "scope_warning": null
+    },
+    {
+      "qid": 503,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "VGT"
+      ],
+      "years": [
+        2015,
+        2017,
+        2019,
+        2021,
+        2022,
+        2023
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 12,
+      "scope_warning": null
+    },
+    {
+      "qid": 509,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "GAS",
+        "POW"
+      ],
+      "years": [
+        2015,
+        2016,
+        2017,
+        2019
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 12,
+      "scope_warning": null
+    },
+    {
+      "qid": 535,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "TTF"
+      ],
+      "years": [
+        2017,
+        2019,
+        2020,
+        2021,
+        2022,
+        2024
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 541,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "CEO"
+      ],
+      "years": [
+        2022,
+        2023,
+        2024
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 549,
+      "op": "growth",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG",
+        "HSG",
+        "MSR",
+        "NKG"
+      ],
+      "years": [
+        2021,
+        2023,
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 24,
+      "scope_warning": null
+    },
+    {
+      "qid": 552,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG",
+        "HSG",
+        "MSR",
+        "NKG"
+      ],
+      "years": [
+        2023,
+        2021,
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 24,
+      "scope_warning": null
+    },
+    {
+      "qid": 556,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG",
+        "HSG",
+        "MSR",
+        "NKG"
+      ],
+      "years": [
+        2023,
+        2024
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 16,
+      "scope_warning": null
+    },
+    {
+      "qid": 563,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "GEE",
+        "GEX",
+        "SAM"
+      ],
+      "years": [
+        2020,
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 12,
+      "scope_warning": null
+    },
+    {
+      "qid": 570,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HPG",
+        "HSG",
+        "MSR",
+        "NKG"
+      ],
+      "years": [
+        2021,
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 16,
+      "scope_warning": null
+    },
+    {
+      "qid": 571,
+      "op": "growth",
+      "bank": "nonbank",
+      "tickers": [
+        "BSR",
+        "PLX",
+        "PVT"
+      ],
+      "years": [
+        2021,
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 12,
+      "scope_warning": null
+    },
+    {
+      "qid": 579,
+      "op": "growth",
+      "bank": "nonbank",
+      "tickers": [
+        "IJC"
+      ],
+      "years": [
+        2016,
+        2021
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 593,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "VIF"
+      ],
+      "years": [
+        2023,
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 597,
+      "op": "growth",
+      "bank": "bank",
+      "tickers": [
+        "NVB"
+      ],
+      "years": [
+        2021,
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 608,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "MML",
+        "MSN"
+      ],
+      "years": [
+        2018,
+        2023
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 7,
+      "scope_warning": null
+    },
+    {
+      "qid": 635,
+      "op": "ratio",
+      "bank": "bank",
+      "tickers": [
+        "ABB"
+      ],
+      "years": [
+        2020,
+        2023
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 637,
+      "op": "growth",
+      "bank": "nonbank",
+      "tickers": [
+        "VPI"
+      ],
+      "years": [
+        2021,
+        2022
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 649,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "HSG"
+      ],
+      "years": [
+        2025,
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 665,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "NVL"
+      ],
+      "years": [
+        2016
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 672,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "MBS"
+      ],
+      "years": [
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 682,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "HSG"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 698,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "TTF"
+      ],
+      "years": [
+        2020
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 704,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "NLG"
+      ],
+      "years": [
+        2015
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 713,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HT1"
+      ],
+      "years": [
+        2020
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 718,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "DXG"
+      ],
+      "years": [
+        2017
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 725,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "SAM"
+      ],
+      "years": [
+        2017
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 1,
+      "scope_warning": null
+    },
+    {
+      "qid": 733,
+      "op": "avg",
+      "bank": "bank",
+      "tickers": [
+        "SSB",
+        "NAB",
+        "VPB"
+      ],
+      "years": [
+        2020
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 3,
+      "scope_warning": null
+    },
+    {
+      "qid": 736,
+      "op": "diff",
+      "bank": "nonbank",
+      "tickers": [
+        "CEO",
+        "VPI"
+      ],
+      "years": [
+        2024
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 742,
+      "op": "diff",
+      "bank": "bank",
+      "tickers": [
+        "MSB",
+        "VCB"
+      ],
+      "years": [
+        2019
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 747,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "VPI",
+        "VRE"
+      ],
+      "years": [
+        2023
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 763,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "CTG",
+        "VPB"
+      ],
+      "years": [
+        2019
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 793,
+      "op": "diff",
+      "bank": "nonbank",
+      "tickers": [
+        "GEE",
+        "GEX"
+      ],
+      "years": [
+        2025
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 799,
+      "op": "diff",
+      "bank": "nonbank",
+      "tickers": [
+        "HBC",
+        "SAM"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 2,
+      "scope_warning": null
+    },
+    {
+      "qid": 801,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "VJC",
+        "VSC"
+      ],
+      "years": [
+        2016
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 828,
+      "op": "argmax",
+      "bank": "bank",
+      "tickers": [
+        "ACB"
+      ],
+      "years": [
+        2017,
+        2020,
+        2021,
+        2022,
+        2024
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 5,
+      "scope_warning": null
+    },
+    {
+      "qid": 836,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "TTF"
+      ],
+      "years": [
+        2017,
+        2019,
+        2021,
+        2025
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 857,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "EIB"
+      ],
+      "years": [
+        2016,
+        2018,
+        2017
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 862,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "SCR",
+        "DIG",
+        "DXG",
+        "KBC",
+        "IJC"
+      ],
+      "years": [
+        2016
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 10,
+      "scope_warning": null
+    },
+    {
+      "qid": 866,
+      "op": "argmax",
+      "bank": "nonbank",
+      "tickers": [
+        "SJG"
+      ],
+      "years": [
+        2018,
+        2019,
+        2020,
+        2021
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 8,
+      "scope_warning": null
+    },
+    {
+      "qid": 885,
+      "op": "ratio",
+      "bank": "bank",
+      "tickers": [
+        "STB"
+      ],
+      "years": [
+        2021,
+        2022,
+        2025
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 887,
+      "op": "sum",
+      "bank": "nonbank",
+      "tickers": [
+        "VIC"
+      ],
+      "years": [
+        2022,
+        2023,
+        2024
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 3,
+      "scope_warning": null
+    },
+    {
+      "qid": 888,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "SHB",
+        "SSB",
+        "NAB",
+        "CTG",
+        "STB",
+        "EIB"
+      ],
+      "years": [
+        2021
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 892,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "HAG"
+      ],
+      "years": [
+        2015,
+        2016,
+        2017,
+        2022
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 8,
+      "scope_warning": null
+    },
+    {
+      "qid": 895,
+      "op": "sum",
+      "bank": "nonbank",
+      "tickers": [
+        "VIC"
+      ],
+      "years": [
+        2015,
+        2019,
+        2022,
+        2025
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 8,
+      "scope_warning": null
+    },
+    {
+      "qid": 916,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "FOX"
+      ],
+      "years": [
+        2016,
+        2018,
+        2019,
+        2020
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 4,
+      "scope_warning": null
+    },
+    {
+      "qid": 920,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "VIF",
+        "GVR",
+        "DPM"
+      ],
+      "years": [
+        2025
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 943,
+      "op": "avg",
+      "bank": "nonbank",
+      "tickers": [
+        "DCM",
+        "VIF",
+        "NKG"
+      ],
+      "years": [
+        2018
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 960,
+      "op": "argmax",
+      "bank": "nonbank",
+      "tickers": [
+        "QNS"
+      ],
+      "years": [
+        2017,
+        2019,
+        2020,
+        2021,
+        2023
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 5,
+      "scope_warning": null
+    },
+    {
+      "qid": 962,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "DNH"
+      ],
+      "years": [
+        2016,
+        2017,
+        2018,
+        2021,
+        2022
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 5,
+      "scope_warning": null
+    },
+    {
+      "qid": 969,
+      "op": "lookup",
+      "bank": "nonbank",
+      "tickers": [
+        "DNH"
+      ],
+      "years": [
+        2017,
+        2018,
+        2019
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 974,
+      "op": "lookup",
+      "bank": "bank",
+      "tickers": [
+        "CTG"
+      ],
+      "years": [
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 8,
+      "scope_warning": null
+    },
+    {
+      "qid": 978,
+      "op": "argmax",
+      "bank": "nonbank",
+      "tickers": [
+        "NVL"
+      ],
+      "years": [
+        2020,
+        2022,
+        2025
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 6,
+      "scope_warning": null
+    },
+    {
+      "qid": 985,
+      "op": "argmax",
+      "bank": "nonbank",
+      "tickers": [
+        "FIT"
+      ],
+      "years": [
+        2016,
+        2017,
+        2019,
+        2020,
+        2021
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 5,
+      "scope_warning": null
+    },
+    {
+      "qid": 1001,
+      "op": "ratio",
+      "bank": "bank",
+      "tickers": [
+        "BID",
+        "NAB",
+        "ABB"
+      ],
+      "years": [
+        2023
+      ],
+      "doc_type": "unknown",
+      "resolved_report_count": 7,
+      "scope_warning": null
+    },
+    {
+      "qid": 1004,
+      "op": "ratio",
+      "bank": "nonbank",
+      "tickers": [
+        "IJC"
+      ],
+      "years": [
+        2016,
+        2017,
+        2018,
+        2023,
+        2024
+      ],
+      "doc_type": "separate",
+      "resolved_report_count": 5,
+      "scope_warning": null
+    }
+  ]
+}

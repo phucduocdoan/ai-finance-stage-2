@@ -26,7 +26,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, "src")
@@ -39,6 +41,19 @@ from finance_qa.pipelines.submission import submission_item
 def load_questions() -> dict[int, dict]:
     with QUESTION_METADATA_PATH.open(encoding="utf-8") as fh:
         return {int(r["id"]): r for r in map(json.loads, filter(str.strip, fh))}
+
+
+def load_records(path: Path) -> list[dict]:
+    """Records already written to `path`, ignoring a truncated trailing line."""
+    if not path.exists():
+        return []
+    out = []
+    for line in filter(str.strip, path.read_text(encoding="utf-8").splitlines()):
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError:
+            break  # a kill mid-write leaves one partial line; everything before it is good
+    return out
 
 
 def load_gold() -> dict[int, float]:
@@ -104,6 +119,14 @@ def main() -> None:
     )
     ap.add_argument("--out", type=Path, required=True, help="output pipeline JSONL")
     ap.add_argument("--limit", type=int, help="cap number of questions (debug)")
+    ap.add_argument(
+        "--resume", action="store_true",
+        help="append to --out, skipping ids already recorded there",
+    )
+    ap.add_argument(
+        "--workers", type=int, default=1,
+        help="questions in flight at once (each is I/O-bound on LLM calls)",
+    )
     args = ap.parse_args()
 
     questions = load_questions()
@@ -120,26 +143,44 @@ def main() -> None:
         ids = ids[: args.limit]
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    # Without --resume the file is truncated, which is what makes an interrupted
+    # 1012-question run unrecoverable: v7/v8/v9 all died mid-run and left nothing
+    # to restart from.
+    records = load_records(args.out) if args.resume else []
+    if args.resume:
+        done = {r["id"] for r in records}
+        skipped, ids = len(done & set(ids)), [q for q in ids if q not in done]
+        print(f"resume: {skipped} already in {args.out}, {len(ids)} left")
+
     print(f"running {len(ids)} question(s) through the graph -> {args.out}\n")
     print(f"{'qid':>4} {'match':>5} {'solver':>14} {'sec':>5}  {'expected':>16}  answer")
     print("-" * 92)
 
-    records = []
-    with args.out.open("w", encoding="utf-8") as fh:
-        for qid in ids:
-            rec = run_one(questions[qid])
-            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
-            fh.flush()
-            records.append(rec)
+    def report(rec: dict) -> None:
+        qid = rec["id"]
+        ans = rec.get("item", {}).get("answer") if rec["status"] == "ok" else None
+        exp = gold.get(qid)
+        mark = "-" if exp is None else ("OK" if _match(ans, exp) else "·")
+        exp_s = f"{exp:.6g}" if exp is not None else "?"
+        print(f"{qid:>4} {mark:>5} {rec['solver']:>14} {rec['seconds']:>5.0f}  {exp_s:>16}  {ans}")
 
-            ans = rec.get("item", {}).get("answer") if rec["status"] == "ok" else None
-            exp = gold.get(qid)
-            if exp is None:
-                mark = "-"
-            else:
-                mark = "OK" if _match(ans, exp) else "·"
-            exp_s = f"{exp:.6g}" if exp is not None else "?"
-            print(f"{qid:>4} {mark:>5} {rec['solver']:>14} {rec['seconds']:>5.0f}  {exp_s:>16}  {ans}")
+    write_lock = threading.Lock()
+    with args.out.open("a" if args.resume else "w", encoding="utf-8") as fh:
+        def run_and_write(qid: int) -> dict:
+            rec = run_one(questions[qid])
+            with write_lock:
+                fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                fh.flush()
+                records.append(rec)
+                report(rec)
+            return rec
+
+        if args.workers > 1:
+            with ThreadPoolExecutor(max_workers=args.workers) as pool:
+                list(pool.map(run_and_write, ids))
+        else:
+            for qid in ids:
+                run_and_write(qid)
 
     # ── scoring summary (only over ids we have gold for) ─────────────────────
     scored = [r for r in records if r["id"] in gold]
