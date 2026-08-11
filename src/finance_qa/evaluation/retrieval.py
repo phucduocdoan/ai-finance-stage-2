@@ -55,14 +55,21 @@ DENSE_PATH = DENSE_INDEX_PATH
 
 KS = (5, 10, 15, 30, 50)
 
+# Competition-metric sweep range for precision/recall/F2 (table tier only).
+# Kept separate from KS so the existing recall@K/all-hit@K output is untouched.
+PRF_KS = tuple(range(1, 16))
+
 __all__ = [
     "CHANNEL_K",
     "DENSE_PATH",
     "EVALSET_PATH",
     "KS",
+    "PRF_KS",
     "RRF_K",
     "dedupe_reports",
+    "f2_score",
     "main",
+    "precision_recall_at_k",
     "recall_at_k",
     "rrf_fuse",
 ]
@@ -73,6 +80,29 @@ def recall_at_k(ranked: list[str], groups: list[list[str]], k: int) -> tuple[flo
     top = set(ranked[:k])
     hits = sum(1 for g in groups if any(m in top for m in g))
     return hits / len(groups), hits == len(groups)
+
+
+def precision_recall_at_k(ranked: list[str], groups: list[list[str]], k: int) -> tuple[float, float]:
+    """(precision, recall) for the top-k predicted set, per the organizer's formula.
+
+    correct = number of groups with >=1 member in the top-k (same numerator recall_at_k
+    uses). Precision divides by the actual predicted-set size (len(top), which can be
+    less than k when the pool is short) -- a predicted table that duplicates an
+    already-hit group still counts against that denominator, so it still costs
+    precision. That's intentional, not a bug.
+    """
+    top = ranked[:k]
+    hits = sum(1 for g in groups if any(m in set(top) for m in g))
+    recall = hits / len(groups)
+    precision = hits / len(top) if top else 0.0
+    return precision, recall
+
+
+def f2_score(precision: float, recall: float) -> float:
+    """F2 = (5*P*R) / (4*P + R), computed once from macro-averaged P and R."""
+    if precision + recall == 0:
+        return 0.0
+    return 5 * precision * recall / (4 * precision + recall)
 
 
 def dedupe_reports(ranked_tables: list[str]) -> list[str]:
@@ -109,6 +139,21 @@ def score_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
             },
         }
 
+    def table_prf() -> dict[str, Any]:
+        """Macro-averaged precision/recall/F2 over PRF_KS (table tier, skips
+        questions with no gt_tables groups)."""
+        vals = [r for r in rows if r.get("table_pr")]
+        if not vals:
+            return {}
+        by_k = {}
+        for k in PRF_KS:
+            precisions = [r["table_pr"][str(k)][0] for r in vals]
+            recalls = [r["table_pr"][str(k)][1] for r in vals]
+            p = sum(precisions) / len(precisions)
+            rc = sum(recalls) / len(recalls)
+            by_k[k] = {"precision": p, "recall": rc, "f2": f2_score(p, rc)}
+        return {"n": len(vals), "by_k": by_k}
+
     n_cands = sorted(r["n_cands"] for r in rows)
     return {
         "n_questions": len(rows),
@@ -122,6 +167,7 @@ def score_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "table": agg("table"),
         "report": agg("report"),
+        "table_prf": table_prf(),
         "table_misses_at_15": [
             {"qid": r["qid"], "level": r["level"], "recall_at_15": r["table"]["15"]}
             for r in rows
@@ -150,6 +196,20 @@ def print_summary(stage: str, summary: dict[str, Any]) -> None:
                 f"    {level} (n={sub['n']}): "
                 f"{sub['recall_at_15']:6.1%} / {sub['all_at_15']:6.1%}"
             )
+    prf = summary["table_prf"]
+    if prf:
+        print(f"\nTABLE tier precision/recall/F2 (n={prf['n']}, macro-averaged)")
+        print("  K      precision  recall    F2")
+        for k in PRF_KS:
+            m = prf["by_k"][k]
+            print(f"  @{k:<5} {m['precision']:6.1%}   {m['recall']:6.1%}   {m['f2']:6.1%}")
+        best_k = max(prf["by_k"], key=lambda k: prf["by_k"][k]["f2"])
+        best = prf["by_k"][best_k]
+        print(
+            f"  best F2 @K={best_k}: P={best['precision']:.1%} R={best['recall']:.1%} "
+            f"F2={best['f2']:.1%}"
+        )
+
     if summary["table_misses_at_15"]:
         print("\ntable-tier misses @15:")
         for miss in sorted(summary["table_misses_at_15"], key=lambda m: m["recall_at_15"]):
@@ -249,6 +309,11 @@ def main(argv: list[str] | None = None) -> int:
                 recall, all_hit = recall_at_k(ranked, question["gt_tables"], k)
                 row["table"][str(k)] = recall
                 row["table_all"][str(k)] = all_hit
+        if question["gt_tables"]:
+            row["table_pr"] = {
+                str(k): precision_recall_at_k(ranked, question["gt_tables"], k)
+                for k in PRF_KS
+            }
         rows.append(row)
 
     elapsed = time.perf_counter() - started
