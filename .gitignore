@@ -32,7 +32,6 @@ data/eval/question_targets.json
 
 # stale artifacts describing/measuring the deleted planner/IR/REPL architecture,
 # or from unrelated retrieval-tuning experiments that predate the codegen rewrite
-.lavish/arch-review.html
 artifacts/pipeline_flow.html
 artifacts/audits/graph20_failures.md
 artifacts/audits/graph20_failures.jsonl
@@ -40,8 +39,16 @@ artifacts/audits/extended_gold_audit.md
 artifacts/eval/
 artifacts/logs/
 
-# large binaries / competition docs (backed up on filesystem)
+# rendered architecture-review reports (lavish skill output), kept locally only
+.lavish/
+
+# unrelated file that ended up at repo root, not part of this project
+SKILL (3).md
+
+# large binaries (backed up on filesystem); competition docs are tracked
+# explicitly under docs/competition/ instead
 *.pdf
+!docs/competition/*.pdf
 *.jpg
 
 # one-off diagnostic/probe/prototype scripts kept locally for reference, not
