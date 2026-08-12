@@ -78,3 +78,10 @@ scripts/solve_coverage.py
 scripts/table_numbering_audit.py
 scripts/test_formula_solver.py
 scripts/test_graph.py
+
+# report outputs of the scripts above (no longer have a tracked generator),
+# plus an early data-exploration doc with no generating script at all
+artifacts/reports/audit_tier1.md
+artifacts/reports/ops_report.md
+artifacts/reports/solve_coverage.md
+artifacts/reports/questions_taxonomy.md
