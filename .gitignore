@@ -43,3 +43,31 @@ artifacts/logs/
 # large binaries / competition docs (backed up on filesystem)
 *.pdf
 *.jpg
+
+# one-off diagnostic/probe/prototype scripts kept locally for reference, not
+# part of the maintained pipeline -- several probe/test the deleted formula
+# solver and REPL prototype directly and are stale even as reference code.
+scripts/audit_tier1.py
+scripts/classify_ops.py
+scripts/demo_option_b.py
+scripts/diag_intra_report.py
+scripts/diag_pool_variants.py
+scripts/diag_repr.py
+scripts/diag_repr_dense.py
+scripts/dump_pools.py
+scripts/estimate_question_class.py
+scripts/eval_gold.py
+scripts/eval_graph20.py
+scripts/eval_submitted_retrieval.py
+scripts/gold_acceptance_test.py
+scripts/judge_ab.py
+scripts/probe_accessor_coverage.py
+scripts/probe_formula_coverage.py
+scripts/probe_note_detail_split.py
+scripts/prototype_mode_a.py
+scripts/prototype_repl.py
+scripts/solve.py
+scripts/solve_coverage.py
+scripts/table_numbering_audit.py
+scripts/test_formula_solver.py
+scripts/test_graph.py
