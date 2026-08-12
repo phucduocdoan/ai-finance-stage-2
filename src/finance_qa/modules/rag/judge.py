@@ -69,17 +69,21 @@ Chỉ in ra JSON, không giải thích:
 {{"picks": [số, số, ...]}}"""
 
 
-def _render(question: str, pool: list[tuple[str, str]], cap: int | None) -> str:
+def _render(
+    question: str, pool: list[tuple[str, str]], cap: int | None, max_picks: int
+) -> str:
     lines = [
         f"[{i}] {key.rsplit('|', 1)[0]} | {text if cap is None else text[:cap]}"
         for i, (key, text) in enumerate(pool)
     ]
     return PROMPT.format(
-        question=question, candidates="\n".join(lines), max_picks=MAX_PICKS
+        question=question, candidates="\n".join(lines), max_picks=max_picks
     )
 
 
-def build_prompt(question: str, pool: list[tuple[str, str]]) -> str:
+def build_prompt(
+    question: str, pool: list[tuple[str, str]], max_picks: int = MAX_PICKS
+) -> str:
     """Render the pool, tightening the per-candidate cap only as far as it takes to fit.
 
     Every candidate always survives -- the pool is the recall ceiling, so dropping
@@ -90,7 +94,7 @@ def build_prompt(question: str, pool: list[tuple[str, str]]) -> str:
     budget = int((CTX_TOKENS - THINK_TOKENS) * CHARS_PER_TOKEN * 0.95)
     ladder = (DOC_CHARS,) if DOC_CHARS is not None else CAP_LADDER
     for cap in ladder:
-        prompt = _render(question, pool, cap)
+        prompt = _render(question, pool, cap, max_picks)
         if len(prompt) <= budget:
             return prompt
     return prompt
@@ -121,7 +125,7 @@ def call_llm(
     return run_sync(acall_llm(prompt, thinking, timeout, max_tokens))
 
 
-def parse_picks(raw: str, n_pool: int) -> list[int]:
+def parse_picks(raw: str, n_pool: int, max_picks: int = MAX_PICKS) -> list[int]:
     """Pull the index list out of the reply, tolerating prose and think blocks."""
     raw = raw.split("</think>")[-1]
     match = re.search(r'"picks"\s*:\s*\[([^\]]*)\]', raw)
@@ -132,32 +136,64 @@ def parse_picks(raw: str, n_pool: int) -> list[int]:
         if i < n_pool and i not in seen:
             seen.add(i)
             picks.append(i)
-    return picks[:MAX_PICKS]
+    return picks[:max_picks]
+
+
+class Judge:
+    """LLM judge stage, holding pick-cap and default-thinking as instance state
+    rather than module globals -- the same shape as `EmbeddingClient`/
+    `RerankerClient` in `retrievers.clients`, so `CandidateRetriever` can take a
+    judge instance the way it takes a dense backend or reranker.
+    """
+
+    def __init__(self, *, max_picks: int = MAX_PICKS, thinking: bool = True) -> None:
+        self.max_picks = max_picks
+        self.thinking = thinking
+
+    def build_prompt(self, question: str, pool: list[tuple[str, str]]) -> str:
+        return build_prompt(question, pool, self.max_picks)
+
+    async def apick(
+        self, question: str, pool: list[tuple[str, str]], *, thinking: bool | None = None
+    ) -> list[str]:
+        """Pool of (key, doc_text) -> keys the LLM considers evidence, best first.
+
+        `thinking` defaults to the instance's default: without it the model fills
+        the pick quota with junk (recall@15 69.3% vs 84-89%). It costs ~15x the
+        latency, which retrieval can afford because the whole batch waits
+        concurrently on one event loop.
+
+        Returns [] if the call fails; the caller decides whether to fall back to
+        the retrieval order rather than having that policy buried here.
+        """
+        thinking = self.thinking if thinking is None else thinking
+        try:
+            raw = await acall_llm(self.build_prompt(question, pool), thinking=thinking)
+        except httpx.HTTPStatusError as exc:
+            # Loud, because the one time this fired it was a context overflow that
+            # cost a question outright and looked like a judge quality problem for
+            # two runs.
+            print(f"  judge HTTP {exc.response.status_code}: {exc.response.text[:300]!r}")
+            return []
+        except (httpx.HTTPError, TimeoutError, OSError) as exc:
+            print(f"  judge call failed: {exc}")
+            return []
+        return [pool[i][0] for i in parse_picks(raw, len(pool), self.max_picks)]
+
+    def pick(
+        self, question: str, pool: list[tuple[str, str]], *, thinking: bool | None = None
+    ) -> list[str]:
+        return run_sync(self.apick(question, pool, thinking=thinking))
+
+
+_default_judge = Judge()
 
 
 async def ajudge(
     question: str, pool: list[tuple[str, str]], thinking: bool = True
 ) -> list[str]:
-    """Pool of (key, doc_text) -> keys the LLM considers evidence, best first.
-
-    `thinking` defaults on: without it the model fills the 10-pick quota with junk
-    (recall@15 69.3% vs 84-89%). It costs ~15x the latency, which retrieval can
-    afford because the whole batch waits concurrently on one event loop.
-
-    Returns [] if the call fails; the caller decides whether to fall back to the
-    retrieval order rather than having that policy buried here.
-    """
-    try:
-        raw = await acall_llm(build_prompt(question, pool), thinking=thinking)
-    except httpx.HTTPStatusError as exc:
-        # Loud, because the one time this fired it was a context overflow that cost
-        # a question outright and looked like a judge quality problem for two runs.
-        print(f"  judge HTTP {exc.response.status_code}: {exc.response.text[:300]!r}")
-        return []
-    except (httpx.HTTPError, TimeoutError, OSError) as exc:
-        print(f"  judge call failed: {exc}")
-        return []
-    return [pool[i][0] for i in parse_picks(raw, len(pool))]
+    """Free-function form of `Judge().apick`, for the offline probe scripts."""
+    return await _default_judge.apick(question, pool, thinking=thinking)
 
 
 def judge(

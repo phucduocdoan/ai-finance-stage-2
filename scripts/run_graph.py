@@ -1,13 +1,10 @@
-"""Drive the finance QA graph agent over questions -> pipeline JSONL (+ scoring).
+"""Drive the finance QA solve_qa graph over questions -> pipeline JSONL (+ scoring).
 
-Runs run_question() (understand -> retrieve[LIVE] -> load -> _route -> solver)
-for each requested id, converts the final FinanceState into the submission
-`item` shape (reusing pipeline.run.submission_item), and appends one record per
-question. The JSONL it writes is consumed directly by scripts/build_submission.py
-(it reads record["item"] / record["table_ids"]).
-
-This is the ONLY driver that runs the *graph* over many questions -- build_submission
-itself only packages; pipeline.run drives the planner pipeline, not the graph.
+Runs arun_question() (understand -> retrieve[LIVE] -> generate_pandas ->
+execute_and_repair -> verify_answer) for each requested id, converts the final
+SolveState into the submission `item` shape (reusing pipeline.submission.submission_item),
+and appends one record per question. The JSONL it writes is consumed directly by
+scripts/build_submission.py (it reads record["item"] / record["table_ids"]).
 
 Usage:
   # gate: mixed labeled set (lookup + formula + multi-step), scored vs gold
@@ -32,7 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, "src")
 
-from finance_qa.agents.finance.graph import arun_question, make_initial_state
+from finance_qa.agents.finance.graph import arun_question
 from finance_qa.core.paths import QUESTION_METADATA_PATH
 from finance_qa.pipelines.submission import submission_item
 
@@ -99,6 +96,9 @@ async def run_one(qrow: dict) -> dict:
         "seconds": round(time.monotonic() - t0, 1),
         "diag": st.get("diag") or {},
         "errors": st.get("errors") or [],
+        # The row/column/unit trace that says *where* a wrong answer went wrong.
+        # `codegen_prompt` is deliberately not recorded.
+        "solution": st.get("solution") or {},
     }
 
 

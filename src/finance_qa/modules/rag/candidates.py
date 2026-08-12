@@ -55,8 +55,7 @@ from finance_qa.modules.rag.retrievers.clients import (
     reranker_client,
 )
 from finance_qa.modules.rag.retrievers.filters import index_by_ticker_year, load_tables, shortlist
-from finance_qa.modules.rag.judge import ajudge as ajudge_pool_llm
-from finance_qa.modules.rag.judge import judge as judge_pool_llm
+from finance_qa.modules.rag.judge import Judge
 
 
 # Per-channel depth before fusion. Q7 specified 50; measured down to 20 because
@@ -201,6 +200,7 @@ class CandidateRetriever:
         dense_backend: str | EmbeddingClient = "bge-m3",
         reranker: str | RerankerClient | None = None,
         judge_top_n: int | None = None,
+        judge: Judge | None = None,
         expand_primary: bool = True,
         strip_query: bool = True,
         load_judge_text: bool = False,
@@ -236,6 +236,7 @@ class CandidateRetriever:
         if judge_top_n is not None and judge_top_n < 1:
             raise ValueError(f"judge_top_n must be >= 1, got {judge_top_n}")
         self.judge_top_n = judge_top_n
+        self.judge = judge or Judge()
 
         self.tables = load_tables() if tables is None else tables
         self.index = index_by_ticker_year(self.tables)
@@ -445,7 +446,7 @@ class CandidateRetriever:
         if pool is None:
             pool = await self.abuild_pool(question)
         items = self.judge_items(pool)
-        picks = await ajudge_pool_llm(question["question"], items, thinking=thinking)
+        picks = await self.judge.apick(question["question"], items, thinking=thinking)
         return self._selection(pool, picks)
 
     def select(
@@ -455,5 +456,5 @@ class CandidateRetriever:
         if pool is None:
             pool = self.build_pool(question)
         items = self.judge_items(pool)
-        picks = judge_pool_llm(question["question"], items, thinking=thinking)
+        picks = self.judge.pick(question["question"], items, thinking=thinking)
         return self._selection(pool, picks)

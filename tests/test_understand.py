@@ -10,8 +10,8 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 import finance_qa.agents.finance.understand as understand_mod
+from finance_qa.agents.finance.graph import make_initial_state
 from finance_qa.agents.finance.understand import UnderstandIntent, make_understand
-from finance_qa.pipelines.finance_qa import make_initial_state
 
 
 def check(name: str, condition: bool) -> None:

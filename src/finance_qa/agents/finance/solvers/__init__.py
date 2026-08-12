@@ -1,1 +1,0 @@
-"""Finance graph solver nodes."""

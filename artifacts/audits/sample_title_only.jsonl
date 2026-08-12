@@ -1,0 +1,9 @@
+{"csv_path": "tables/ASM_financial_statements_2015_consolidated/table_4.csv", "statement_type": "balance_sheet", "statement_type_source": "title_regex"}
+{"csv_path": "tables/ASM_financial_statements_2015_separate/table_4.csv", "statement_type": "balance_sheet", "statement_type_source": "title_regex"}
+{"csv_path": "tables/ASM_financial_statements_2016_consolidated/table_6.csv", "statement_type": "balance_sheet", "statement_type_source": "title_regex"}
+{"csv_path": "tables/ASM_financial_statements_2017_consolidated/table_8.csv", "statement_type": "balance_sheet", "statement_type_source": "title_regex"}
+{"csv_path": "tables/ASM_financial_statements_2017_separate/table_6.csv", "statement_type": "balance_sheet", "statement_type_source": "title_regex"}
+{"csv_path": "tables/ASM_financial_statements_2017_separate/table_11.csv", "statement_type": "income_statement", "statement_type_source": "title_regex"}
+{"csv_path": "tables/ASM_financial_statements_2019_consolidated/table_5.csv", "statement_type": "balance_sheet", "statement_type_source": "title_regex"}
+{"csv_path": "tables/ASM_financial_statements_2020_consolidated/table_5.csv", "statement_type": "balance_sheet", "statement_type_source": "title_regex"}
+{"csv_path": "tables/ASM_financial_statements_2023_consolidated/table_9.csv", "statement_type": "balance_sheet", "statement_type_source": "title_regex"}

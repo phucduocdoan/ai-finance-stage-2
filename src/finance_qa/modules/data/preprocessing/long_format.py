@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from finance_qa.core.paths import DATA_DIR, LONG_FORMAT_PATH, REPORTS_DIR, TABLE_METADATA_V1_PATH
+from finance_qa.core.paths import DATA_DIR, LONG_FORMAT_PATH, REPORTS_DIR, TABLE_METADATA_PATH
 
 
 TARGET_TYPES = {"balance_sheet", "income_statement", "cash_flow"}
@@ -25,7 +25,7 @@ REPORT_RE = re.compile(r"^(.+?)_financial_statements_(\d{4})_(separate|consolida
 @dataclass(frozen=True)
 class LongFormatPaths:
     output_dir: Path = DATA_DIR
-    metadata_path: Path = TABLE_METADATA_V1_PATH
+    metadata_path: Path = TABLE_METADATA_PATH
     parquet_path: Path = LONG_FORMAT_PATH
     stats_path: Path = REPORTS_DIR / "long_format_stats.md"
 

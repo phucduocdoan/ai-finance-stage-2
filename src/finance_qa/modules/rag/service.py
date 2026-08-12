@@ -91,6 +91,7 @@ async def aretrieve_table_ids(
     reranker: str | None,
     judge_top_n: int,
     frozen_fallback: bool,
+    judge_thinking: bool = False,
 ) -> tuple[list[str], list[str]]:
     """Select relevant table ids for a finance question."""
     errors: list[str] = []
@@ -114,7 +115,7 @@ async def aretrieve_table_ids(
     try:
         retriever = await aget_retriever(reranker, judge_top_n)
         pool = await retriever.abuild_pool(question_dict)
-        result = await retriever.aselect(question_dict, pool, thinking=False)
+        result = await retriever.aselect(question_dict, pool, thinking=judge_thinking)
         table_ids = _evidence(retriever, pool, result["picks"])
     except Exception as exc:  # noqa: BLE001 - use frozen retrieval if configured
         return _fallback(f"retrieve: error: {exc} -> frozen fallback")
@@ -163,6 +164,7 @@ def make_retrieve_node(cfg):
             reranker=cfg.reranker,
             judge_top_n=cfg.judge_top_n,
             frozen_fallback=cfg.frozen_fallback,
+            judge_thinking=cfg.judge_thinking,
         )
         return {
             "table_ids": table_ids,

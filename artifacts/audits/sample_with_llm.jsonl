@@ -1,0 +1,8 @@
+{"csv_path": "tables/ASM_financial_statements_2015_consolidated/table_4.csv", "statement_type": "balance_sheet", "statement_type_source": "title_regex"}
+{"csv_path": "tables/AAA_financial_statements_2017_consolidated/table_3.csv", "statement_type": "entity_info", "statement_type_source": "llm"}
+{"csv_path": "tables/AAA_financial_statements_2018_consolidated/table_3.csv", "statement_type": "entity_info", "statement_type_source": "llm"}
+{"csv_path": "tables/ABB_financial_statements_2024_consolidated/table_1.csv", "statement_type": "entity_info", "statement_type_source": "llm"}
+{"csv_path": "tables/ABB_financial_statements_2024_consolidated/table_2.csv", "statement_type": "entity_info", "statement_type_source": "llm"}
+{"csv_path": "tables/ABB_financial_statements_2024_consolidated/table_6.csv", "statement_type": "entity_info", "statement_type_source": "llm"}
+{"csv_path": "tables/ABB_financial_statements_2024_consolidated/table_7.csv", "statement_type": "entity_info", "statement_type_source": "llm"}
+{"csv_path": "tables/ABB_financial_statements_2024_separate/table_1.csv", "statement_type": "entity_info", "statement_type_source": "llm"}

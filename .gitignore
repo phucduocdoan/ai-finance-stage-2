@@ -22,6 +22,24 @@ data/eval/gold100_raw.jsonl
 artifacts/runs/
 output/
 
+# unreviewed WIP from the retrieval-gold-quality thread (build_gold_candidates.py's
+# gold100/semantic-selection investigation) -- separate from the codegen rewrite,
+# not yet reviewed for correctness or overlap with score_unbiased60.py.
+scripts/extract_question_targets.py
+scripts/semantic_filter_gold.py
+scripts/score_gold75.py
+data/eval/question_targets.json
+
+# stale artifacts describing/measuring the deleted planner/IR/REPL architecture,
+# or from unrelated retrieval-tuning experiments that predate the codegen rewrite
+.lavish/arch-review.html
+artifacts/pipeline_flow.html
+artifacts/audits/graph20_failures.md
+artifacts/audits/graph20_failures.jsonl
+artifacts/audits/extended_gold_audit.md
+artifacts/eval/
+artifacts/logs/
+
 # large binaries / competition docs (backed up on filesystem)
 *.pdf
 *.jpg

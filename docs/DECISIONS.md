@@ -1,31 +1,29 @@
 # Decisions - ViFinQA Stage 2
 
-This file records current engineering decisions. Historical experiment logs have been
-collapsed into the current-state docs so old paths and stale conclusions do not act as
-implementation guidance.
+This file records current engineering decisions. Historical experiment logs for the
+architecture these decisions replaced live in git history, not here — an old path or
+conclusion in git log is not implementation guidance.
 
 ## 1. Code Organization
 
-The repository is organized by capability modules and pipeline composition:
-
 ```text
 core      -> shared config, LLM client, paths, types
-modules   -> data, rag, codegen, tools
-pipelines -> compose module services into workflows
-agents    -> domain-facing agent APIs and solver nodes
+modules   -> data, rag, solve, tools
+pipelines -> compose module services (and the graph) into runnable jobs
+agents    -> domain-facing agent state/understand/graph topology/public entrypoints
 ```
 
 Decision:
 
 - Keep module internals behind `service.py` when another module or pipeline calls them.
 - Keep cross-module orchestration in `pipelines/`, not in `modules/`.
-- Keep agent state/router/solver code under `agents/finance/`.
+- Keep agent state/understand/graph-topology code under `agents/finance/`.
 - Keep future database/storage work behind `modules.data.repositories.TableRepository`.
 
 Rationale:
 
 - Modules stay reusable and testable.
-- Pipelines can change without forcing storage/RAG/codegen internals to import each other.
+- Pipelines can change without forcing storage/RAG/solve internals to import each other.
 - A future DB backend can replace file-backed table loading through the data service boundary.
 
 ## 2. Supported Import Paths
@@ -35,18 +33,26 @@ Supported public surfaces:
 ```python
 finance_qa.agents
 finance_qa.agents.finance
-finance_qa.pipelines.finance_qa
 finance_qa.pipelines.submission
+finance_qa.pipelines.data_pipeline
 finance_qa.modules.data.service
 finance_qa.modules.rag.service
-finance_qa.modules.codegen.service
+finance_qa.modules.solve
 finance_qa.core.paths
 finance_qa.core.llm
 ```
 
-Removed import paths are not compatibility targets:
+Removed import paths are not compatibility targets — do not route new code through them and
+do not re-add shims for them:
 
 ```text
+finance_qa.modules.codegen        (deleted: planner IR, generator, repairs, formula, REPL)
+finance_qa.modules.data.canonical (deleted, orphaned once codegen went)
+finance_qa.modules.tools.metrics  (deleted: canonical metric catalog)
+finance_qa.agents.finance.router
+finance_qa.agents.finance.solvers (lookup/formula/repl LangGraph adapters)
+finance_qa.evaluation.planner
+finance_qa.pipelines.finance_qa   (old graph topology module; topology now lives in agents.finance.graph)
 finance_qa.retrieval
 finance_qa.preprocessing
 finance_qa.planning
@@ -59,16 +65,21 @@ finance_qa.agents.finance.nodes
 
 ## 3. Retrieval
 
-Active implementation: `src/finance_qa/modules/rag/candidates.py`.
+Active implementation: `src/finance_qa/modules/rag/candidates.py`, called by
+`src/finance_qa/modules/rag/service.py`. Unaffected by the codegen/graph rewrite in
+section 4 — retrieval and solving are independent stages joined only by `table_ids`.
 
 Decision:
 
 - Use deterministic filters for ticker/year/doc_type before semantic retrieval.
-- Use BM25 and dense retrieval as candidate sources.
+- Use BM25 and dense retrieval as candidate sources, combined by RRF.
 - Keep primary-statement expansion in the pool so balance sheet, income statement,
-  cash flow, and equity-change tables remain reachable.
+  cash flow, and equity-change tables remain reachable even when lexical matching favors notes.
 - Let the LLM judge select final evidence tables from the pool.
 - Configure graph retrieval through `FinanceAgentConfig` and `modules.rag.service`.
+- If ticker/year is missing, fall back to the frozen `artifacts/runs/full_1012.jsonl` cache
+  when `frozen_fallback=True` — this is a retrieval-quality safety net, not a data source to
+  build new logic on top of.
 
 Rationale:
 
@@ -77,242 +88,136 @@ Rationale:
 - Primary statement tables are sparse enough to include directly and important enough
   that missing them is expensive.
 
-Current graph defaults:
+Current graph defaults (`agents/finance/config.py`):
 
 ```python
 reranker = "qwen3-0.6b"
 judge_top_n = 20
+judge_thinking = False   # measured: beats thinking=True at every K once qwen3 reranks first
 frozen_fallback = True
 ```
 
-## 4. Solving Strategy
+## 4. The Graph Is One Flow, Four Nodes, No Router
 
-The graph uses three solver routes:
+The old design routed a question to one of three solvers (`lookup`/`formula`/`repl`), each
+backed by its own planner/IR/repair stack in `modules/codegen/` (~3,900 lines). That
+architecture, all of `modules/codegen/`, `agents/finance/solvers/`, `agents/finance/router.py`,
+`evaluation/planner.py`, and `modules/tools/metrics.py` are deleted.
 
-| Route | Solver | Purpose |
-|---|---|---|
-| lookup + single cell | `agents.finance.solvers.lookup` -> `modules.codegen.service.generate_lookup_solution` | Simple cell extraction through planner/codegen. |
-| formula/compare/multi-step | `agents.finance.solvers.formula` -> `modules.codegen.service.generate_formula_solution` | Canonical finance facts plus structured Pydantic planning. |
-| fallback/other | `agents.finance.solvers.repl` -> `modules.codegen.service.generate_repl_solution` | General pandas tool loop. |
+Decision — every question takes the same path:
 
-Decision:
+```text
+understand -> retrieve -> generate_pandas -> execute_and_repair -> verify_answer
+```
 
-- Use deterministic sources for facts with clear authority: ticker mapping, statement code mapping,
-  canonical metric extraction, unit conversion, and arithmetic execution.
-- Use LLMs for intent, operation choice, and disambiguation.
-- Prefer Pydantic structured output over regex parsing for model-produced intent and plans.
-- Keep free-form Python as fallback until typed REPL operations cover enough cases.
+- One LLM call in `generate_pandas` (`modules/solve/codegen.py`) reads the actual table
+  *contents* (not a schema) for the head of retrieval's ranking and writes one pandas
+  expression. It does not choose a solver route or plan a multi-step program.
+- Deterministic code, not the model, owns unit detection/conversion (`modules/solve/units.py`),
+  execution + repair on exceptions (`modules/solve/execute.py`), and a second-look check of
+  whether the query read the cell the question actually asked for (`modules/solve/verify.py`).
+- No fallback chain between solvers, because there is only one solver. A failure is
+  attributable to a specific node.
 
-Rationale:
+Rationale (measured, see `agents/finance/graph.py` and `modules/solve/*.py` docstrings for the
+numbers behind each of these):
 
-- Hardcoded answer paths do not generalize.
-- Letting the model emit typed intent while Python executes facts gives better invariants.
-- REPL is broad but expensive and unstable; it should become an orchestrator over typed tools.
+- The old per-solver schema-only prompt never showed the model cell values, so most of the
+  deleted code was scaffolding around a model that couldn't see the table it was reasoning about.
+- Letting one query span multiple cells/dataframes (instead of a singular `target_row`/
+  `target_column`) took the "needs several cells" bucket from 0/13 to 5/13 on the gold set.
+- `codegen_max_tables=3` is deliberate, not a budget shortcut: raising it to 10 puts more of the
+  gold set's needed tables in front of the model, but the model's accuracy on those questions
+  drops enough that the net score falls (33 -> 29 on the 73-question gold set at the time of
+  measurement) — telling the right table from nine near-duplicates is the binding constraint,
+  not coverage.
+- `verify_answer` exists because repair only fires on exceptions, and the largest measured
+  failure bucket is a query that runs cleanly and reads the wrong cell (~34 of 73 gold
+  questions). It is gated to run once, only when it changes the answer, with no
+  re-verification of its own rewrite — a verifier that can veto its own replacement loops
+  forever on the questions where the verifier itself is wrong.
 
-## 5. Codegen And Formula Solvers
+## 5. Solving Uses LLMs For Intent, Code For Facts
 
-Lookup/simple-cell codegen uses a Pydantic `OperationPlan` from
-`src/finance_qa/modules/codegen/ir.py`; existing deterministic repairs, validators,
-and compiler still own row/column/unit/code execution after the model emits the plan.
+Decision, unchanged in spirit from before the rewrite:
 
-### Formula Solver
+- Use deterministic code for anything with a clear authority: ticker mapping (BTC's
+  `code_stock.csv`), unit detection/conversion, execution, verification-of-what-ran.
+- Use the LLM for the two things without a deterministic source: which cells answer the
+  question (`generate_pandas`), and whether a wrong-looking answer is actually wrong
+  (`verify_answer`).
+- Prefer Pydantic structured output over regex parsing for anything the model produces.
+  Regex is acceptable only for low-level deterministic parsing (e.g. report years from table
+  ids, the Vietnamese report-scope backstop below).
+- Do not add question-id rules or answer-specific constants. General graph behavior only.
 
-Active implementation: `src/finance_qa/modules/codegen/formula.py` plus
-`src/finance_qa/modules/tools/metrics.py`. The graph solver file is an adapter.
+## 6. Report Scope Backstop In `understand`
 
-Decision:
+Decision (`agents/finance/understand.py`):
 
-- The model emits a Pydantic `CanonicalPlan`.
-- Python validates metric/filter/select/answer invariants.
-- Canonical rows execute deterministically.
-- `formula_thinking=True` and `formula_max_tokens=8192` are graph defaults.
+- `understand` promotes `doc_type` from `unknown` to `separate` when the question names the
+  separate/parent-only scope outright (`công ty|ngân hàng|tổng công ty mẹ`,
+  `BCTC|báo cáo tài chính|báo cáo riêng`, `riêng lẻ`) and does *not* also say `hợp nhất`.
+- One-directional: it only fills `unknown`, never overrides a scope the LLM committed to.
+- A question naming both scopes is left `unknown` on purpose — `doc_type` is one field for the
+  whole question, so a per-year scope split cannot be expressed here.
 
-Rationale:
-
-- Thinking-mode calls can exceed 2048 tokens before producing the final answer.
-- Pydantic structured output avoids brittle extraction of operation variables from text.
-- Canonical execution keeps arithmetic and unit conversion outside model free-form text.
-
-Known audit items:
-
-- Q415: question says final/current-year ratio after selecting the year with max revenue; the local
-  computation disagrees with `extended_gold.jsonl`.
-- Q439: question asks ROE, while the label artifact describes a D/E style answer.
-
-## 6. REPL Direction
-
-Decision:
-
-- Keep `run_code` REPL as an escape hatch.
-- Build typed REPL operations incrementally: `get_metric`, `find_row`, `compute`, `convert_unit`,
-  then filters/ranking.
-- Return structured repair errors instead of raw traceback-only loops.
-
-Rationale:
-
-- The current REPL sees code output/errors and can recover from some planner failures.
-- It still burns context on schemas and asks the model to solve labels, formulas, units, and control
-  flow at the same time.
-- Typed operations preserve REPL flexibility while moving data access and arithmetic into deterministic code.
-
-See `docs/REPL_REDESIGN.md`.
+Rationale: scope is not cosmetic. Across the ~97k (ticker, year, mã số, period) cells that carry
+both scopes, consolidated and separate differ by >1% in 82% of cases. The LLM returned `unknown`
+for six questions that state the scope in so many words; the backstop is a rule reading an
+explicit surface marker, not semantic inference, so it doesn't conflict with the no-hardcoding
+principle above.
 
 ## 7. Submission Pipeline
 
-Active implementation: `src/finance_qa/pipelines/submission.py`.
+Active implementation: `src/finance_qa/pipelines/submission.py`, now trimmed to
+`submission_item()` — the shared packaging function.
 
 Decision:
 
-- `scripts/run_pipeline.py` is a thin CLI wrapper over `finance_qa.pipelines.submission`.
-- Runs are append-only JSONL with last-record-wins resume behavior.
-- Per-question failures are recorded as data; a failed question does not stop the batch.
-- `scripts/build_submission.py` packages a run JSONL into `output/submission.zip`.
+- The graph (`agents.finance.graph.arun_question`, driven over many questions by
+  `scripts/run_graph.py`) is the only flow that answers questions.
+- `submission_item()` stays as a standalone function because packaging (turning a solved
+  question into the leaderboard item shape) was never duplicated code — only the two old
+  drivers' *answering* logic was.
+- `scripts/build_submission.py` packages a `run_graph.py` JSONL into `output/submission.zip`.
+
+## 8. Data Pipeline And Protected Artifacts
+
+Decision:
+
+- Corpus-build logic lives in module services (`modules/data/preprocessing/`,
+  `modules/rag/indexing/`); `scripts/*.py` are thin CLI wrappers.
+- `src/finance_qa/pipelines/data_pipeline.py` (+ `scripts/build_data_pipeline.py`) chains the
+  required rebuild order — `enrich_questions -> build_doc_text -> build_dense_index` — with
+  `extract_tables`, `build_long_format`, and the paid `build_deepinfra_index` as explicit,
+  off-by-default stages.
+- Treat `tables_metadata_v2.jsonl`, `tables_doc_text.parquet`, and `tables_dense.npy` as
+  protected artifacts. Rebuilds go through staging paths, not in place.
+- `scripts/extract_tables.py` rewrites corpus artifacts and is not a diagnostic command.
 
 Rationale:
 
-- Leaderboard submissions require all question ids to be present.
-- Retrieval tables and evidence CSVs must be packaged consistently with the item schema.
-- Append-only runs make long shared-GPU/LLM jobs recoverable.
+- The bge-m3 dense index (`tables_dense.npy`) cannot be rebuilt today: it was built from a v1
+  metadata file (`tables_metadata.jsonl`) that no longer exists on disk. Losing the index file
+  itself would be unrecoverable without redoing that v1 pass from scratch. This is why a second
+  dense backend (`tables_qwen3_4b.npy`) is a new file, never a rewrite of the existing one.
+- The metadata/index snapshot (146,246 tables from 1,973 reports) is large and expensive to
+  rebuild; accidental overwrites invalidate benchmark comparisons.
 
-## 8. Data Snapshot
+## 9. Statement-Type Classification Is Title-Rule First, LLM Fallback Second
 
-Decision:
+Decision (`modules/data/preprocessing/statement_type_classifier.py`):
 
-- Treat `tables_metadata_v2.jsonl`, `tables_doc_text.parquet`, and `tables_dense.npy` as protected artifacts.
-- Rebuilds go through staging paths.
-- `scripts/extract_tables.py` is not a diagnostic command.
+- For the ~2,600 rows `tables_metadata_v2.jsonl` leaves `statement_type == "unknown"`, first try
+  an exact-substring match against the statement's own printed Vietnamese title
+  (`TITLE_RULES`); only fall back to an LLM call (structured Pydantic output) for rows the title
+  rule can't place.
+- Write a *patch* file (`artifacts/audits/statement_type_reclassified.jsonl`) keyed by
+  `csv_path`, not an in-place rewrite of the protected metadata file. Merging back into
+  `tables_metadata_v2.jsonl` is a deliberate, separate step after reviewing the patch.
 
-Rationale:
-
-- The current metadata/index snapshot is large and expensive to rebuild.
-- Accidental extraction/index overwrites can invalidate benchmark comparisons.
-
-## 9. Import-Only Cleanup
-
-Decision:
-
-- Keep package facades that are real public API.
-- Remove import-only files that only preserve stale paths once call sites are migrated.
-- Keep corpus-build and reranker implementation in `src/finance_qa/modules/*`;
-  `scripts/` should remain thin CLI wrappers or experiments.
-
-Current classification is documented in `docs/HANDOFF.md`.
-
-## 10. Report Scope Backstop in `understand`
-
-Decision:
-
-- `understand` promotes `doc_type` from `unknown` to `separate` when the question
-  names the separate/parent-only scope in so many words
-  (`công ty|ngân hàng|tổng công ty mẹ`, `BCTC|báo cáo tài chính|báo cáo riêng`,
-  `riêng lẻ`) and does *not* also say `hợp nhất`.
-- The rule is one-directional: it only fills `unknown`, never overrides a scope
-  the LLM committed to.
-- A question naming both scopes is left `unknown` on purpose.
-
-Rationale:
-
-- Scope is not cosmetic. Across the ~97k (ticker, year, mã số, period) cells that
-  carry both scopes, consolidated and separate differ by >1% in 82% of cases
-  (median relative difference: BS 33%, IS 41%, CF 44%). Picking the wrong one is
-  a wrong answer, not a formatting variant.
-- The 8B returned `unknown` for six questions that state the scope outright
-  (#780, #783, #790, #795, #798, #890). The shortlist filter then applied its
-  unknown-means-consolidated default and all six submitted 100% consolidated
-  tables. After the backstop all six submit 100% separate tables.
-- Measured over all 1012 visible questions: the pattern matches 369, of which 363
-  are exactly the questions the LLM already labelled `separate` (no-ops), 0
-  conflict with an explicit `consolidated`, and 0 LLM-`separate` questions are
-  missed. The 6 promotions are the entire behaviour change, and none of the 15
-  gold-scored questions is among them -- the filter's input for the scored set is
-  provably unchanged, so this cannot move the F2 baseline either way.
-- This is the same rule-before-LLM pattern already used in the same module for
-  tickers, and for the same reason: an explicit surface marker has an
-  authoritative reading, and the 8B is unreliable on it.
-
-Scope and known limits:
-
-- Reading a stated marker is not semantic inference, so this does not conflict
-  with the no-hardcoding principle in `docs/HANDOFF.md`. It carries no question
-  ids and no answer-specific constants.
-- The pattern was fitted on the visible 1012. A private-test question phrasing
-  the scope differently simply falls back to today's behaviour -- no lift, no
-  regression.
-- `doc_type` is one field per question, so per-year scope (#952: "báo cáo công ty
-  mẹ các năm 2022, 2023 và báo cáo hợp nhất các năm 2024, 2025") is not
-  expressible. That question is deliberately left `unknown`; fixing it properly
-  needs a per-(ticker, year) scope, not a wider regex.
-- Correct scope is necessary, not sufficient. Hand-checked against the source
-  reports, the six now retrieve the right documents but only #798 lands near the
-  true value (67.56 tỷ true vs 68.39 tỷ produced, against 31,098 tỷ before);
-  #795 and #890 still answer wrongly for unrelated reasons (line selection and
-  answer shape). The remaining error is downstream of retrieval.
-
-## 11. One Answer Flow: the Graph
-
-Until now the repo carried two drivers that both produced a full 1012-question
-run, and they disagreed:
-
-| | Flow A (legacy) | Flow B (active) |
-|---|---|---|
-| driver | `scripts/run_pipeline.py` | `scripts/run_graph.py` |
-| question metadata | frozen `questions_enriched.jsonl` | live `understand` (LLM, Pydantic) |
-| retrieval | frozen table ids | live `modules.rag.service` |
-| codegen | `generate(use_planner=True, fallback=True)` | same generator, plus formula/REPL branches |
-
-Decision:
-
-- The graph is the only flow that answers questions. `run_pipeline.py` and the
-  batch driver in `pipelines/submission.py` are legacy for answering.
-- `pipelines.submission.submission_item` stays: it is the shared *packaging*
-  function, and `run_graph.py` imports it. Packaging was never the duplicated
-  part.
-- Anything that must hold for a submission (scope backstop, unit handling,
-  repair policy) is implemented on the graph path, not in the legacy driver.
-
-Rationale:
-
-- Two drivers means two behaviours for the same question and no single number to
-  improve. The scope backstop from section 10 lives in `understand`, which only
-  the graph calls, so the legacy driver could not have benefited from it at all.
-- Head-to-head on the 15 gold-scored questions: Flow A 9/15, Flow B 8/15, union
-  11/15, with non-overlapping failures. The near-tie is the point -- Flow B is
-  not behind on analysis. Flow B uniquely wins #363 (formula branch: 3.319357 vs
-  Flow A's 0.0) and #752 (correct sign).
-- **Correction, measured on the full 1012 run.** An earlier draft of this section
-  claimed Flow B's three unique losses (#55, #818, #820) were all unit/scale
-  errors. On the graph path they are not: #55's ratio to gold is 2.0, #818
-  returns 0.0, #820's is 5.2e-9 -- none is a power of ten. Of the 34
-  gold-scored questions in `artifacts/runs/graph_1012.jsonl`, exactly one (#524,
-  ratio 1e9) is a clean scale error. The unit gap in section 12 is a real
-  plumbing defect and worth fixing, but it buys ~1-3 of 34, not three
-  named questions. See `docs/HANDOFF.md` for the per-question table.
-
-Known limits:
-
-- 93% of graph runs still route through `lookup` into the same `generate()` that
-  Flow A used. The graph is not a different code generator; it is the same
-  generator plus live understand/retrieve plus a formula/REPL escape. Expect
-  most answer-quality work to land inside `modules/codegen/`, not in the graph.
-- The graph swallows solver errors and reroutes to REPL, so `status` is now
-  always `ok` in run records. The usable failure signal is `answer == 0.0`.
-
-## 12. `unit_hint` Must Reach Codegen on Every Path
-
-Decision:
-
-- `unit_hint` produced by `understand` is authoritative and must be passed to
-  every solver, including `lookup`.
-
-Current state (the defect, not yet fixed):
-
-- `formula_solver` and `repl_solver` both pass `unit_hint=state.get("unit_hint")`.
-  `lookup_solver` (`agents/finance/solvers/lookup.py`) does not.
-- `generate()` in `modules/codegen/generator.py` has no `unit_hint` parameter at
-  all -- zero occurrences of the name in the file. On the lookup path the unit is
-  re-derived from raw question text inside codegen, discarding what `understand`
-  already decided.
-- This contradicts the constraint already stated in `docs/HANDOFF.md` ("keep
-  `unit_hint` from `understand` authoritative"). The constraint holds on the
-  formula path and silently does not hold on the lookup path, which is 93% of
-  traffic.
+Rationale: grounded against the real corpus before writing anything — none of the "unknown" rows
+carry a `mau_tag` (so the Thông tư 200 form-code regex that classifies the other 97% has zero
+yield here), and only ~6% have their own title text sitting in the OCR context. The rest need
+semantic judgment a deterministic rule can't provide.

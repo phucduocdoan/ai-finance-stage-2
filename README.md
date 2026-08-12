@@ -9,13 +9,14 @@ For operational cautions, benchmark notes, and current next work, read
 ## Current Status
 
 - Corpus snapshot: 146,246 tables from 1,973 OCR files and 1,012 enriched questions.
-- Active interactive answer flow: `finance_qa.agents.finance.run_question`.
-- Batch submission flow: `finance_qa.pipelines.submission`, exposed by `scripts/run_pipeline.py`
-  and packaged by `scripts/build_submission.py`.
-- Core code is organized as modules and services. Pipelines compose service APIs instead of
-  importing implementation internals directly.
-- Deterministic tests cover numeric normalization, header repair, codegen IR, generation
-  repairs, retrieval candidate policy, submission packaging, and the canonical formula solver.
+- Interactive and batch flows both run the same graph: `finance_qa.agents.finance.run_question`
+  for one question, `scripts/run_graph.py` to drive it over many and write a submission-ready
+  JSONL, packaged by `scripts/build_submission.py`.
+- Core code is organized as modules and services. The graph's nodes and topology live in
+  `agents.finance.graph`; pipelines compose that graph (or module service APIs) into a runnable
+  job instead of importing implementation internals directly.
+- Deterministic tests cover numeric normalization, header repair, retrieval candidate policy,
+  and the solve_qa codegen/execute/verify units.
 
 ## Repository Layout
 
@@ -23,12 +24,12 @@ For operational cautions, benchmark notes, and current next work, read
 src/finance_qa/
   core/                 config, LLM client, filesystem paths, shared types
   modules/
-    data/               table loading, metadata, preprocessing, canonical data
+    data/               table loading, metadata, preprocessing
     rag/                candidate retrieval, indexes, retrievers, rerankers, judge
-    codegen/            service API, IR, generator, formula planner, REPL services
-    tools/              DataFrame, numeric, execution, table, metric utilities
-  pipelines/            graph and batch submission workflow composition
-  agents/               finance agent state/router/solvers and public entrypoints
+    solve/              grounded pandas codegen, execution/repair, verify
+    tools/              DataFrame, numeric, execution utilities
+  pipelines/            submission item shape + data pipeline orchestration
+  agents/               finance agent state/understand/graph topology/public entrypoints
   evaluation/           reusable evaluation helpers
 scripts/                command-line entrypoints and diagnostics
 tests/                  deterministic script-style tests
@@ -43,23 +44,19 @@ Filesystem defaults live in `src/finance_qa/core/paths.py`.
 ## Main Flow
 
 ```text
-agents.finance.graph
-  -> pipelines.finance_qa
-      -> modules.data.service
-      -> modules.rag.service
-      -> agents.finance.solvers
-          -> modules.codegen.service
-          -> modules.tools.*
+agents.finance.graph                     (nodes + topology, built by build_graph)
+  -> agents.finance.understand           (LLM: tickers/years/metric/operation/...)
+  -> modules.rag.service                 (retrieve: judge-selected tables)
+  -> modules.solve.codegen               (LLM: one pandas expression)
+  -> modules.solve.execute               (run + repair)
+  -> modules.solve.verify                (check the cell read, rewrite once if wrong)
 ```
 
-The batch submission flow is separate:
-
 ```text
-scripts/run_pipeline.py
-  -> finance_qa.pipelines.submission
-      -> modules.rag.candidates.CandidateRetriever
-      -> modules.codegen.generator.generate
-      -> modules.tools.python_exec.validate
+scripts/run_graph.py
+  -> agents.finance.graph.arun_question over many questions
+  -> pipelines.submission.submission_item   (per-question JSON shape)
+  -> writes a JSONL run
 
 scripts/build_submission.py
   -> packages a JSONL run into output/submission.zip
@@ -72,11 +69,9 @@ Use the repository's `.venv_bge` environment and set `PYTHONPATH=src`:
 ```bash
 PYTHONPATH=src .venv_bge/bin/python -m compileall -q src scripts tests
 PYTHONPATH=src .venv_bge/bin/python tests/test_query_execution.py
-PYTHONPATH=src .venv_bge/bin/python tests/test_planning_ir.py
-PYTHONPATH=src .venv_bge/bin/python tests/test_generation.py
 PYTHONPATH=src .venv_bge/bin/python tests/test_candidate_pool.py
-PYTHONPATH=src .venv_bge/bin/python tests/test_pipeline_run.py
-PYTHONPATH=src .venv_bge/bin/python tests/test_formula_deterministic.py
+PYTHONPATH=src .venv_bge/bin/python tests/test_solve_units.py
+PYTHONPATH=src .venv_bge/bin/python tests/test_understand.py
 PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --ids 371 --out artifacts/runs/smoke_q371.jsonl
 ```
 
