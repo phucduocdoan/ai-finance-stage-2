@@ -6,6 +6,19 @@ build-backend = "setuptools.build_meta"
 name = "finance-qa"
 version = "0.1.0"
 requires-python = ">=3.11"
+dependencies = [
+    "httpx==0.28.1",
+    "langchain-core==1.5.3",
+    "langchain-openai==1.4.1",
+    "langgraph==1.2.10",
+    "numpy==2.5.1",
+    "pandas==3.0.5",
+    "pyarrow==25.0.0",
+    "pydantic==2.13.4",
+    "rapidfuzz==3.14.5",
+    "torch>=2.7.1",
+    "transformers==5.14.1",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

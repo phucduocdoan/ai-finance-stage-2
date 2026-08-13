@@ -18,6 +18,66 @@ For operational cautions, benchmark notes, and current next work, read
 - Deterministic tests cover numeric normalization, header repair, retrieval candidate policy,
   and the solve_qa codegen/execute/verify units.
 
+## Setup
+
+**Environment.** Use a dedicated virtualenv (`.venv_bge` in the commands below), not the base
+conda env: the base env's `torch` build (cu130) cannot see the GPU against this machine's
+CUDA-12.6 driver, and `torch`/`transformers` are what run the local bge-m3 dense embedder.
+
+```bash
+python3 -m venv .venv_bge
+.venv_bge/bin/pip install -e .
+# GPU acceleration matching the pinned torch version (optional -- falls back to CPU
+# automatically if no CUDA device is visible, see modules/rag/indexing/dense.py):
+.venv_bge/bin/pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu126
+```
+
+**Required inputs not in git** (see `.gitignore` — unrebuildable / too large for a repo):
+
+- `ViFinQA/` — the raw dataset: `financial_statements/*_extracted.txt` (OCR text),
+  `questions/questions.jsonl`, `code_stock.csv`. Must be placed at the repo root.
+- `data/metadata/tables_metadata_v2.jsonl`, `data/indexes/tables_doc_text.parquet`,
+  `data/indexes/tables_dense.npy` — protected derived artifacts (`docs/DECISIONS.md` section 8).
+  The bge-m3 dense index cannot currently be rebuilt from scratch (its v1 metadata source no
+  longer exists on disk), so these three must be copied in from a backup rather than regenerated.
+- `data/eval/*.jsonl` (gold questions) — these ARE tracked in git (`!data/eval/` in
+  `.gitignore`), nothing to provide.
+
+**LLM backend.** Every node except `retrieve`'s BM25/dense scoring calls out to a chat model
+over the OpenAI-compatible endpoint in `core/llm.py`. Point it at either:
+
+```bash
+# a local vLLM server serving Qwen3-8B-Instruct (defaults if unset):
+export LLM_ENDPOINT=http://127.0.0.1:8990/v1/chat/completions
+export LLM_MODEL=Qwen/Qwen3-8B-Instruct
+
+# or a hosted backend (no local server needed):
+export LLM_ENDPOINT=https://api.deepinfra.com/v1/openai/chat/completions
+export LLM_MODEL=Qwen/Qwen3-14B
+export LLM_API_KEY=$DEEPINFRA_API_KEY
+```
+
+## Reproducing A Run
+
+With the inputs above in place:
+
+```bash
+# 1. (only if data/indexes/* are missing) rebuild derived data from the raw dataset:
+PYTHONPATH=src .venv_bge/bin/python scripts/build_data_pipeline.py
+
+# 2. run the graph over questions, writing one JSONL record per question:
+PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --all --out artifacts/runs/full_run.jsonl
+
+# 3. score against the honest gold set (73 questions, see docs/HANDOFF.md):
+PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --run solve=artifacts/runs/full_run.jsonl --right solve
+
+# 4. package a leaderboard submission:
+PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run.jsonl --out output/submission
+```
+
+`run_graph.py --ids <comma-separated ids>` runs a subset instead of `--all` (see Common Commands
+below for a one-question smoke test).
+
 ## Repository Layout
 
 ```text
