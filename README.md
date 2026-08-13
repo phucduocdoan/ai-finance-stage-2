@@ -101,25 +101,46 @@ docs/                   current handoff, decisions, and design notes
 
 Filesystem defaults live in `src/finance_qa/core/paths.py`.
 
-## Main Flow
+## Answer Flow
 
-```text
-agents.finance.graph                     (nodes + topology, built by build_graph)
-  -> agents.finance.understand           (LLM: tickers/years/metric/operation/...)
-  -> modules.rag.service                 (retrieve: judge-selected tables)
-  -> modules.solve.codegen               (LLM: one pandas expression)
-  -> modules.solve.execute               (run + repair)
-  -> modules.solve.verify                (check the cell read, rewrite once if wrong)
-```
+One question runs the same 5-node graph whether called interactively
+(`agents.finance.run_question`) or from the batch driver. `retrieve` is one node in the
+graph, but internally calls `CandidateRetriever` (`modules/rag/candidates.py`), which is
+itself a chain of retrieval steps — `judge.py` is the last of those steps, not a node.
 
-```text
-scripts/run_graph.py
-  -> agents.finance.graph.arun_question over many questions
-  -> pipelines.submission.submission_item   (per-question JSON shape)
-  -> writes a JSONL run
+```mermaid
+flowchart TD
+    subgraph Batch["scripts/run_graph.py (loops over question ids)"]
+        Q["ViFinQA/questions/questions.jsonl"] --> RG[run one question at a time]
+    end
 
-scripts/build_submission.py
-  -> packages a JSONL run into output/submission.zip
+    RG --> U
+
+    subgraph Graph["agents.finance.graph — build_graph() topology"]
+        U["understand<br/>(LLM: tickers/years/metric/operation/unit_hint)"] --> R
+        R["retrieve"] --> GP["generate_pandas<br/>(LLM: one pandas expression)"]
+        GP --> EX["execute_and_repair<br/>(run, repair on exception, unit-scale)"]
+        EX --> V["verify_answer<br/>(LLM re-checks the cell read, revises once)"]
+    end
+
+    subgraph RetrieveInternal["retrieve node internals — CandidateRetriever.aselect()"]
+        HF["hard filter: ticker / year / doc_type"] --> BM["BM25 channel"]
+        HF --> DE["dense channel (bge-m3)"]
+        BM --> RRF["RRF fuse"]
+        DE --> RRF
+        RRF --> PS["primary-statement expansion"]
+        PS --> RR["reranker (optional)"]
+        RR --> J["judge.py: LLM picks final table_ids"]
+    end
+
+    R -.calls.-> HF
+    J -.returns table_ids.-> GP
+
+    V --> OUT["pipelines.submission.submission_item<br/>(per-question JSON)"]
+    OUT --> JSONL["JSONL run (artifacts/runs/*.jsonl)"]
+    JSONL --> BS["scripts/build_submission.py"]
+    BS --> ZIP["output/submission.zip"]
+    JSONL --> SC["scripts/score_unbiased60.py<br/>(scored against data/eval/*.jsonl gold)"]
 ```
 
 ## Common Commands
