@@ -40,11 +40,11 @@ from langgraph.graph import END, StateGraph
 
 from finance_qa.agents.finance.config import FinanceAgentConfig
 from finance_qa.agents.finance.state import FinanceState
+from finance_qa.agents.finance.retrieve import make_retrieve_node
 from finance_qa.agents.finance.understand import make_understand
 from finance_qa.core.http import run_sync
 from finance_qa.modules.data.service import ordered_table_names
 from finance_qa.modules.data.table_store import load_frame, submission_csv_name
-from finance_qa.modules.rag.service import make_retrieve_node
 from finance_qa.modules.solve.codegen import PandasSolution, agenerate, build_prompt
 from finance_qa.modules.solve.execute import aexecute
 from finance_qa.modules.solve.verify import arevise, averify
