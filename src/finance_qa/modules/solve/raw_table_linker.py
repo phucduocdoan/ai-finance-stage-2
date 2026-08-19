@@ -13,7 +13,6 @@ from __future__ import annotations
 import ast
 import math
 import re
-import unicodedata
 from typing import Any, Literal, Mapping, Sequence
 
 import pandas as pd
@@ -26,6 +25,17 @@ from finance_qa.modules.solve.cell_locator import PeriodIntent, period_intent, v
 from finance_qa.modules.solve.codegen import STRUCTURED_METHOD, PandasSolution, Unit
 from finance_qa.modules.solve.columns import column_years
 from finance_qa.modules.solve.context import meta_for, page_text, table_metadata
+from finance_qa.modules.solve.intent import (
+    CONDITIONAL_FILTER_CUE as _CONDITIONAL_FILTER,
+    DIFF_CUE_LOOSE as _DIFF,
+    AVG_CUE as _AVG,
+    MULTIPLIER_RATIO_CUE as _MULTIPLIER_RATIO,
+    RATIO_CUE as _RATIO,
+    SELECTION_MARKER as _SELECTION,
+    SUM_CUE as _SUM,
+    intent_norm as _intent_norm,
+    norm as _norm,
+)
 from finance_qa.modules.solve.lookup import label_column
 from finance_qa.modules.solve.table_linking.columns import (
     build_column_group_candidates,
@@ -45,32 +55,9 @@ from finance_qa.modules.solve.units import MONEY_SCALE, detect_unit, unit_from_h
 from finance_qa.modules.tools.numeric import parse_number
 
 
-_NON_WORD = re.compile(r"[^a-z0-9]+")
 _YEAR = re.compile(r"(?:19|20)\d{2}")
-_DIFF = re.compile(r"\b(?:chenh\s+lech|hieu(?:\s+so)?|hon|kem|so\s+voi)\b")
-_AVG = re.compile(r"\b(?:trung\s+binh|binh\s+quan)\b")
-_SUM = re.compile(
-    r"\b(?:tong\s+so\s+du|tong\s+so\s+tien|tong\s+gia\s+tri|tong\s+doanh\s+thu|"
-    r"tong\s+du\s+no|tong\s+cong)\b"
-)
-_RATIO = re.compile(r"\b(?:ty\s+le|ty\s+trong|ty\s+so|tren\s+tong|trong\s+tong|bao\s+phu)\b")
-_MULTIPLIER_RATIO = re.compile(r"\bgap\b.{0,80}\blan\b|\bbao\s+nhieu\s+lan\b")
-_SELECTION = re.compile(
-    r"cao\s+nhat|thap\s+nhat|lon\s+nhat|nho\s+nhat|nhieu\s+nhat|it\s+nhat|"
-    # `co` needs a right boundary: without it `cong ty con` and `dong nam cong ty me`
-    # read as selection intent and the question never reaches the linker.
-    r"nam\s+co\b|cong\s+ty\s+co\b|doanh\s+nghiep\s+co\b|tai\s+nam\s+co\b|vao\s+nam\s+co\b"
-)
-_CONDITIONAL_FILTER = re.compile(r"\bco\b.{0,80}\b(?:lon\s+hon|nho\s+hon|vuot|duoi)\b")
 _TOTAL_ROW = re.compile(r"^(?:cong|tong|tong\s+cong|cong\s+so|total)$")
 _TOTAL_QUESTION = re.compile(r"\b(?:tong\s+so\s+du|tong\s+gia\s+tri|tong\s+du\s+no|tong\s+cong)\b")
-# `Tổng Công ty Phát triển Đô thị Kinh Bắc` is a legal form, not a request for a
-# total, and `Tập đoàn`/`Ngân hàng TMCP` are not sums either. Intent detection
-# reads the question with these removed.
-_ENTITY_FORM = re.compile(
-    r"\b(?:tong\s+cong\s+ty|cong\s+ty\s+co\s+phan|cong\s+ty\s+tnhh|"
-    r"ngan\s+hang\s+tmcp|ngan\s+hang\s+thuong\s+mai\s+co\s+phan|tap\s+doan)\b"
-)
 _GENERIC_PERIOD_ROW = re.compile(
     r"^(?:so\s+du\s+)?(?:cuoi|dau)\s+(?:nam|ky)$|^nam\s+(?:nay|truoc)$|^ky\s+(?:nay|truoc)$"
 )
@@ -102,12 +89,6 @@ _UNIT_TOKENS = {
 }
 _MIN_DIRECT_SCORE = 0.84
 _NORMALIZED_UNSUPPORTED_REASON = "complete candidate_ids supplied despite unsupported:"
-
-
-def _norm(text: object) -> str:
-    decomposed = unicodedata.normalize("NFD", str(text)).lower().replace("đ", "d")
-    without_marks = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
-    return _NON_WORD.sub(" ", without_marks).strip()
 
 
 def _text(value: object) -> str:
@@ -276,10 +257,6 @@ def _row_period_adjustment(label: str, period: PeriodIntent) -> float:
 
 def _is_component_row(label: str) -> bool:
     return bool(_COMPONENT_ROW.search(label))
-
-
-def _intent_norm(question: str) -> str:
-    return _ENTITY_FORM.sub(" ", _norm(question))
 
 
 def _wants_total(question: str) -> bool:

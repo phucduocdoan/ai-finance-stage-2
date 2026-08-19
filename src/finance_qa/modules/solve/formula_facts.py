@@ -15,6 +15,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from finance_qa.core.llm import get_chat_model
 from finance_qa.modules.solve.codegen import STRUCTURED_METHOD
+from finance_qa.modules.solve.intent import (
+    AVG_CUE as _AVG_CUE,
+    DIFF_CUE_STRICT as _DIFF_CUE,
+    GROWTH_CUE as _GROWTH_CUE,
+    MEDIAN_CUE as _MEDIAN_CUE,
+    SELECTION_MARKER_ACCENTED as _SELECTION_MARKER,
+)
 from finance_qa.modules.solve.structured_facts import (
     METRIC_KEYS,
     StructuredFactError,
@@ -61,16 +68,6 @@ _FORMULA_CUE = re.compile(
     r"t[ỷy]\s*(?:l[ệe]|s[oố]|su[aấ]t|tr[oọ]ng)|h[ệe]\s*s[oố]|bi[eê]n\s+l[ợo]i|"
     r"t[aă]ng\s+tr[uư][ởo]ng|ch[eê]nh\s+l[ệe]ch|trung\s+b[iì]nh|b[iì]nh\s+qu[aâ]n|"
     r"trung\s+v[ịi]|so\s+v[ớo]i|chia\s+cho",
-    re.I,
-)
-_GROWTH_CUE = re.compile(r"\btang\s+truong\b|\btoc\s+do\s+tang\b", re.I)
-_DIFF_CUE = re.compile(r"\bchenh\s+lech\b|\bhieu\s+so\b|\bhon\b", re.I)
-_AVG_CUE = re.compile(r"\btrung\s+binh\b|\bbinh\s+quan\b", re.I)
-_MEDIAN_CUE = re.compile(r"\btrung\s+vi\b", re.I)
-_SELECTION_MARKER = re.compile(
-    r"cao\s+nh[aấ]t|th[aấ]p\s+nh[aấ]t|l[ớo]n\s+nh[aấ]t|nh[oỏ]\s+nh[aấ]t|"
-    r"nhi[eề]u\s+nh[aấ]t|[íi]t\s+nh[aấ]t|n[aă]m\s+c[oó]|c[oô]ng\s+ty\s+c[oó]|"
-    r"doanh\s+nghi[ệe]p\s+c[oó]|v[aà]o\s+n[aă]m\s+.*c[oó]",
     re.I,
 )
 _SEGMENT_QUALIFIER = re.compile(

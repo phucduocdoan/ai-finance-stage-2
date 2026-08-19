@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import math
 import re
-import unicodedata
 from typing import Any, Literal, Mapping, Sequence
 
 import pandas as pd
@@ -19,13 +18,13 @@ from finance_qa.modules.data.table_store import load_frame
 from finance_qa.modules.solve.codegen import PandasSolution, Unit
 from finance_qa.modules.solve.columns import column_years, money_columns
 from finance_qa.modules.solve.context import meta_for, page_text
+from finance_qa.modules.solve.intent import norm as _norm
 from finance_qa.modules.solve.lookup import RowHit, search_rows
 from finance_qa.modules.solve.units import detect_unit, unit_from_hint
 
 PeriodIntent = Literal["annual", "current", "prior", "unknown"]
 ValueTransform = Literal["as_reported", "abs"]
 
-_NON_WORD = re.compile(r"[^a-z0-9]+")
 _YEAR = re.compile(r"(?:19|20)\d{2}")
 _CURRENT_PERIOD = re.compile(
     r"cu[oố]i\s*(?:n[aă]m|k[yỳ])|(?<!\d)31\s*/\s*12(?!\d)|31\s*th[aá]ng\s*12|"
@@ -107,12 +106,6 @@ _DIRECT_METRIC_LABELS: dict[str, tuple[str, ...]] = {
     "share_capital": ("Vốn cổ phần", "Vốn điều lệ"),
     "shares": ("Tổng số lượng cổ phần", "Số lượng cổ phần"),
 }
-
-
-def _norm(text: object) -> str:
-    decomposed = unicodedata.normalize("NFD", str(text)).lower().replace("đ", "d")
-    without_marks = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
-    return _NON_WORD.sub(" ", without_marks).strip()
 
 
 def _unique(items: Sequence[str]) -> list[str]:

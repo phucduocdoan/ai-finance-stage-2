@@ -12,6 +12,10 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from finance_qa.modules.solve.intent import (
+    MAX_MARKER as _MAX_MARKER,
+    MIN_MARKER as _MIN_MARKER,
+)
 from finance_qa.modules.solve.structured_facts import (
     DERIVED_ALIASES,
     MetricFilter,
@@ -26,8 +30,6 @@ from finance_qa.modules.solve.units import unit_from_hint
 
 
 _NON_WORD = re.compile(r"[^a-z0-9%]+")
-_MAX_MARKER = re.compile(r"cao\s+nhat|lon\s+nhat|nhieu\s+nhat")
-_MIN_MARKER = re.compile(r"thap\s+nhat|nho\s+nhat|it\s+nhat")
 _FILTER_RE = re.compile(
     r"(?:lon\s+hon|tren|cao\s+hon|vuot)\s+(-?\d+(?:[,.]\d+)?)\s*(%)?|"
     r"(?:thap\s+hon|nho\s+hon|duoi)\s+(-?\d+(?:[,.]\d+)?)\s*(%)?"
@@ -39,6 +41,9 @@ _ANSWER_FIRST_CLAUSE = re.compile(
 
 
 def _norm(text: object) -> str:
+    # Not `intent.norm`: `_FILTER_RE` above captures a trailing `%`, so this
+    # normalisation keeps `%` instead of stripping it like the other solver
+    # modules do.
     decomposed = unicodedata.normalize("NFD", str(text)).lower().replace("đ", "d")
     without_marks = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
     return _NON_WORD.sub(" ", without_marks).strip()

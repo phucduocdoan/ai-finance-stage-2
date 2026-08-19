@@ -9,7 +9,6 @@ validates scope/unit evidence and performs the argmax/argmin.
 from __future__ import annotations
 
 import re
-import unicodedata
 from typing import Any, Literal, Mapping, Sequence
 
 import pandas as pd
@@ -20,6 +19,14 @@ from finance_qa.core.llm import get_chat_model
 from finance_qa.modules.solve import raw_table_linker as raw
 from finance_qa.modules.solve.cell_locator import period_intent, value_transform
 from finance_qa.modules.solve.codegen import STRUCTURED_METHOD, PandasSolution, Unit
+from finance_qa.modules.solve.intent import (
+    FILTER_MARKER as _FILTER_MARKER,
+    MAX_MARKER as _MAX_MARKER,
+    MIN_MARKER as _MIN_MARKER,
+    TICKER_ANSWER_MARKER as _TICKER_ANSWER,
+    YEAR_ANSWER_MARKER as _YEAR_ANSWER,
+    norm as _norm,
+)
 from finance_qa.modules.solve.table_linking.schema import (
     RawGroupCandidate,
     RawLinkRequest,
@@ -33,13 +40,6 @@ SelectionAxis = Literal["year", "ticker"]
 SelectionOrder = Literal["max", "min"]
 SelectionAnswerKind = Literal["selected_value", "answer_value", "selected_year"]
 
-_NON_WORD = re.compile(r"[^a-z0-9]+")
-_MAX_MARKER = re.compile(r"cao\s+nhat|lon\s+nhat|nhieu\s+nhat")
-_MIN_MARKER = re.compile(r"thap\s+nhat|nho\s+nhat|it\s+nhat")
-_FILTER_MARKER = re.compile(
-    r"\b(?:lon\s+hon|tren|cao\s+hon|vuot|thap\s+hon|nho\s+hon|duoi)\s+"
-    r"-?\d+(?:[,.]\d+)?\s*%?"
-)
 _COMPONENT_SUM_REASON = re.compile(
     r"\b(?:tong\s+hop|cong\s+(?:cac|nhieu)|thanh\s+phan|component)\b"
 )
@@ -54,14 +54,6 @@ _SELECTED_SLOT_MARKER = re.compile(
 )
 _YEAR = re.compile(r"\b((?:19|20)\d{2})\b")
 _RANGE = re.compile(r"\b((?:19|20)\d{2})\s*[-–]\s*((?:19|20)\d{2})\b")
-_YEAR_ANSWER = re.compile(r"\bnam\s+nao\b|\bvao\s+nam\s+nao\b")
-_TICKER_ANSWER = re.compile(r"\b(?:cong\s+ty|doanh\s+nghiep|ngan\s+hang)\s+nao\b")
-
-
-def _norm(text: object) -> str:
-    decomposed = unicodedata.normalize("NFD", str(text)).lower().replace("đ", "d")
-    without_marks = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
-    return _NON_WORD.sub(" ", without_marks).strip()
 
 
 def _target_unit(state: Mapping[str, Any], question: str, answer_kind: str) -> Unit:
