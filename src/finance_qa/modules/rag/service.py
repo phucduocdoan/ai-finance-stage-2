@@ -92,15 +92,24 @@ async def aretrieve_table_ids(
     judge_top_n: int,
     frozen_fallback: bool,
     judge_thinking: bool = False,
-) -> tuple[list[str], list[str]]:
-    """Select relevant table ids for a finance question."""
+) -> tuple[list[str], list[str], list[str]]:
+    """Select relevant table ids for a finance question.
+
+    Returns ``(table_ids, shortlist, errors)``. The shortlist is everything that
+    survived the ticker/year/doc_type hard filter — 106 tables at the median
+    against the handful `table_ids` narrows to. It is carried out of here so the
+    solver can look a row up by name across all of it (`modules/solve/lookup.py`)
+    without re-running retrieval; measured on the 60 cell-truth questions, the
+    shortlist holds the gold table 60/60 while the returned ids hold it 55/60.
+    It is *not* an alternative submission list: `table_ids` is what gets scored.
+    """
     errors: list[str] = []
 
-    def _fallback(reason: str) -> tuple[list[str], list[str]]:
+    def _fallback(reason: str) -> tuple[list[str], list[str], list[str]]:
         errors.append(reason)
-        if frozen_fallback:
-            return frozen_table_ids(question_id), errors
-        return [], errors
+        # No pool was built, so the frozen ids are the whole world we have.
+        table_ids = frozen_table_ids(question_id) if frozen_fallback else []
+        return table_ids, list(table_ids), errors
 
     if not tickers or not years:
         return _fallback("retrieve: no tickers/years -> frozen fallback")
@@ -122,7 +131,7 @@ async def aretrieve_table_ids(
 
     if not table_ids:
         return _fallback("retrieve: empty result -> frozen fallback")
-    return table_ids, errors
+    return table_ids, list(pool.keys), errors
 
 
 def retrieve_table_ids(
@@ -135,7 +144,7 @@ def retrieve_table_ids(
     reranker: str | None,
     judge_top_n: int,
     frozen_fallback: bool,
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], list[str], list[str]]:
     """Sync `aretrieve_table_ids`, for single-question scripts."""
     return run_sync(
         aretrieve_table_ids(

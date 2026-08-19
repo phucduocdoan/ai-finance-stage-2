@@ -131,11 +131,17 @@ numbers behind each of these):
   drops enough that the net score falls (33 -> 29 on the 73-question gold set at the time of
   measurement) — telling the right table from nine near-duplicates is the binding constraint,
   not coverage.
-- `verify_answer` exists because repair only fires on exceptions, and the largest measured
-  failure bucket is a query that runs cleanly and reads the wrong cell (~34 of 73 gold
-  questions). It is gated to run once, only when it changes the answer, with no
-  re-verification of its own rewrite — a verifier that can veto its own replacement loops
-  forever on the questions where the verifier itself is wrong.
+- `verify_answer` exists because repair only fires on exceptions, so a query that runs cleanly
+  and reads the wrong cell would otherwise pass unchallenged. It is gated to run once, only when
+  it changes the answer, with no re-verification of its own rewrite — a verifier that can veto
+  its own replacement loops forever on the questions where the verifier itself is wrong.
+  Its value is as a *detector*, and that is measured: on the gold set its `correct` verdict
+  agrees with ground truth on 62 of 71 questions (87%), which makes it the broadest gold-free
+  error signal the run records. What it does not do is locate the fault — an earlier version of
+  this file cited its 33-of-71 "wrong" count as if it were a measurement of *where* the failure
+  was. Attributed properly against `evidence_table_id`, cell reading is indeed the top bucket
+  (12 of 35 labelled misses) — but that is a separate measurement, and the count is 12, not 34
+  (`docs/HANDOFF.md`, "Current Benchmark State").
 
 ## 5. Solving Uses LLMs For Intent, Code For Facts
 
@@ -221,3 +227,52 @@ Rationale: grounded against the real corpus before writing anything — none of 
 carry a `mau_tag` (so the Thông tư 200 form-code regex that classifies the other 97% has zero
 yield here), and only ~6% have their own title text sitting in the OCR context. The rest need
 semantic judgment a deterministic rule can't provide.
+
+## 10. Raw CSVs Stay The Authority For Detail Tables
+
+Decision:
+
+- Do not try to make `long_format.parquet` the universal representation for codegen. Keep it as
+  a narrow main-statement fact layer.
+- For Type 2-5 style arithmetic over notes, bank layouts, entity tables, movement tables, or
+  tables without stable `ma_so`, build a raw-table linking layer over the existing CSVs instead
+  of a full corpus-wide long-format rewrite.
+- Partition linking first by structural scope already present in metadata: ticker, year,
+  `doc_type`, table id, headers, note/section title, row labels, and unit. Do not partition by
+  company-specific business semantics unless measurements show a repeatable family that needs a
+  dedicated adapter.
+- Use domain adapters only when the table family has stable layout semantics that Python can
+  validate, for example VAS main statements, bank note tables, securities-company note tables, or
+  movement/reconciliation tables. The adapter boundary is table shape/domain, not ticker.
+- Keep LLM output bounded with Pydantic schemas. The LLM may propose search phrases or candidate
+  ids from real snippets; Python owns expansion gates, candidate validation, arithmetic, and unit
+  conversion.
+- For raw-table selection questions, keep the current branch bounded to real cell candidates and
+  typed group candidates. Component-row groups are acceptable only when Python can build one
+  deterministic group per slot from real cells. If a semantic search plan says the target should
+  be built from component rows and the groups are missing or ambiguous, fail closed instead of
+  letting a one-shot planner substitute a broad total row or nearby table family.
+- For movement/payable wording such as `phát sinh trong năm` or `phải nộp trong năm`, treat the
+  flow column as a structural signal. Boost `Phát sinh trong năm` and penalize balance columns;
+  then raw selection may rank the top flow candidate per slot only when every slot has a clear
+  flow cell with compatible units.
+
+Rationale:
+
+- Most hard Type 2-5 failures are not caused by the model being unable to do arithmetic; they are
+  caused by choosing the wrong row/table among similar raw tables. A linking layer attacks that
+  bottleneck directly while keeping raw CSV values as the source of truth.
+- A full normalized table for every note family would become a large ETL project with brittle OCR
+  assumptions. It should be introduced only for a measured, high-volume, stable family.
+- Company-level adapters do not scale: they encode issuer quirks and are hard to validate across
+  the corpus. Metadata scope plus row/header/note linking is more general, and domain adapters can
+  still be added later where table layouts genuinely converge.
+
+Prompt/context budget:
+
+- Do not send whole raw reports or unbounded table text to the linker LLM. Use compact linking
+  context: title/header/page hints plus a ranked sample of row labels.
+- The current raw linker truncates candidate `table_context` before prompt rendering and limits
+  table snippets per slot. These limits are deliberate budget controls, not semantic rules.
+- If truncation hides needed evidence, fix the snippet builder by ranking/selecting better labels
+  or adding a typed metadata field, not by raising context limits globally.

@@ -24,12 +24,37 @@ import os
 GOLD_FILES = ("data/eval/unbiased60_gold.jsonl", "data/eval/manual15_gold.jsonl")
 GOLD = GOLD_FILES[0]
 MANIFEST = "data/eval/unbiased60_manifest.json"
+# Opt-in third set: 20 formula questions keyed `answer`, all inside ids 363-440 (the
+# band the pipeline was tuned on, which is why it is not scored by default). Union
+# with the two above is the 94-question set. One id is shared with them, and the
+# hand-labeled `gold_answer` wins on that one.
+EXTENDED = "data/eval/extended_gold.jsonl"
 
 
-def load_gold(min_confidence: str) -> dict[int, float]:
+def _is_year_answer(row: dict) -> bool:
+    unit = str(row.get("gold_unit") or row.get("unit_asked") or "").strip().lower()
+    return unit in {"năm", "nam", "year", "years"}
+
+
+def load_extended() -> dict[int, dict]:
+    gold: dict[int, dict] = {}
+    if not os.path.exists(EXTENDED):
+        return gold
+    for line in open(EXTENDED, encoding="utf-8"):
+        line = line.strip()
+        if line:
+            r = json.loads(line)
+            gold[int(r["id"])] = {
+                "gold_answer": float(r["answer"]),
+                "gold_unit": r.get("gold_unit") or r.get("unit_asked"),
+            }
+    return gold
+
+
+def load_gold(min_confidence: str) -> dict[int, dict]:
     order = {"high": 3, "medium": 2, "low": 1, "unresolvable": 0}
     floor = order[min_confidence]
-    gold: dict[int, float] = {}
+    gold: dict[int, dict] = {}
     for path in GOLD_FILES:
         if not os.path.exists(path):
             continue
@@ -42,7 +67,9 @@ def load_gold(min_confidence: str) -> dict[int, float]:
                 continue
             if order.get(r.get("confidence") or "low", 1) < floor:
                 continue
-            gold[int(r["id"])] = float(r["gold_answer"])
+            row = dict(r)
+            row["gold_answer"] = float(r["gold_answer"])
+            gold[int(r["id"])] = row
     return gold
 
 
@@ -72,9 +99,11 @@ def load_submission(path: str) -> dict[int, float | None]:
     return out
 
 
-def hit(pred: float | None, gold: float, tol: float) -> bool:
+def hit(pred: float | None, gold: float, tol: float, *, year_answer: bool = False) -> bool:
     if pred is None:
         return False
+    if year_answer:
+        return abs(pred - gold) <= 1e-6
     if gold == 0.0:
         return abs(pred) <= tol
     return abs(pred - gold) <= tol * abs(gold)
@@ -84,6 +113,10 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tol", type=float, default=0.01, help="relative tolerance")
     ap.add_argument("--min-confidence", default="medium", choices=["high", "medium", "low"])
+    ap.add_argument(
+        "--extended", action="store_true",
+        help=f"also score {EXTENDED} (75 -> 94 questions)",
+    )
     ap.add_argument(
         "--run", action="append", default=[], metavar="NAME=PATH",
         help="score a run_graph.py JSONL alongside the packaged submissions (repeatable)",
@@ -96,6 +129,8 @@ def main() -> None:
         raise SystemExit(f"{GOLD} chưa tồn tại — sub-agent chấm tay chưa xong.")
 
     gold = load_gold(args.min_confidence)
+    if args.extended:
+        gold = {**load_extended(), **gold}  # hand-labeled wins on the shared id
     print(f"gold: {len(gold)} câu (confidence >= {args.min_confidence}), tol = {args.tol:g}\n")
 
     paths = sorted(glob.glob("output/submission*/submission.json"))
@@ -110,7 +145,16 @@ def main() -> None:
 
     for name, pred in sources:
         preds[name] = pred
-        n = sum(1 for qid, g in gold.items() if hit(pred.get(qid), g, args.tol))
+        n = sum(
+            1
+            for qid, row in gold.items()
+            if hit(
+                pred.get(qid),
+                float(row["gold_answer"]),
+                args.tol,
+                year_answer=_is_year_answer(row),
+            )
+        )
         zeros = sum(1 for qid in gold if pred.get(qid) == 0.0)
         missing = sum(1 for qid in gold if qid not in pred)
         rows.append((name, n, zeros, missing))
@@ -128,9 +172,11 @@ def main() -> None:
         print(f"{'id':>5}  {'gold':>16}  {a[:16]:>16}  {b[:16]:>16}  kết quả")
         counts: dict[str, int] = {}
         for qid in sorted(gold):
-            g = gold[qid]
+            gold_row = gold[qid]
+            g = float(gold_row["gold_answer"])
             pa, pb = preds[a].get(qid), preds[b].get(qid)
-            ha, hb = hit(pa, g, args.tol), hit(pb, g, args.tol)
+            ha = hit(pa, g, args.tol, year_answer=_is_year_answer(gold_row))
+            hb = hit(pb, g, args.tol, year_answer=_is_year_answer(gold_row))
             tag = {(True, True): "cả hai đúng", (True, False): f"chỉ {a}",
                    (False, True): f"chỉ {b}", (False, False): "cả hai SAI"}[(ha, hb)]
             counts[tag] = counts.get(tag, 0) + 1
@@ -143,7 +189,16 @@ def main() -> None:
     for tol in (1e-9, 1e-6, 1e-4, 1e-2, 5e-2, 0.2):
         line = [f"  tol {tol:<7g}"]
         for name, *_ in rows[:6]:
-            n = sum(1 for qid, g in gold.items() if hit(preds[name].get(qid), g, tol))
+            n = sum(
+                1
+                for qid, row in gold.items()
+                if hit(
+                    preds[name].get(qid),
+                    float(row["gold_answer"]),
+                    tol,
+                    year_answer=_is_year_answer(row),
+                )
+            )
             line.append(f"{name.replace('submission', 's')}={n}")
         print("  ".join(line))
 

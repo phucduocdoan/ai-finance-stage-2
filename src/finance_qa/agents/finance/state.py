@@ -21,7 +21,8 @@ class FinanceState(TypedDict):
     doc_type: str        # consolidated | separate | unknown
 
     # ── retrieve node ───────────────────────────────────────────────────────
-    table_ids: list[str]
+    table_ids: list[str]     # the submitted list, judge picks + primary tail
+    shortlist: list[str]     # everything past the hard filter, searchable by find_rows
 
     # ── load node ───────────────────────────────────────────────────────────
     frames: dict[str, Any]   # var_name → pd.DataFrame

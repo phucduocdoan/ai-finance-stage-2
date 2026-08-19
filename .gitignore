@@ -85,3 +85,6 @@ artifacts/reports/audit_tier1.md
 artifacts/reports/ops_report.md
 artifacts/reports/solve_coverage.md
 artifacts/reports/questions_taxonomy.md
+
+# temporary v1 source-tree reconstruction (rebuilt from rewind snapshots)
+.v1arm/

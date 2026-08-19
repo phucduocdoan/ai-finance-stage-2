@@ -22,11 +22,42 @@ def normalize_frame(df: pd.DataFrame, min_ratio: float = 0.6) -> pd.DataFrame:
     return out
 
 
+def _filled(series: pd.Series) -> pd.Series:
+    raw = series.astype(str).str.strip()
+    return raw[raw.ne("") & ~raw.isin(NIL_MARKS)]
+
+
+def _parse_ratio(series: pd.Series) -> float:
+    filled = _filled(series)
+    if filled.empty:
+        return 0.0
+    return float(filled.map(parse_number).notna().mean())
+
+
+def _empty_ratio(series: pd.Series) -> float:
+    raw = series.astype(str).str.strip()
+    if raw.empty:
+        return 1.0
+    return float((raw.eq("") | raw.isin(NIL_MARKS)).mean())
+
+
+def _long_text_ratio(series: pd.Series) -> float:
+    filled = _filled(series)
+    if filled.empty:
+        return 0.0
+    words = filled.str.replace(r"[^A-Za-zÀ-ỹ0-9]+", " ", regex=True).str.split().str.len()
+    return float((words >= 3).mean())
+
+
 def repair_shifted_bank_header(df: pd.DataFrame) -> pd.DataFrame:
     """Repair common bank statement headers shifted one cell left."""
     cols = [str(col) for col in df.columns]
     if len(cols) < 4:
         return df
+    if _looks_like_stt_label_shift(df, cols):
+        out = df.iloc[:, :-1].copy()
+        out.columns = cols[1:]
+        return out
     shifted = (
         cols[0].startswith("Unnamed:")
         and cols[1].strip().casefold() == "thuyết minh"
@@ -43,6 +74,24 @@ def repair_shifted_bank_header(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     out.columns = ["STT", "Chỉ tiêu", *cols[1:-1]]
     return out
+
+
+def _looks_like_stt_label_shift(df: pd.DataFrame, cols: list[str]) -> bool:
+    """Rows lost their STT cell, so labels sit under `STT` and values shift left."""
+    if len(cols) < 5:
+        return False
+    first = cols[0].strip().casefold()
+    second = cols[1].strip().casefold()
+    third = cols[2].strip().casefold()
+    if first != "stt" or "chỉ tiêu" not in second or "thuyết minh" not in third:
+        return False
+    return (
+        _long_text_ratio(df.iloc[:, 0]) >= 0.5
+        and _long_text_ratio(df.iloc[:, 1]) < 0.25
+        and _parse_ratio(df.iloc[:, 2]) >= 0.5
+        and _parse_ratio(df.iloc[:, 3]) >= 0.5
+        and _empty_ratio(df.iloc[:, -1]) >= 0.8
+    )
 
 
 def repair_shifted_multilevel_header(df: pd.DataFrame) -> pd.DataFrame:

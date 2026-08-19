@@ -44,6 +44,16 @@ def money_columns(df: pd.DataFrame) -> list:
     ]
 
 
+def names_a_period(column: object) -> bool:
+    """True when the header itself says which period the column holds.
+
+    `column_years` falls back to column order when nothing is named, which is a
+    guess. Callers that score columns need to know the difference.
+    """
+    text = str(column)
+    return bool(_YEAR.search(text) or _CURRENT.search(text) or _PRIOR.search(text))
+
+
 def _report_year(table_id: str, meta_year) -> int | None:
     if meta_year:
         try:
@@ -107,4 +117,4 @@ def year_legend(df: pd.DataFrame, table_id: str, meta_year=None) -> str:
     return f"Năm của từng cột số tiền (suy ra từ năm báo cáo): {pairs}"
 
 
-__all__ = ["column_years", "money_columns", "year_legend"]
+__all__ = ["column_years", "money_columns", "names_a_period", "year_legend"]

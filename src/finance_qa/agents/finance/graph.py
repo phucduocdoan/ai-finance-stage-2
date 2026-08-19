@@ -1,18 +1,24 @@
 """The grounded-codegen pipeline: four nodes, one LLM call each.
 
 Topology:
-  understand → retrieve → generate_pandas → execute_and_repair → END
+  understand → retrieve → generate_pandas → execute_and_repair → verify_answer → END
+                       ↘ solve_selection ↗ (and back to generate_pandas on failure)
 
-No router, no solver branches, no fallback chain. Every question takes the same
-path, so a failure is attributable to a node rather than to which of six routes
-it happened to take.
+One path for every question, with one exception that earns its branch: a
+question whose answer is a *choice* between years or between companies, which
+needs several cells resolved before the target cell is even known. Everything
+else keeps the single path, so a failure is still attributable to a node rather
+than to which of six routes it happened to take. The branch is gated on a
+surface marker plus an axis of at least two elements and falls back to the same
+path whenever any stage of it comes up empty — see `selection_decompose`.
 
 `understand` stays in front because retrieval hard-filters candidates on ticker /
 year / doc_type and those come from it — the node that lifted DOCS_F2MACRO from
 0.9248 to 0.9537. It is question understanding, not table understanding.
 
 There is deliberately no evidence-selection step. It used to be its own node; it is
-now a `[:codegen_max_tables]` slice of retrieval's ranking inside `generate_pandas`,
+now a `[:codegen_max_tables]` slice of retrieval's ranking inside `generate_pandas`
+(interleaved by year and widened to 5 first when the question names a period),
 because that is all it ever was. Choosing which of those tables to read is part of
 the call that writes the query — one decision by the one model that can see the
 contents, instead of two decisions where the first was made blind.
@@ -25,15 +31,19 @@ and the whole gold set from 28/73 to 33/73, with queries reading more than one
 dataframe going from 3/75 to 17/75. Widening the slice on top of that did *not*
 help — see `codegen_max_tables`.
 
-Loading does not touch `state["table_ids"]`, which is what gets submitted:
-retrieval is scored on its own F2, so narrowing the submission would throw away
-recall.
+Loading does not narrow `state["table_ids"]`, which is what gets submitted:
+retrieval is scored on its own F2, so dropping tables the query did not read
+would throw away recall. It can *grow* it — a table `find_rows` surfaced and the
+final query actually reads is added in `_emit`, because evidence pointing at a
+CSV outside `relevant_tables` is not a valid submission item.
 
 State is `FinanceState` plus two internal keys, so `scripts/build_submission.py`
 and `submission_item()` consume this flow's records unchanged.
 """
 from __future__ import annotations
 
+import asyncio
+import re
 from typing import Any
 
 from langgraph.graph import END, StateGraph
@@ -42,12 +52,49 @@ from finance_qa.agents.finance.config import FinanceAgentConfig
 from finance_qa.agents.finance.state import FinanceState
 from finance_qa.agents.finance.retrieve import make_retrieve_node
 from finance_qa.agents.finance.understand import make_understand
+from finance_qa.agents.finance.utils import year_round_robin
 from finance_qa.core.http import run_sync
 from finance_qa.modules.data.service import ordered_table_names
 from finance_qa.modules.data.table_store import load_frame, submission_csv_name
+from finance_qa.modules.solve.capability_router import capability_trace
+from finance_qa.modules.solve.cell_locator import locate_single_cell
 from finance_qa.modules.solve.codegen import PandasSolution, agenerate, build_prompt
+from finance_qa.modules.solve.decompose import (
+    aplan,
+    axis_of,
+    degenerate_query,
+    pick,
+    sub_question,
+    tables_for,
+    years_in_text,
+)
 from finance_qa.modules.solve.execute import aexecute
+from finance_qa.modules.solve.formula_facts import (
+    FormulaFactError,
+    asolve_formula_facts,
+)
+from finance_qa.modules.solve.profile_validate import validate_profile_selection
+from finance_qa.modules.solve.raw_table_linker import (
+    RawTableLinkError,
+    aprepare_raw_table_linker,
+)
+from finance_qa.modules.solve.raw_selection_linker import (
+    RawSelectionError,
+    aprepare_raw_selection_linker,
+)
+from finance_qa.modules.solve.selection_facts import (
+    SelectionFactError,
+    asolve_selection_facts,
+)
+from finance_qa.modules.solve.structured_facts import (
+    StructuredFactError,
+    asolve_structured_facts,
+)
+from finance_qa.modules.solve.units import unit_from_hint
 from finance_qa.modules.solve.verify import arevise, averify
+
+
+_DF_VAR = re.compile(r"\bdf\d+\b")
 
 
 class SolveState(FinanceState, total=False):
@@ -85,9 +132,15 @@ def load_evidence(table_ids: list[str], max_tables: int) -> tuple[dict, dict, li
 
 def make_generate_pandas(config: FinanceAgentConfig):
     async def generate_pandas(state: SolveState) -> dict:
-        names, frames, errors = load_evidence(
-            list(state.get("table_ids") or []), config.codegen_max_tables
-        )
+        table_ids = list(state.get("table_ids") or [])
+        # A period question is the only one that can run out of slots before it
+        # runs out of relevance, so it is the only one that gets more of them.
+        if state.get("multi_year"):
+            table_ids = year_round_robin(table_ids)
+            max_tables = config.codegen_max_tables_multi_year
+        else:
+            max_tables = config.codegen_max_tables
+        names, frames, errors = load_evidence(table_ids, max_tables)
         errors = list(state.get("errors") or []) + errors
         loaded = {
             "evidence_tables": list(names.values()),
@@ -106,9 +159,24 @@ def make_generate_pandas(config: FinanceAgentConfig):
                 "errors": errors + ["codegen: không có bảng nào để đọc"],
             }
         try:
-            solution, prompt = await agenerate(
-                state["question"], frames, names, thinking=config.codegen_thinking
+            solution, prompt, tool_calls = await agenerate(
+                state["question"], frames, names,
+                thinking=config.codegen_thinking,
+                shortlist=list(state.get("shortlist") or []),
+                tool_turns=config.codegen_tool_turns,
+                show_grids=config.codegen_show_grids,
+                metric=state.get("metric") or "",
+                use_metric_hints=config.codegen_metric_hints,
+                metric_lookup=config.codegen_metric_lookup,
+                use_table_profiles=config.codegen_table_profiles,
             )
+            # `agenerate` binds any table its lookups surfaced into `names`/`frames`.
+            loaded = {**loaded, "names": names, "frames": frames,
+                      "evidence_tables": list(names.values()),
+                      "evidence": [
+                          {"variable": var, "csv_path": f"data/{submission_csv_name(tid)}"}
+                          for var, tid in names.items()
+                      ]}
         except Exception as exc:  # noqa: BLE001 - reported, execute node handles the empty query
             # The prompt is handed on even though generation failed: the repair
             # call is the only remaining attempt, and a repair without the grids
@@ -117,7 +185,12 @@ def make_generate_pandas(config: FinanceAgentConfig):
             return {
                 **loaded,
                 "solution": PandasSolution().model_dump(),
-                "codegen_prompt": build_prompt(state["question"], frames, names),
+                "codegen_prompt": build_prompt(
+                    state["question"], frames, names,
+                    metric=state.get("metric") or "",
+                    use_metric_hints=config.codegen_metric_hints,
+                    use_table_profiles=config.codegen_table_profiles,
+                ),
                 "errors": errors + [f"codegen: {exc}"],
             }
         return {
@@ -125,6 +198,7 @@ def make_generate_pandas(config: FinanceAgentConfig):
             "solution": solution.model_dump(),
             "codegen_prompt": prompt,
             "errors": errors,
+            "diag": {**(state.get("diag") or {}), "tool_calls": tool_calls},
         }
 
     return generate_pandas
@@ -141,6 +215,7 @@ def make_execute_and_repair(config: FinanceAgentConfig):
             unit_hint=state.get("unit_hint") or "",
             names=state.get("names") or {},
             max_repairs=config.max_repairs,
+            repair_history=config.repair_history,
         )
         return _emit(state, result)
 
@@ -155,15 +230,27 @@ def _emit(state: SolveState, result: dict, extra_diag: dict | None = None) -> di
     # `state["evidence"]`, because by the time verify_answer runs that list has
     # already been narrowed to the *previous* query's variables — a revision that
     # switches to another table would then ship without it (13 of 73 items).
+    names = state.get("names") or {}
     everything = [
         {"variable": var, "csv_path": f"data/{submission_csv_name(tid)}"}
-        for var, tid in (state.get("names") or {}).items()
+        for var, tid in names.items()
     ] or list(state.get("evidence") or [])
-    used = [ev for ev in everything if ev["variable"] in result["pandas_query"]]
+    # `\bdfN\b`, not `in`: a substring test reads df1 as used by `df10`, which was
+    # harmless at 3 variables and is not once `find_rows` can bind more than nine.
+    read = set(_DF_VAR.findall(result["pandas_query"]))
+    used = [ev for ev in everything if ev["variable"] in read]
+    # A table the query reads must also be submitted, or `evidence` points at a
+    # CSV missing from `relevant_tables`. Only the ones actually read: retrieval
+    # is scored on its own F2, and appending every table a lookup touched would
+    # dilute it.
+    table_ids = list(state.get("table_ids") or [])
+    table_ids += [names[ev["variable"]] for ev in used
+                  if names.get(ev["variable"]) and names[ev["variable"]] not in table_ids]
     return {
         "answer": float(result["answer"]),
         "pandas_query": result["pandas_query"],
         "evidence": used or list(state.get("evidence") or []),
+        "table_ids": table_ids,
         "solver": "codegen",
         "solution": final.model_dump(),
         "errors": list(state.get("errors") or []) + result["errors"],
@@ -177,6 +264,567 @@ def _emit(state: SolveState, result: dict, extra_diag: dict | None = None) -> di
             **(extra_diag or {}),
         },
     }
+
+
+# Unit target for a sub-question that names no unit of its own, so the N money
+# values being compared land on one scale. Without it the target comes from the
+# model's `target_unit`, which it re-decides per call: one year normalised to
+# "tỷ đồng" next to another left in đồng makes `max()` pick the wrong element
+# while every query runs cleanly and reports nothing.
+#
+# Applied only to those. Pinning it unconditionally is worse than not pinning at
+# all: a sub-question asking for a ratio ("bao nhiêu lần") would be given a money
+# target, and a table declaring "Triệu đồng" then multiplies the ratio by 1e6 —
+# measured on q363, whose D/E series came back 0.88, 0.87, 1.5e13, 1.4e13, 66.9.
+_SUB_UNIT_HINT = "đồng"
+
+
+async def _asub_value(
+    question: str, table_ids: list[str], config: FinanceAgentConfig
+) -> dict | None:
+    """Answer one sub-question against one element's own tables.
+
+    The slice is `selection_sub_tables`, which is wider than the one
+    `generate_pandas` uses and documented there: a sub-question is confined to one
+    company and one year, so the slots are spent on that report's own statements
+    rather than on near-duplicates from the years it is being compared against.
+    """
+    names, frames, _ = load_evidence(table_ids, config.selection_sub_tables)
+    if not frames:
+        return None
+    solution, prompt, _ = await agenerate(
+        question, frames, names, thinking=config.codegen_thinking
+    )
+    result = await aexecute(
+        solution, prompt, frames, question=question,
+        unit_hint="" if unit_from_hint(question) else _SUB_UNIT_HINT,
+        names=names, max_repairs=config.max_repairs,
+        repair_history=config.repair_history,
+    )
+    if result["diag"].get("failed") or degenerate_query(result["pandas_query"]):
+        return None
+    return {"value": float(result["answer"]), "frames": frames, "names": names,
+            "prompt": prompt, "result": result}
+
+
+def make_solve_selection(config: FinanceAgentConfig):
+    """Answer a selection question by fanning out over its axis.
+
+    Only the final stage is submitted. `build_submission` ships one
+    `pandas_query` per question and the grader re-runs it, so the intermediates
+    stay internal and the query that leaves here is an ordinary single-table
+    expression at the winning element — which also keeps `evidence` pointing at
+    exactly the table it reads. Everything the submission therefore cannot show
+    goes to `diag["selection"]`.
+
+    Any failure returns ``{}`` and the router sends the question down the
+    unchanged path, so this node can only add answers, never remove them.
+    """
+
+    async def solve_selection(state: SolveState) -> dict:
+        axis_elements = axis_of(
+            state["question"], state.get("years") or [], state.get("tickers") or []
+        )
+        if axis_elements is None:
+            return {}
+        axis, elements = axis_elements
+        table_ids = list(state.get("table_ids") or [])
+        errors = list(state.get("errors") or [])
+        # The dimension the fan-out is *not* varying, so each sub-question still
+        # names it. On a year axis that is the company; on a ticker axis, the year.
+        if axis == "year":
+            fixed = ", ".join(str(t) for t in (state.get("tickers") or []))
+        else:
+            named = sorted({int(y) for y in (state.get("years") or []) if y})
+            named = named or sorted(years_in_text(state["question"]))
+            fixed = str(named[0]) if named else ""
+
+        try:
+            plan = await aplan(state["question"], axis, elements)
+        except Exception as exc:  # noqa: BLE001 - a failed plan is not a failed answer
+            return {"errors": errors + [f"selection: plan: {exc}"]}
+
+        # Ranking and filtering are both one metric per element, so they go out in
+        # a single wave: the question's latency is one sub-question deep, not two.
+        jobs = [("rank", element) for element in elements]
+        if plan.filter_metric:
+            jobs += [("filter", element) for element in elements]
+
+        async def run(stage: str, element) -> dict | None:
+            template = plan.rank_metric if stage == "rank" else plan.filter_metric
+            text = sub_question(template, axis, element, fixed)
+            tables = tables_for(table_ids, axis, element)
+            if not text or not tables:
+                return None
+            try:
+                return await _asub_value(text, tables, config)
+            except Exception:  # noqa: BLE001 - one dead element must not kill the fan-out
+                return None
+
+        values = await asyncio.gather(*(run(stage, el) for stage, el in jobs))
+        scored: dict[str, dict] = {"rank": {}, "filter": {}}
+        # The submission carries stage 5 only, so a flat score cannot say whether
+        # the plan, one sub-query or the final read was what missed. The sub-query
+        # and the table it read are the smallest thing that answers that.
+        steps: list[dict] = []
+        for (stage, element), got in zip(jobs, values):
+            scored[stage][element] = None if got is None else got["value"]
+            steps.append({
+                "stage": stage, "element": str(element),
+                "question": sub_question(
+                    plan.rank_metric if stage == "rank" else plan.filter_metric,
+                    axis, element, fixed,
+                ),
+                "value": None if got is None else got["value"],
+                "query": "" if got is None else got["result"]["pandas_query"],
+                "tables": [] if got is None else list(got["names"].values()),
+            })
+
+        winner, trace = pick(plan, axis, scored["rank"], scored["filter"])
+        trace = {"axis": axis, "elements": [str(e) for e in elements],
+                 "plan": plan.model_dump(), "steps": steps, **trace}
+        if winner is None:
+            return {"errors": errors + [f"selection: {trace.get('reason', 'không chọn được')}"],
+                    "diag": {**(state.get("diag") or {}), "selection": trace}}
+
+        final_text = sub_question(plan.answer_metric, axis, winner, fixed)
+        final_tables = tables_for(table_ids, axis, winner)
+        trace["answer_question"] = final_text
+        if not final_text or not final_tables:
+            return {"errors": errors + ["selection: không có bảng cho phần tử được chọn"],
+                    "diag": {**(state.get("diag") or {}), "selection": trace}}
+        try:
+            final = await _asub_value(final_text, final_tables, config)
+        except Exception as exc:  # noqa: BLE001
+            return {"errors": errors + [f"selection: bước cuối: {exc}"],
+                    "diag": {**(state.get("diag") or {}), "selection": trace}}
+        if final is None:
+            return {"errors": errors + ["selection: bước cuối không ra số"],
+                    "diag": {**(state.get("diag") or {}), "selection": trace}}
+
+        # `_emit` reads `names` to rebuild evidence and `evidence_tables` for diag,
+        # so it must see the winning element's tables rather than the ones
+        # `generate_pandas` would have loaded — this node never ran it.
+        trace["done"] = True
+        at_winner = {**state, "names": final["names"], "frames": final["frames"],
+                     "evidence_tables": list(final["names"].values())}
+        return {
+            **_emit(at_winner, final["result"], {"selection": trace}),
+            "frames": final["frames"],
+            "names": final["names"],
+            "evidence_tables": list(final["names"].values()),
+            "codegen_prompt": final["prompt"],
+        }
+
+    return solve_selection
+
+
+def make_solve_structured_facts(config: FinanceAgentConfig):
+    """Answer from normalized main-statement facts, falling back on any miss."""
+
+    async def solve_structured_facts(state: SolveState) -> dict:
+        errors = list(state.get("errors") or [])
+        try:
+            result = await asolve_structured_facts(
+                state,
+                planner_thinking=config.structured_facts_planner_thinking,
+            )
+        except StructuredFactError as exc:
+            return {
+                "errors": errors + [f"structured_facts: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "structured_facts": {"done": False, "reason": str(exc)},
+                },
+            }
+        except Exception as exc:  # noqa: BLE001 - fallback is the product behaviour
+            return {
+                "errors": errors + [f"structured_facts: {type(exc).__name__}: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "structured_facts": {
+                        "done": False,
+                        "reason": f"{type(exc).__name__}: {exc}",
+                    },
+                },
+            }
+
+        table_ids = list(state.get("table_ids") or [])
+        for table_id in result["table_ids"]:
+            if table_id not in table_ids:
+                table_ids.append(table_id)
+        return {
+            "answer": result["answer"],
+            "pandas_query": result["pandas_query"],
+            "evidence": result["evidence"],
+            "table_ids": table_ids,
+            "solver": "structured_facts",
+            "errors": errors,
+            "diag": {
+                **(state.get("diag") or {}),
+                "structured_facts": result["diag"],
+            },
+            # This branch does not build dataframe variables or a codegen prompt.
+            # verify_answer sees the empty prompt and becomes a pass-through.
+            "frames": {},
+            "names": {},
+            "evidence_tables": result["table_ids"],
+            "codegen_prompt": "",
+            "solution": {},
+        }
+
+    return solve_structured_facts
+
+
+def make_solve_selection_facts(config: FinanceAgentConfig):
+    """Answer deterministic selection questions from structured facts."""
+
+    async def solve_selection_facts(state: SolveState) -> dict:
+        errors = list(state.get("errors") or [])
+        try:
+            result = await asolve_selection_facts(state)
+        except SelectionFactError as exc:
+            return {
+                "errors": errors + [f"selection_facts: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "selection_facts": {"done": False, "reason": str(exc)},
+                },
+            }
+        except Exception as exc:  # noqa: BLE001 - fallback is product behaviour
+            return {
+                "errors": errors + [f"selection_facts: {type(exc).__name__}: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "selection_facts": {
+                        "done": False,
+                        "reason": f"{type(exc).__name__}: {exc}",
+                    },
+                },
+            }
+
+        table_ids = list(state.get("table_ids") or [])
+        for table_id in result["table_ids"]:
+            if table_id not in table_ids:
+                table_ids.append(table_id)
+        return {
+            "answer": result["answer"],
+            "pandas_query": result["pandas_query"],
+            "evidence": result["evidence"],
+            "table_ids": table_ids,
+            "solver": "selection_facts",
+            "errors": errors,
+            "diag": {
+                **(state.get("diag") or {}),
+                "selection_facts": result["diag"],
+            },
+            "frames": {},
+            "names": {},
+            "evidence_tables": result["table_ids"],
+            "codegen_prompt": "",
+            "solution": {},
+        }
+
+    return solve_selection_facts
+
+
+def make_solve_formula_facts(config: FinanceAgentConfig):
+    """Answer simple catalog formulae from normalized facts, else fall back."""
+
+    async def solve_formula_facts(state: SolveState) -> dict:
+        errors = list(state.get("errors") or [])
+        try:
+            result = await asolve_formula_facts(
+                state,
+                planner_thinking=config.formula_facts_planner_thinking,
+            )
+        except FormulaFactError as exc:
+            return {
+                "errors": errors + [f"formula_facts: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "formula_facts": {"done": False, "reason": str(exc)},
+                },
+            }
+        except Exception as exc:  # noqa: BLE001 - fallback is the product behaviour
+            return {
+                "errors": errors + [f"formula_facts: {type(exc).__name__}: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "formula_facts": {
+                        "done": False,
+                        "reason": f"{type(exc).__name__}: {exc}",
+                    },
+                },
+            }
+
+        table_ids = list(state.get("table_ids") or [])
+        for table_id in result["table_ids"]:
+            if table_id not in table_ids:
+                table_ids.append(table_id)
+        return {
+            "answer": result["answer"],
+            "pandas_query": result["pandas_query"],
+            "evidence": result["evidence"],
+            "table_ids": table_ids,
+            "solver": "formula_facts",
+            "errors": errors,
+            "diag": {
+                **(state.get("diag") or {}),
+                "formula_facts": result["diag"],
+            },
+            "frames": {},
+            "names": {},
+            "evidence_tables": result["table_ids"],
+            "codegen_prompt": "",
+            "solution": {},
+        }
+
+    return solve_formula_facts
+
+
+def make_solve_raw_table_linker(config: FinanceAgentConfig):
+    """Answer fixed-scope raw-table arithmetic from linked cell candidates."""
+
+    async def solve_raw_table_linker(state: SolveState) -> dict:
+        errors = list(state.get("errors") or [])
+        try:
+            prepared = await aprepare_raw_table_linker(
+                state,
+                use_planner=config.raw_table_linker_planner,
+                planner_thinking=config.raw_table_linker_planner_thinking,
+                use_ratio_groups=config.raw_table_linker_ratio_groups,
+            )
+        except RawTableLinkError as exc:
+            return {
+                "errors": errors + [f"raw_table_linker: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "raw_table_linker": {"done": False, "reason": str(exc)},
+                },
+            }
+        except Exception as exc:  # noqa: BLE001 - fallback is product behaviour
+            return {
+                "errors": errors + [f"raw_table_linker: {type(exc).__name__}: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "raw_table_linker": {
+                        "done": False,
+                        "reason": f"{type(exc).__name__}: {exc}",
+                    },
+                },
+            }
+
+        result = await aexecute(
+            prepared["solution"],
+            "",
+            prepared["frames"],
+            question=state["question"],
+            unit_hint=state.get("unit_hint") or "",
+            names=prepared["names"],
+            max_repairs=0,
+            repair_history=False,
+        )
+        if result["diag"].get("failed"):
+            return {
+                "errors": errors + [f"raw_table_linker: {err}" for err in result["errors"]],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "raw_table_linker": {
+                        **prepared["diag"],
+                        "done": False,
+                        "reason": "query failed",
+                    },
+                },
+            }
+
+        at_raw = {
+            **state,
+            "names": prepared["names"],
+            "frames": prepared["frames"],
+            "evidence_tables": prepared["table_ids"],
+            "solution": prepared["solution"].model_dump(),
+        }
+        emitted = _emit(at_raw, result, {"raw_table_linker": prepared["diag"]})
+        return {
+            **emitted,
+            "solver": "raw_table_linker",
+            "frames": prepared["frames"],
+            "names": prepared["names"],
+            "evidence_tables": prepared["table_ids"],
+            "codegen_prompt": "",
+        }
+
+    return solve_raw_table_linker
+
+
+def make_solve_raw_selection_linker(config: FinanceAgentConfig):
+    """Answer raw-table max/min selection with bounded candidate ids."""
+
+    async def solve_raw_selection_linker(state: SolveState) -> dict:
+        errors = list(state.get("errors") or [])
+        try:
+            prepared = await aprepare_raw_selection_linker(
+                state,
+                use_planner=config.raw_table_linker_planner,
+                planner_thinking=config.raw_table_linker_planner_thinking,
+            )
+        except RawSelectionError as exc:
+            return {
+                "errors": errors + [f"raw_selection_linker: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "raw_selection_linker": {"done": False, "reason": str(exc)},
+                },
+            }
+        except Exception as exc:  # noqa: BLE001 - fallback is product behaviour
+            return {
+                "errors": errors + [f"raw_selection_linker: {type(exc).__name__}: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "raw_selection_linker": {
+                        "done": False,
+                        "reason": f"{type(exc).__name__}: {exc}",
+                    },
+                },
+            }
+
+        result = await aexecute(
+            prepared["solution"],
+            "",
+            prepared["frames"],
+            question=state["question"],
+            unit_hint=state.get("unit_hint") or "",
+            names=prepared["names"],
+            max_repairs=0,
+            repair_history=False,
+        )
+        if result["diag"].get("failed"):
+            return {
+                "errors": errors + [f"raw_selection_linker: {err}" for err in result["errors"]],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "raw_selection_linker": {
+                        **prepared["diag"],
+                        "done": False,
+                        "reason": "query failed",
+                    },
+                },
+            }
+
+        table_ids = list(state.get("table_ids") or [])
+        for table_id in prepared["table_ids"]:
+            if table_id not in table_ids:
+                table_ids.append(table_id)
+        at_raw = {
+            **state,
+            "table_ids": table_ids,
+            "names": prepared["names"],
+            "frames": prepared["frames"],
+            "evidence_tables": prepared["table_ids"],
+            "solution": prepared["solution"].model_dump(),
+        }
+        emitted = _emit(at_raw, result, {"raw_selection_linker": prepared["diag"]})
+        return {
+            **emitted,
+            "solver": "raw_selection_linker",
+            "frames": prepared["frames"],
+            "names": prepared["names"],
+            "evidence_tables": prepared["table_ids"],
+            "codegen_prompt": "",
+        }
+
+    return solve_raw_selection_linker
+
+
+def make_trace_capabilities(config: FinanceAgentConfig):
+    """Record the cheap capability routing decision without changing behavior."""
+
+    def trace_capabilities(state: SolveState) -> dict:
+        return {
+            "diag": {
+                **(state.get("diag") or {}),
+                "capability_router": capability_trace(
+                    state,
+                    cell_locator=config.cell_locator,
+                    formula_facts=config.formula_facts,
+                    raw_table_linker=config.raw_table_linker,
+                    selection_facts=config.selection_facts,
+                    raw_selection_linker=config.raw_selection_linker,
+                    structured_facts=config.structured_facts,
+                    selection_decompose=config.selection_decompose,
+                ),
+            },
+        }
+
+    return trace_capabilities
+
+
+def make_solve_single_cell(config: FinanceAgentConfig):
+    """Try a high-confidence deterministic cell read, otherwise fall back."""
+
+    async def solve_single_cell(state: SolveState) -> dict:
+        if not config.cell_locator:
+            return {}
+        hit, diag = locate_single_cell(
+            state,
+            table_ids=list(state.get("table_ids") or []),
+            shortlist=list(state.get("shortlist") or []),
+        )
+        if hit is None:
+            return {"diag": {**(state.get("diag") or {}), "cell_locator": diag}}
+
+        names = {"df1": hit.table_id}
+        try:
+            frames = {"df1": load_frame(hit.table_id)}
+            solution = hit.solution("df1")
+            result = await aexecute(
+                solution,
+                "",
+                frames,
+                question=state["question"],
+                unit_hint=state.get("unit_hint") or "",
+                names=names,
+                max_repairs=0,
+                repair_history=False,
+            )
+        except Exception as exc:  # noqa: BLE001 - fallback is the product behaviour
+            return {
+                "errors": list(state.get("errors") or []) + [f"cell_locator: {type(exc).__name__}: {exc}"],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "cell_locator": {**diag, "done": False, "reason": f"{type(exc).__name__}: {exc}"},
+                },
+            }
+        if result["diag"].get("failed"):
+            return {
+                "errors": list(state.get("errors") or []) + [f"cell_locator: {err}" for err in result["errors"]],
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "cell_locator": {**diag, "done": False, "reason": "query failed"},
+                },
+            }
+
+        at_hit = {
+            **state,
+            "names": names,
+            "frames": frames,
+            "evidence_tables": [hit.table_id],
+            "solution": solution.model_dump(),
+        }
+        emitted = _emit(at_hit, result, {"cell_locator": diag})
+        return {
+            **emitted,
+            "solver": "cell_locator",
+            "frames": frames,
+            "names": names,
+            "evidence_tables": [hit.table_id],
+            # verify_answer needs a prompt to revise; this branch has no prompt
+            # and should pass through after `_emit`.
+            "codegen_prompt": "",
+        }
+
+    return solve_single_cell
 
 
 def make_verify_answer(config: FinanceAgentConfig):
@@ -225,6 +873,7 @@ def make_verify_answer(config: FinanceAgentConfig):
                 revised, prompt, frames,
                 question=state["question"], unit_hint=state.get("unit_hint") or "",
                 names=names, max_repairs=config.max_repairs,
+                repair_history=config.repair_history,
             )
         except Exception as exc:  # noqa: BLE001
             return {**drop, "errors": list(state.get("errors") or []) + [f"revise: {exc}"]}
@@ -235,22 +884,184 @@ def make_verify_answer(config: FinanceAgentConfig):
     return verify_answer
 
 
+def make_profile_validate(config: FinanceAgentConfig):
+    """Attach TableProfile-based diagnostics to the final answer state."""
+
+    def profile_validate(state: SolveState) -> dict:
+        if not config.profile_validate:
+            return {}
+        try:
+            diag = validate_profile_selection(
+                state,
+                frames=state.get("frames") or {},
+                names=state.get("names") or {},
+            )
+        except Exception as exc:  # noqa: BLE001 - diagnostics must not change answers
+            diag = {
+                "done": False,
+                "reason": f"{type(exc).__name__}: {exc}",
+                "query_cells": [],
+                "findings": [],
+                "summary": {"strong": 0, "weak": 0, "info": 0},
+            }
+        return {
+            "diag": {
+                **(state.get("diag") or {}),
+                "profile_validate": diag,
+            },
+        }
+
+    return profile_validate
+
+
 def build_graph(config: FinanceAgentConfig | None = None) -> StateGraph:
     config = config or FinanceAgentConfig()
+
+    def selection_route(state: SolveState) -> str:
+        if not config.selection_decompose:
+            return "generate_pandas"
+        axis = axis_of(
+            state["question"], state.get("years") or [], state.get("tickers") or []
+        )
+        return "solve_selection" if axis else "generate_pandas"
+
+    def route_after_retrieve(state: SolveState) -> str:
+        """Selection questions only, and only when they name an axis.
+
+        The trigger is deliberately narrow: everything it does not match reaches
+        `generate_pandas` over an unchanged path, so a regression on the other 63
+        of 94 gold questions is not something this branch can cause. That is what
+        makes the A/B attributable — the program-of-thought run changed the prompt
+        for all 94 and lost 11 points on the block it was not aiming at.
+        """
+        if config.cell_locator:
+            return "solve_single_cell"
+        if config.formula_facts:
+            return "solve_formula_facts"
+        if config.raw_table_linker:
+            return "solve_raw_table_linker"
+        if config.selection_facts:
+            return "solve_selection_facts"
+        if config.raw_selection_linker:
+            return "solve_raw_selection_linker"
+        if config.structured_facts:
+            return "solve_structured_facts"
+        return selection_route(state)
+
+    def route_after_single_cell(state: SolveState) -> str:
+        """Use the deterministic cell only on success, else continue normally."""
+        done = (state.get("diag") or {}).get("cell_locator", {}).get("done")
+        if done:
+            return "verify_answer"
+        if config.formula_facts:
+            return "solve_formula_facts"
+        if config.raw_table_linker:
+            return "solve_raw_table_linker"
+        if config.selection_facts:
+            return "solve_selection_facts"
+        if config.raw_selection_linker:
+            return "solve_raw_selection_linker"
+        if config.structured_facts:
+            return "solve_structured_facts"
+        return selection_route(state)
+
+    def route_after_formula_facts(state: SolveState) -> str:
+        """Use the formula answer when it succeeded, otherwise fallback."""
+        done = (state.get("diag") or {}).get("formula_facts", {}).get("done")
+        if done:
+            return "verify_answer"
+        if config.raw_table_linker:
+            return "solve_raw_table_linker"
+        if config.selection_facts:
+            return "solve_selection_facts"
+        if config.raw_selection_linker:
+            return "solve_raw_selection_linker"
+        if config.structured_facts:
+            return "solve_structured_facts"
+        return selection_route(state)
+
+    def route_after_raw_table_linker(state: SolveState) -> str:
+        """Use the raw linked answer when it succeeded, otherwise fallback."""
+        done = (state.get("diag") or {}).get("raw_table_linker", {}).get("done")
+        if done:
+            return "verify_answer"
+        if config.selection_facts:
+            return "solve_selection_facts"
+        if config.raw_selection_linker:
+            return "solve_raw_selection_linker"
+        if config.structured_facts:
+            return "solve_structured_facts"
+        return selection_route(state)
+
+    def route_after_selection_facts(state: SolveState) -> str:
+        """Use deterministic selection facts on success, otherwise fallback."""
+        done = (state.get("diag") or {}).get("selection_facts", {}).get("done")
+        if done:
+            return "verify_answer"
+        if config.raw_selection_linker:
+            return "solve_raw_selection_linker"
+        if config.structured_facts:
+            return "solve_structured_facts"
+        return selection_route(state)
+
+    def route_after_raw_selection_linker(state: SolveState) -> str:
+        """Use raw selection on success, otherwise continue to fallback."""
+        done = (state.get("diag") or {}).get("raw_selection_linker", {}).get("done")
+        if done:
+            return "verify_answer"
+        if config.structured_facts:
+            return "solve_structured_facts"
+        return selection_route(state)
+
+    def route_after_structured_facts(state: SolveState) -> str:
+        """Use the structured answer when it succeeded, otherwise fallback."""
+        done = (state.get("diag") or {}).get("structured_facts", {}).get("done")
+        return "verify_answer" if done else selection_route(state)
+
+    def route_after_selection(state: SolveState) -> str:
+        """Fall through to the normal path whenever the fan-out did not answer."""
+        done = (state.get("diag") or {}).get("selection", {}).get("done")
+        return "verify_answer" if done else "generate_pandas"
 
     g = StateGraph(SolveState)
     g.add_node("understand", make_understand(config))
     g.add_node("retrieve", make_retrieve_node(config))
+    g.add_node("trace_capabilities", make_trace_capabilities(config))
+    g.add_node("solve_single_cell", make_solve_single_cell(config))
+    g.add_node("solve_formula_facts", make_solve_formula_facts(config))
+    g.add_node("solve_raw_table_linker", make_solve_raw_table_linker(config))
+    g.add_node("solve_selection_facts", make_solve_selection_facts(config))
+    g.add_node("solve_raw_selection_linker", make_solve_raw_selection_linker(config))
+    g.add_node("solve_structured_facts", make_solve_structured_facts(config))
+    g.add_node("solve_selection", make_solve_selection(config))
     g.add_node("generate_pandas", make_generate_pandas(config))
     g.add_node("execute_and_repair", make_execute_and_repair(config))
     g.add_node("verify_answer", make_verify_answer(config))
+    g.add_node("profile_validate", make_profile_validate(config))
 
     g.set_entry_point("understand")
     g.add_edge("understand", "retrieve")
-    g.add_edge("retrieve", "generate_pandas")
+    g.add_edge("retrieve", "trace_capabilities")
+    g.add_conditional_edges("trace_capabilities", route_after_retrieve,
+                            ["solve_single_cell", "solve_formula_facts", "solve_raw_table_linker", "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
+    g.add_conditional_edges("solve_single_cell", route_after_single_cell,
+                            ["verify_answer", "solve_formula_facts", "solve_raw_table_linker", "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
+    g.add_conditional_edges("solve_formula_facts", route_after_formula_facts,
+                            ["verify_answer", "solve_raw_table_linker", "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
+    g.add_conditional_edges("solve_raw_table_linker", route_after_raw_table_linker,
+                            ["verify_answer", "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
+    g.add_conditional_edges("solve_selection_facts", route_after_selection_facts,
+                            ["verify_answer", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
+    g.add_conditional_edges("solve_raw_selection_linker", route_after_raw_selection_linker,
+                            ["verify_answer", "solve_structured_facts", "solve_selection", "generate_pandas"])
+    g.add_conditional_edges("solve_structured_facts", route_after_structured_facts,
+                            ["verify_answer", "solve_selection", "generate_pandas"])
+    g.add_conditional_edges("solve_selection", route_after_selection,
+                            ["verify_answer", "generate_pandas"])
     g.add_edge("generate_pandas", "execute_and_repair")
     g.add_edge("execute_and_repair", "verify_answer")
-    g.add_edge("verify_answer", END)
+    g.add_edge("verify_answer", "profile_validate")
+    g.add_edge("profile_validate", END)
     return g
 
 
@@ -263,7 +1074,7 @@ def make_initial_state(question_id: int, question: str) -> SolveState:
         "tickers": [], "years": [], "unit_hint": "",
         "metric": "", "operation": "", "doc_type": "unknown",
         # retrieve fills:
-        "table_ids": [],
+        "table_ids": [], "shortlist": [],
         # generate_pandas fills:
         "evidence_tables": [], "frames": {}, "names": {},
         "solution": {}, "codegen_prompt": "",
@@ -294,5 +1105,10 @@ def run_question(question_id: int, question: str) -> SolveState:
 
 __all__ = [
     "SolveState", "arun_question", "build_graph", "get_graph",
-    "make_initial_state", "make_verify_answer", "run_question",
+    "make_initial_state", "make_solve_formula_facts", "make_solve_selection",
+    "make_solve_raw_table_linker", "make_solve_raw_selection_linker",
+    "make_solve_selection_facts",
+    "make_solve_single_cell",
+    "make_trace_capabilities", "make_verify_answer", "make_profile_validate",
+    "run_question",
 ]

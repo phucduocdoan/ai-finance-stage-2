@@ -429,10 +429,52 @@ def _is_empty_value(v) -> bool:
     return str(v).strip().lower() in ("", "-", "--", "nan", "none")
 
 
+def repair_shifted_header_row(df: pd.DataFrame) -> pd.DataFrame:
+    """Undo a header row shifted one column left of its data -- the
+    corpus-wide bank-statement shape (['Unnamed: 0', 'Thuyết minh', ...,
+    'Unnamed: N']) where EVERY header from 'Thuyết minh' onward is off by
+    one column, not just the single column assign_period_headers() checks.
+    assign_period_headers can't reach this on its own: each mis-shifted
+    header still contains its own plausible-looking period text (a stray
+    year mention), so its nxt_has_own_period guard blocks the shift from
+    cascading past the first column (module docstring point 13,
+    VIB_financial_statements_2020_consolidated|10 / qid40's 0-hit). This
+    mirrors src/finance_qa/modules/tools/dataframe.py's
+    repair_shifted_bank_header -- same structural fingerprint, already
+    proven correct corpus-wide there -- reimplemented locally with this
+    file's own NUMERIC_RE/SHORTCODE_RE so the resolver stays independent of
+    the answer pipeline it exists to check."""
+    cols = [str(c) for c in df.columns]
+    if len(cols) < 4:
+        return df
+    if not (
+        cols[0].startswith("Unnamed:")
+        and cols[1].strip().casefold() == "thuyết minh"
+        and cols[-1].startswith("Unnamed:")
+    ):
+        return df
+    # Column 1 is headered "Thuyết minh" (note-reference shortcodes expected),
+    # but under the shift it actually holds the real "Chỉ tiêu" text labels --
+    # mostly non-numeric/non-shortcode content confirms this exact mislabel
+    # rather than a genuine, correctly-labelled Thuyết minh column elsewhere.
+    second = [v for v in df.iloc[:25, 1].tolist() if isinstance(v, str) and v.strip()]
+    if not second:
+        return df
+    frac_textlike = sum(
+        1 for v in second if not (SHORTCODE_RE.match(v.strip()) or NUMERIC_RE.match(v.strip()))
+    ) / len(second)
+    if frac_textlike < 0.8:
+        return df
+    out = df.copy()
+    out.columns = ["STT", "Chỉ tiêu", *cols[1:-1]]
+    return out
+
+
 def load_table_csv(report_id: str, table_pos: int):
     path = TABLES_DIR / report_id / f"table_{table_pos}.csv"
     try:
-        return pd.read_csv(path, dtype=str, header=0), None
+        df = pd.read_csv(path, dtype=str, header=0)
+        return repair_shifted_header_row(df), None
     except Exception as e:  # noqa: BLE001 - a bad/missing CSV is data, not a crash
         return None, str(e)
 

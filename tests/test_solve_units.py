@@ -199,6 +199,12 @@ scaled = run(execute.aexecute(ok, "", frames, question="… bao nhiêu đồng?"
 check("target VND scales up", scaled["answer"] == float(df45.iloc[4]["31/12/2020"]) * 1e6)
 check("submitted query contains the factor", scaled["pandas_query"].endswith("* 1e6"))
 
+hundred_billion = run(
+    execute.aexecute(ok, "", frames, question="… mấy trăm tỷ đồng?", unit_hint="tỷ")
+)
+check("question unit beats lossy unit_hint", hundred_billion["diag"]["target_unit"] == "hundred_billion_vnd")
+check("hundred-billion target scales from table unit", hundred_billion["answer"] == float(df45.iloc[4]["31/12/2020"]) / 1e5)
+
 # The double-scaling bug, end to end: the model writes its own conversion AND
 # mislabels the source unit. Pre-fix this produced answers 1e6-1e15 off gold.
 q45_cell = float(df45.iloc[4]["31/12/2020"])
@@ -223,8 +229,8 @@ broken = ok.model_copy(update={"pandas_query": "df1.iloc[4]['31/12/2021']"})
 calls: list[str] = []
 
 
-async def fake_repair(prompt, query, error):
-    calls.append(error)
+async def fake_repair(prompt, attempts_so_far, *, history=False):
+    calls.append(attempts_so_far[-1][1])
     return ok
 
 
@@ -241,8 +247,8 @@ check("the failed attempt is kept in errors", any("execute[0]" in e for e in rep
 attempts: list[str] = []
 
 
-async def never_fixes(prompt, query, error):
-    attempts.append(error)
+async def never_fixes(prompt, attempts_so_far, *, history=False):
+    attempts.append(attempts_so_far[-1][1])
     return broken
 
 

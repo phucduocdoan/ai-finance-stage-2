@@ -8,8 +8,7 @@ detailed than this file.
 ## Active Architecture
 
 The graph is the only answer flow, for both interactive (`run_question`) and batch
-(`scripts/run_graph.py`) use. There is no router and no per-question solver choice — every
-question takes the same five nodes:
+(`scripts/run_graph.py`) use. The default path is still the grounded pandas-codegen path:
 
 ```text
 understand -> retrieve -> generate_pandas -> execute_and_repair -> verify_answer
@@ -34,6 +33,93 @@ understand -> retrieve -> generate_pandas -> execute_and_repair -> verify_answer
 - **verify_answer** (`modules/solve/verify.py`): a second LLM look at what cell the query
   *actually* read (not what the model claims it read); rewrites once if wrong, keeps the
   rewrite only if it executes and changes the answer. Toggle: `SOLVE_VERIFY_ANSWER=0`.
+
+There is one opt-in structured branch, off by default:
+
+```text
+understand -> retrieve -> solve_structured_facts -> verify_answer
+                                      \-> solve_selection/generate_pandas on fallback
+```
+
+- **solve_structured_facts** (`modules/solve/structured_facts.py`): prototype deterministic
+  solver over `data/derived/long_format.parquet`. The LLM emits a bounded Pydantic
+  `StructuredPlan`; it does not write SQL, pandas, or arithmetic code. DuckDB is only the fact
+  access layer, and Python owns all formulae and unit conversion. Toggle:
+  `SOLVE_STRUCTURED_FACTS=1`.
+- The current branch is deliberately narrow: v1 only accepts selection questions over years or
+  tickers where the selector and answer metrics are in the main-statement catalog. Unsupported
+  or failed plans fall back to the default path.
+- Measured on the 94-question low-confidence gold gate:
+  `structured_v1=44/94`, `tools=43/94`, `base1=42/94`, `base2=42/94`. The branch answered 13
+  questions through structured facts, with 4 structured-only wins (`q363`, `q371`, `q387`,
+  `q390`) and 2 baseline-only losses caused by normal codegen nondeterminism in the fallback
+  path. Keep it off by default until the plan schema and coverage validator improve the 9
+  structured misses.
+
+Do not expand this branch by regexing question text into special cases. The intended next step
+is a richer typed semantic plan (`selection`, `filters`, `answer`, `year_offset`, `expression`)
+plus deterministic validation. Regex is acceptable for cheap canonicalization such as ticker
+resolution, explicit report scope, and metric aliases; it should not be the solve semantics.
+
+There is also a narrow deterministic catalog-selection branch:
+
+```text
+understand -> retrieve -> solve_selection_facts -> execute
+                                      \-> generate_pandas on fallback
+```
+
+- **solve_selection_facts** (`modules/solve/selection_facts.py`): uses the existing
+  main-statement metric catalog and deterministic formula executor for max/min/threshold
+  selection over one clear axis. It is not an LLM planner and does not handle note/detail-table
+  metrics. Toggle: `SOLVE_SELECTION_FACTS=1`.
+- Targeted wins are stable for catalog-backed selection (`q363`, `q553`). The first gold73 run
+  measured `54/73`, but a repeat measured `52/73` because fallback codegen moved; do not cite
+  the total score as robust. The branch itself was `2/2` in both runs, so it remains the
+  candidate baseline flag with `SOLVE_STRUCTURED_FACTS=0`.
+
+There is a second opt-in branch for raw-table cell linking, also off by default:
+
+```text
+understand -> retrieve -> solve_raw_table_linker -> execute
+                                      \-> generate_pandas on fallback
+```
+
+- **solve_raw_table_linker** (`modules/solve/raw_table_linker.py`): covers fixed-scope direct,
+  diff, sum, average, and ratio questions when the answer cells live in raw CSV tables rather
+  than `long_format`. It builds real cell candidates from scoped tables, optionally asks an LLM
+  to map question wording to candidate ids, then Python validates slot order, scope, ambiguity,
+  unit compatibility, and builds the pandas expression. Toggles:
+  `SOLVE_RAW_TABLE_LINKER=1`, `SOLVE_RAW_TABLE_LINKER_PLANNER=1`.
+- The planner's self-confidence is not a control-flow gate. It is telemetry only. Gates are
+  mechanical: row-phrase coverage before/after search expansion, bounded matches per slot,
+  candidate ids that exist, expected candidate count/order, candidate score, scope, and unit kind.
+- The linker uses compact linking context, not whole reports: section/note title, flattened
+  headers, page OCR hint, first-column labels, table-profile row labels, row/column/unit/value
+  for candidates. Candidate context is capped before prompt rendering, and table snippets are
+  limited per slot. If a prompt misses evidence, improve snippet selection or metadata extraction
+  before raising global character limits.
+- First broad gold73 measurement was negative (`raw_linker_on=43/73`, same-session
+  `raw_linker_off=44/73`) because deterministic/direct linking caused regressions. After
+  fail-closed guardrails for low-evidence direct cells, zero cells, single-slot sums, and
+  direct-ratio requests, the opt-in branch measured `49/73` on the same gold73 set
+  (`artifacts/runs/gold73_raw_linker_guardrails_on.jsonl`) versus `44/73` control. Keep the
+  branch opt-in until a repeat broad run or full 1,012-question run checks live nondeterminism
+  and non-gold regressions.
+- **solve_raw_selection_linker** (`modules/solve/raw_selection_linker.py`): experimental
+  opt-in branch for temporal/cross-company raw-table max/min selection. It asks the LLM only to
+  choose bounded candidate ids; Python validates slot coverage, units, total-row policy, ties,
+  and the final ranking. Toggle: `SOLVE_RAW_SELECTION_LINKER=1`. Keep this off by default:
+  current deterministic targeted wins are `q868` and `q974`; older planner-owned wins on `q878`
+  and `q946` are not stable. The branch now models component-row group sums per slot and in-year
+  flow/payable top-candidate selection. It only accepts these paths when Python can choose one
+  deterministic candidate/group for every slot. If component groups are required but ambiguous, it
+  fails closed instead of letting the one-shot planner substitute a broad total or nearby table
+  family.
+
+For future work, treat raw CSVs as the source of truth for detail tables. Do not scale by forcing
+all notes and bank/entity layouts into `long_format`. Add fact layers or domain adapters only for
+measured, stable table families; otherwise prefer bounded raw-table linking with deterministic
+validation and codegen fallback.
 
 The module boundary:
 
@@ -84,6 +170,44 @@ rebuilt today because the v1 metadata file it was built from no longer exists on
 required rebuild order (`enrich_questions -> build_doc_text -> build_dense_index`); the other
 stages are explicit, off-by-default flags on that same CLI.
 
+### Long Format Coverage
+
+`data/derived/long_format.parquet` is a main-statement fact table, not a corpus-wide normalized
+database. It is built by `modules.data.preprocessing.long_format.LongFormatBuilder` from
+`tables_metadata_v2.jsonl` by:
+
+```text
+statement_type in {balance_sheet, income_statement, cash_flow}
+AND has_ma_so_column
+AND row ma_so is numeric with 2-4 digits
+AND cell value parses as numeric
+```
+
+Current coverage:
+
+```text
+metadata tables:            146,246
+BS/IS/CF tables:             14,278
+BS/IS/CF with ma_so:          8,898
+long_format table_ids:        8,218
+long_format rows:           290,230
+reports:                      1,465
+tickers:                         75
+years:                    2015-2025
+```
+
+This is the right substrate for deterministic answers over VAS main-statement metrics:
+`net_revenue`, `cogs`, `gross_profit`, `interest_expense`, `profit_before_tax`, `net_profit`,
+`cfo`, `current_assets`, `inventory`, `total_assets`, `liabilities`, `current_liabilities`,
+`equity`, and derived formulae such as D/E, current ratio, quick ratio, gross/net margin,
+ROA/ROE, interest coverage, and CFO ratios. It is not expected to cover notes, entity tables,
+equity-change tables, bank/CTCK-specific note layouts, or metrics with no stable `ma_so`
+mapping.
+
+The product rule is: if a structured plan's primitive dependencies are covered, execute it
+deterministically; if coverage is missing or the metric is outside the catalog, fall back to raw
+table codegen. Do not make `long_format` pretend to be complete.
+
 ## Verification
 
 These avoid LLM calls:
@@ -112,34 +236,113 @@ tuned against). Score any run or packaged submission against it with:
 PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --run solve=<run.jsonl> --right solve
 ```
 
-The most recent recorded run of the current solve_qa graph
-(`artifacts/runs/solve_gold75_verifyfull.jsonl`, from before this session's deletion/migration)
-scores **37/73 (50.7%)** at 1% relative tolerance, against 29-30/73 (~40%) for the legacy
-submission artifacts it replaced. This number predates the deletion/migration work landed in
-this session — the migration only moved *where* the same graph code lives (`pipelines.finance_qa`
--> `agents.finance.graph` directly) and trimmed unused legacy files; it did not touch
-`understand`/`retrieve`/`modules/solve/*`. A live smoke run (`--ids 371`) confirms the graph
-still runs end-to-end post-migration, but **the 73-question set has not been re-scored against
-the current on-disk code** — do that before treating 50.7% as the current number.
+Current number: **38/73 (52.1%)** at 1% relative tolerance, from
+`artifacts/runs/full1012_qwen35.jsonl` — a full 1,012-question run of the on-disk graph, scored
+post-migration and on the current vLLM backend. Legacy submission artifacts score 29-30/73
+(~40%) on the same set. This reproduces the 37/73 recorded before the migration, so the
+deletion/migration and the server's model swap (see "The Model Behind The Numbers" below) both
+left the score intact.
+
+The local score scripts use 1% relative tolerance for numeric money/ratio answers, but exact
+matching for gold rows whose answer unit is `năm`. This avoids false positives such as a 2025
+prediction being counted correct against gold 2024.
+
+Where the 35 misses go (measured on that run; 60 of the 73 gold rows carry an
+`evidence_table_id`, which is what makes this attributable):
+
+| Bucket | Count | Node at fault |
+|---|---:|---|
+| all gold tables shown to codegen, wrong cell read | 12 | `generate_pandas` |
+| gold tables in the pool, some cut by `codegen_max_tables=3` | 7 | evidence budget |
+| pool holds some gold tables, misses the others | 6 | `retrieve` |
+| no gold table reached the pool at all | 5 | `retrieve` |
+| wrong, gold row carries no table label | 6 | unattributable |
+
+Table-level recall into `table_ids` is **83/97 (85.6%)**, so retrieval is not the binding
+constraint. Cell reading is the largest bucket; the flat `codegen_max_tables=3` cut is second.
+
+**Read `evidence_table_id` as a list, not a string.** 22 of the 60 labelled rows name 2-5 tables
+separated by `;`, three carry parenthetical annotations (`|6 (BS) & |33 (note)`), and one uses a
+bare `|33` that inherits the preceding report id. Comparing the raw field against `table_ids` as
+one atomic token silently fails on every one of those rows, and an earlier version of this table
+did exactly that: it blamed `retrieve` for 18 misses and cell reading for 10, roughly the reverse
+of the truth. Split on `[;&]`, strip parentheticals, match per token — that parses all 97 gold
+tables with nothing left over.
+
+A per-stage trace of the tables that never reached `table_ids` (hard filter -> BM25 -> dense ->
+RRF+primary expansion -> reranker -> judge window -> judge) puts the residue on the judge
+declining candidates it was shown at rank 1-2, not on recall: 2 tables die in the hard filter
+(one is the known BIDV alias gap), 2 are never retrieved by either channel, and 7 are ranked
+inside the judge's top-20 window and not picked. Two of those judge misses were not reproducible
+run-to-run at `judge_thinking=False`, so treat the judge bucket as a range.
+
+### The Model Behind The Numbers
+
+The vLLM server on 8990 serves `Qwen/Qwen3.5-9B` and *also* answers to the old alias
+`Qwen/Qwen3-8B-Instruct`, which is `core/llm.py`'s default `MODEL`. The swap is therefore
+silent — nothing errors, the requests just reach a different model. Every `*_thinking` flag in
+`agents/finance/config.py` is `False` because this model returns an empty reply with
+`enable_thinking=True` at every token budget tried; leave them off unless you have re-measured
+against the server you are actually pointed at.
+
+### Failure Detectors That Need No Gold Labels
+
+Three signals let you count errors across all 1,012 questions without hand labelling:
+
+| Signal | Coverage | Reliability |
+|---|---|---|
+| `item.answer == 0.0` or `None` | 98/1012 (9.7%) | 0 correct on gold — a certain failure |
+| `diag.units.failed` | subset of the above | adds nothing on its own |
+| `diag.verify.correct == false` | 560/938 (60%) | agrees with ground truth 62/71 (87%) on gold |
+
+By question shape (from `questions_enriched.jsonl` `multi_year`/`multi_company`), the certain-
+failure rate is 7.7% for single-cell, 9.6% temporal, 8.0% cross-company, and **24.7% for
+multi-year × multi-company** — the bucket `codegen_max_tables=3` structurally cannot serve.
 
 ## Next Work
 
-1. **Re-run the unbiased-73 gold set against current code** and confirm the 50.7% figure still
-   holds post-migration before using it as a baseline for further changes.
-2. **Run the statement-type classifier at full scale.** `scripts/classify_statement_type.py` has
+1. **Measure raw-table linking across Type 2-5 before expanding it.** Run the current opt-in
+   branch on a broad gold slice with `SOLVE_CELL_LOCATOR=1`, `SOLVE_FORMULA_FACTS=1`,
+   `SOLVE_RAW_TABLE_LINKER=1`, and `SOLVE_RAW_TABLE_LINKER_PLANNER=1`. Bucket every miss by:
+   unsupported request shape, missing scoped table, missing row candidate, search expansion not
+   adding slot coverage, wrong candidate among visible candidates, validation reject, or fallback
+   codegen error. Only promote the branch after this shows net wins without a regression cluster.
+2. **Build raw-linking metadata incrementally, not as a full long-format rewrite.** Start with a
+   corpus-level table/row index keyed by table id, ticker, year, doc type, title/header, unit,
+   first-column labels, and profiled row labels. Then add domain adapters only for measured,
+   stable families such as bank notes, securities-company notes, and movement tables. Avoid
+   company-specific adapters unless a failure cannot be represented by metadata plus row/header
+   linking.
+3. **Structured facts v2 remains useful only for clean main-statement semantics.** Keep
+   `understand` coarse and add a richer solve-plan schema after retrieval for VAS fact-layer
+   cases: `candidates`, `selection.metric/order/axis`, `filters`,
+   `answer.metric/expression/unit`, and `answer.year_offset`. The executor must remain
+   deterministic, with coverage validation before execution and codegen fallback on miss.
+4. **Raise per-cell accuracy on the questions codegen already sees.** The largest bucket, 12 of
+   the 35 misses, is every gold table sitting in front of the model with the wrong cell read out
+   of it, and single-cell questions are 43% of the corpus. Cheapest lever, and it touches neither
+   retrieval nor the evidence budget.
+5. **Run the statement-type classifier at full scale.** `scripts/classify_statement_type.py` has
    only been run on two ~10-row samples (`artifacts/audits/sample_title_only.jsonl`,
    `sample_with_llm.jsonl`) to check output shape. The real ~2,600-row "unknown" backlog has
    never been classified, and no patch has been reviewed or merged into
    `tables_metadata_v2.jsonl`.
-3. **Error taxonomy on `generate_pandas` misses.** The biggest lever is still "the model reads
-   the wrong cell" (verify_answer's own rationale: ~34/73 gold questions in the last full
-   measurement). Categorize the current misses (wrong table vs wrong row vs wrong column vs
-   wrong unit) before changing anything in `modules/solve/`.
-4. **DeepInfra safety-guard gap in the orchestrator** (flagged by review, non-blocking): when
+6. **Make the evidence budget per-question.** The error taxonomy this item used to ask for is
+   done — see the miss table above. Two claims it overturns. First, "the model reads the wrong
+   cell (~34 of 73)" was never a measurement: it was `verify_answer`'s own verdict count (33 of 71
+   gold questions say `correct: false`), and that verdict says only *the answer is wrong*, not
+   *which node made it wrong*. Second, cell reading really is the top bucket once the misses are
+   attributed properly — 12 of 35 — so the old conclusion was right for the wrong reason.
+   The actionable part is the runner-up: 7 misses have every gold table in the pool and lose some
+   of them to the flat `codegen_max_tables=3` cut. The fix is a budget that scales with the
+   question's shape, not more tables for everyone — raising the flat limit 3 -> 10 was measured
+   and *lowered* the score (`docs/DECISIONS.md` section 4). Multi-year × multi-company questions
+   are 8.4% of the corpus and carry a 24.7% certain-failure rate, three times every other shape.
+7. **DeepInfra safety-guard gap in the orchestrator** (flagged by review, non-blocking): when
    `build_data_pipeline.py --with-deepinfra-index` runs with no `--limit`, it can start billing
    immediately with no confirmation prompt, because the orchestrator constructs
    `DeepInfraIndexBuildConfig(yes=True)` directly instead of surfacing the module's own guard.
-5. **`docs/tables_metric_probes.md`** tracks a still-open, separate investigation: the
+8. **`docs/tables_metric_probes.md`** tracks a still-open, separate investigation: the
    leaderboard's `relevant_tables` scoring format. Read that file before spending another
    submission probing it — it records 11 already-spent attempts and what each ruled out.
 
@@ -151,6 +354,7 @@ the current on-disk code** — do that before treating 50.7% as the current numb
   documented here; see git history for `docs/REPL_REDESIGN.md` if picking this up again) because
   it measured better, not because typed tools are wrong in principle.
 - `data/derived/long_format.parquet` has OCR/parse gaps (e.g. POW 2019 separate lost mã số 151
-  because the label OCR'd as "Chỉ phí"). Not exercised by the current graph path, but relevant if
-  anything starts reading it again.
+  because the label OCR'd as "Chỉ phí"). It is now exercised by the opt-in
+  `SOLVE_STRUCTURED_FACTS=1` path, so every structured executor change needs a coverage/fallback
+  check rather than assuming the fact table is complete.
 - #790 fails to resolve BIDV (ticker resolution) — not reverified since the rewrite.

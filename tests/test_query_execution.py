@@ -8,6 +8,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from finance_qa.modules.tools.numeric import parse_number
@@ -92,6 +94,16 @@ check("giá trị bank nằm đúng cột năm",
       bank_df.loc[5, "2018Triệu VND"] == 713_942.0,
       repr(bank_df.loc[5, "2018Triệu VND"]))
 
+# A second bank layout has a named STT header, but each data row lost the STT
+# cell, so labels sit under `STT` and monetary values shift one column left.
+shifted_stt_df = load_frame("KLB_financial_statements_2019_consolidated|8")
+check("sửa header bank STT nhưng dữ liệu lệch trái",
+      list(shifted_stt_df.columns[:4]) == ["Chỉ tiêu", "Thuyết minh", "Năm nay", "Năm trước"],
+      repr(list(shifted_stt_df.columns)))
+check("giá trị bank STT lệch nằm đúng cột hiện tại",
+      shifted_stt_df.loc[13, "Năm nay"] == 1_041_601.0,
+      repr(shifted_stt_df.loc[13, "Năm nay"]))
+
 # A two-row HTML header with rowspan/colspan was serialized left-aligned by the
 # legacy extractor.  The first data row is really the subheader and the ending
 # balance sits in an anonymous column unless load_frame reconstructs the spans.
@@ -112,6 +124,43 @@ check("validate item hợp lệ", validate(item()) == [], str(validate(item())))
 # --- multi-statement fallback -------------------------------------------------
 multi = 'x = df1["Năm 2015"].iloc[2]\nanswer = float(x)'
 check("exec() fallback cho nhiều câu lệnh", run_query(multi, {"df1": df}) == TRUTH)
+
+# Mixed note columns intentionally stay as text during load_frame normalization.
+# Scalar cell reads still need to behave numerically once the query picks an
+# actual value out of such a column.
+mixed_cells = pd.DataFrame(
+    {
+        "Nhãn": ["Tỷ lệ sở hữu", "Giá trị", "Tên"],
+        "Mixed": ["12,5%", "1.234,56", "Doanh thu"],
+    }
+)
+check("scalar percent text is executable", run_query('df1.iloc[0]["Mixed"]', {"df1": mixed_cells}) == 12.5)
+check(
+    "row-then-column scalar text is coerced before arithmetic",
+    run_query('df1.iloc[1]["Mixed"] + 1', {"df1": mixed_cells}) == 1235.56,
+)
+check(
+    "iloc tuple scalar text is coerced before arithmetic",
+    run_query("df1.iloc[1, 1] * 2", {"df1": mixed_cells}) == 2469.12,
+)
+check(
+    "series iloc scalar text is coerced before arithmetic",
+    run_query('df1["Mixed"].iloc[1] - 34.56', {"df1": mixed_cells}) == 1200.0,
+)
+agg_cells = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 0.0]})
+check(
+    "scalar boolean sum avoids sandbox import lookup",
+    run_query('((df1.iloc[0]["a"] > 0) | (df1.iloc[1]["a"] > 0)).sum()', {"df1": agg_cells}) == 1.0,
+)
+check(
+    "scalar max avoids sandbox import lookup",
+    run_query('(df1.iloc[0]["a"] + df1.iloc[1]["a"]).max()', {"df1": agg_cells}) == 3.0,
+)
+check(
+    "scalar mean avoids sandbox import lookup",
+    run_query('(df1.iloc[0]["a"] + df1.iloc[1]["a"]).mean()', {"df1": agg_cells}) == 3.0,
+)
+check("series sum still aggregates", run_query('df1["a"].sum()', {"df1": agg_cells}) == 3.0)
 
 # --- each failure mode is actually caught -------------------------------------
 cases = {
@@ -135,8 +184,6 @@ for name, bad in cases.items():
     check(f"bắt được: {name}", bool(errs), errs[0] if errs else "KHÔNG BÁO LỖI")
 
 # --- the silent-concat bug this module exists to prevent ----------------------
-import pandas as pd  # noqa: E402
-
 raw = pd.read_csv(
     TABLES_DIR / TID.rsplit("|", 1)[0] / "table_4.csv",
     dtype=str, keep_default_na=False,

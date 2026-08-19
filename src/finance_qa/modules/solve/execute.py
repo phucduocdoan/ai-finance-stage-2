@@ -9,7 +9,7 @@ the grader re-executes it and must reproduce the submitted answer.
 from __future__ import annotations
 
 import re
-from typing import Mapping
+from typing import Mapping, Sequence
 
 import pandas as pd
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -28,11 +28,23 @@ from finance_qa.modules.tools.python_exec import run_query
 
 MAX_REPAIRS = 2
 
-# Not 0.0. The repair prompt differs from the generation prompt by one appended
-# error line, so at temperature 0 the model re-emits the identical query: all 8
-# questions that died on the 60-question gold set logged the *same* error twice
-# more and never varied. A small amount of noise is what makes the retry a retry.
+# Control-arm temperature. Not 0.0, because without `repair_history` the repair
+# prompt differs from the generation prompt by one appended error line, so at
+# temperature 0 the model re-emits the identical query: all 8 questions that died
+# on the 60-question gold set logged the *same* error twice more and never varied.
+#
+# That reading of the symptom was wrong. The cause is not sampling: `_arepair`
+# built a fresh two-message prompt on every attempt, so attempt 2 never saw
+# attempt 1's query or error and had no way to know it was repeating itself.
+# Measured on the gold94 runs, noise at 0.3 does not fix it — of the questions
+# that entered the loop, the error was byte-identical across every attempt for 5
+# of 8 (base1), 5 of 7 (base2) and 4 of 7 (fanout), q381 and q396 three times over.
 REPAIR_TEMPERATURE = 0.3
+
+# History arm. With the attempts block below, the prompt genuinely changes between
+# attempts — it grows by one failed query each time — so the reason to inject noise
+# is gone and the retry can be as reproducible as the first call.
+HISTORY_TEMPERATURE = 0.0
 
 _DF_VAR = re.compile(r"\bdf\d+\b")
 
@@ -44,7 +56,57 @@ true column names of every dataframe the query touched — the fixed query must
 index by a name from that list, copied character for character."""
 
 
-def describe_error(exc: Exception, query: str, frames: Mapping[str, pd.DataFrame]) -> str:
+def _blank_cell_error(exc: Exception) -> bool:
+    """Is this the failure where the query found a cell holding no number?
+
+    Three shapes of the same mistake: the cell is empty (`nan`), the cell holds
+    text (`'V.19.'`, `'Đang hoạt động'`, `'1,23%'`), or arithmetic ran against a
+    column that is text. Naming the column list back at the model does not help
+    here — the column it used exists, it is the *cell* that is unusable.
+    """
+    if isinstance(exc, (TypeError, ValueError)):
+        return any(
+            token in str(exc)
+            for token in ("non-finite", "could not convert string to float",
+                          "did not contain a loop", "not supported for the input types",
+                          "unsupported operand")
+        )
+    return False
+
+
+def _row_dump(solution: PandasSolution, frames: Mapping[str, pd.DataFrame]) -> str:
+    """The row the model said it was aiming at, cell by cell.
+
+    This is the single largest hole in the repair loop: over a 1012-question run
+    `ValueError: query returned non-finite nan` was logged 91 times, more than
+    every other execution error combined, and it names neither the row nor the
+    value. The repair had nothing to work from and re-emitted the query it had
+    just written — measured, the error was byte-identical on all three attempts
+    for 56 of the 79 questions that ended at 0.0.
+    """
+    frame = frames.get(solution.table_variable)
+    if frame is None:
+        return ""
+    try:
+        row = frame.iloc[int(str(solution.target_row).strip())]
+    except (TypeError, ValueError, IndexError):
+        return ""  # a label-indexed or multi-cell query: the dump would be a guess
+    cells = [
+        f"{str(col)!r}={'(rỗng)' if pd.isna(val) or not str(val).strip() else repr(str(val).strip())}"
+        for col, val in row.items()
+    ]
+    return (
+        f"Hàng bạn đã đọc, {solution.table_variable}.iloc[{solution.target_row}], "
+        f"chứa: {'; '.join(cells)}"
+    )
+
+
+def describe_error(
+    exc: Exception,
+    query: str,
+    frames: Mapping[str, pd.DataFrame],
+    solution: PandasSolution | None = None,
+) -> str:
     """The failure as the repair call needs to see it.
 
     `str(exc)` alone is what made the loop a no-op: a `KeyError` arrives as the
@@ -55,6 +117,15 @@ def describe_error(exc: Exception, query: str, frames: Mapping[str, pd.DataFrame
     lines = [f"{type(exc).__name__}: {exc}"]
     if isinstance(exc, KeyError):
         lines.append("(không có cột hay nhãn nào mang tên này)")
+    if solution is not None and _blank_cell_error(exc):
+        dump = _row_dump(solution, frames)
+        if dump:
+            lines.append(dump)
+        lines.append(
+            "Ô bạn đọc không chứa số. Chọn ô khác: cùng chỉ tiêu nhưng ở cột số "
+            "liệu khác, hoặc hàng khác mang đúng nhãn chỉ tiêu mà câu hỏi cần. "
+            "Không ép kiểu, không bịa số."
+        )
     for var in sorted(set(_DF_VAR.findall(query))):
         frame = frames.get(var)
         if frame is None:
@@ -68,15 +139,48 @@ def describe_error(exc: Exception, query: str, frames: Mapping[str, pd.DataFrame
     return "\n".join(lines)
 
 
-async def _arepair(prompt: str, query: str, error: str) -> PandasSolution:
-    user = (
-        f"{prompt}\n\n"
-        f"Truy vấn trước đó:\n{query}\n\n"
-        f"Lỗi khi chạy:\n{error}"
+def _attempts_block(attempts: Sequence[tuple[str, str]]) -> str:
+    """Every query already tried and why it failed, most recent one in full.
+
+    The earlier entries keep only the first line of `describe_error` — the rest of
+    it is the shape and column list of the same dataframes, which does not change
+    between attempts, so repeating it three times would spend prompt budget on
+    dilution. What the model is missing is the *queries it has already spent*, and
+    those are one line each.
+    """
+    lines = []
+    for i, (query, detail) in enumerate(attempts, 1):
+        body = detail if i == len(attempts) else (detail.splitlines() or [""])[0]
+        lines.append(f"Lần {i} — truy vấn đã chạy:\n{query or '(rỗng)'}\nLỗi:\n{body}")
+    lines.append(
+        "Tất cả các truy vấn trên đã chạy và đều lỗi. Đừng nộp lại bất kỳ truy vấn "
+        "nào trong số đó — hãy đọc một ô khác."
     )
-    model = get_chat_model(
-        thinking=False, max_tokens=1024, temperature=REPAIR_TEMPERATURE
-    )
+    return "\n\n".join(lines)
+
+
+async def _arepair(
+    prompt: str, attempts: Sequence[tuple[str, str]], *, history: bool
+) -> PandasSolution:
+    """One repair call. With `history`, it sees every attempt; without, only the last.
+
+    The attempts are rendered into the user message rather than replayed as an
+    AIMessage/ToolMessage exchange because `with_structured_output` returns the
+    parsed object and discards the raw reply — a reconstructed tool-call turn would
+    be invented, not recorded. A plain block carries the same facts.
+    """
+    query, detail = attempts[-1]
+    if history:
+        user = f"{prompt}\n\n{_attempts_block(attempts)}"
+        temperature = HISTORY_TEMPERATURE
+    else:
+        user = (
+            f"{prompt}\n\n"
+            f"Truy vấn trước đó:\n{query}\n\n"
+            f"Lỗi khi chạy:\n{detail}"
+        )
+        temperature = REPAIR_TEMPERATURE
+    model = get_chat_model(thinking=False, max_tokens=1024, temperature=temperature)
     result = await model.with_structured_output(
         PandasSolution, method=STRUCTURED_METHOD
     ).ainvoke([SystemMessage(content=REPAIR_SYSTEM), HumanMessage(content=user)])
@@ -91,6 +195,7 @@ async def arun_with_repair(
     frames: Mapping[str, pd.DataFrame],
     *,
     max_repairs: int = MAX_REPAIRS,
+    repair_history: bool = False,
 ) -> tuple[PandasSolution, float | None, list[str]]:
     """Execute ``solution.pandas_query``, repairing on error.
 
@@ -99,25 +204,26 @@ async def arun_with_repair(
     None if every attempt failed.
     """
     errors: list[str] = []
-    # What the repair call is shown, which is not what the run record keeps: the
-    # column dump is a few hundred chars per attempt and belongs in the prompt,
-    # not in the JSONL.
-    detail = ""
+    # Every (query, failure) the loop has spent, which is not what the run record
+    # keeps: the column dump is a few hundred chars per attempt and belongs in the
+    # prompt, not in the JSONL. Accumulated rather than overwritten so the repair
+    # call can see what it has already tried — see `REPAIR_TEMPERATURE`.
+    attempts: list[tuple[str, str]] = []
     for attempt in range(max_repairs + 1):
         query = (solution.pandas_query or "").strip()
         if not query:
             errors.append("codegen: pandas_query rỗng")
-            detail = "Truy vấn rỗng — hãy viết một biểu thức pandas."
+            attempts.append((query, "Truy vấn rỗng — hãy viết một biểu thức pandas."))
         else:
             try:
                 return solution, float(run_query(query, dict(frames))), errors
             except Exception as exc:  # noqa: BLE001 - the repair loop's input
                 errors.append(f"execute[{attempt}]: {type(exc).__name__}: {exc}")
-                detail = describe_error(exc, query, frames)
+                attempts.append((query, describe_error(exc, query, frames, solution)))
         if attempt == max_repairs:
             break
         try:
-            solution = await _arepair(prompt, query, detail)
+            solution = await _arepair(prompt, attempts, history=repair_history)
         except Exception as exc:  # noqa: BLE001 - repair itself can fail
             errors.append(f"repair[{attempt}]: {exc}")
             break
@@ -154,7 +260,7 @@ def apply_units(
         )
 
     source, fallback = resolve_source_unit(detected, solution.source_unit)
-    target = unit_from_hint(unit_hint) or unit_from_hint(question) or solution.target_unit or "unknown"
+    target = unit_from_hint(question) or unit_from_hint(unit_hint) or solution.target_unit or "unknown"
     raw_query, removed = strip_scale_factor(solution.pandas_query)
     query = scale_expression(raw_query, source, target)
     return query, {
@@ -176,10 +282,11 @@ async def aexecute(
     unit_hint: str = "",
     names: Mapping[str, str] | None = None,
     max_repairs: int = MAX_REPAIRS,
+    repair_history: bool = False,
 ) -> dict:
     """Full execute-and-repair step. Returns the answer, final query and diag."""
     solution, raw, errors = await arun_with_repair(
-        solution, prompt, frames, max_repairs=max_repairs
+        solution, prompt, frames, max_repairs=max_repairs, repair_history=repair_history
     )
     if raw is None:
         # 0.0 with the last query attached: the query is still worth submitting
@@ -221,6 +328,6 @@ async def aexecute(
 
 
 __all__ = [
-    "MAX_REPAIRS", "REPAIR_TEMPERATURE", "aexecute", "apply_units",
-    "arun_with_repair", "describe_error",
+    "HISTORY_TEMPERATURE", "MAX_REPAIRS", "REPAIR_TEMPERATURE", "aexecute",
+    "apply_units", "arun_with_repair", "describe_error",
 ]

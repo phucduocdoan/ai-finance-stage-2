@@ -9,6 +9,7 @@ import math
 import pandas as pd
 
 from finance_qa.modules.data.table_store import load_frame, source_csv, submission_csv_name
+from finance_qa.modules.tools.numeric import NIL_MARKS, parse_number
 
 SAFE_GLOBALS = {
     "__builtins__": {
@@ -20,6 +21,130 @@ SAFE_GLOBALS = {
     },
     "pd": pd,
 }
+
+
+def _coerce_cell(value):
+    """Coerce scalar table cells that normalize_frame could not convert.
+
+    Most numeric columns are converted when the CSV is loaded. Note tables still
+    have mixed columns where a real numeric cell can sit next to labels or
+    percentages, so column-wide normalization deliberately leaves those columns
+    as text. The query contract is scalar numeric output; this helper handles
+    that final scalar case without changing non-numeric labels.
+    """
+    if isinstance(value, str):
+        text = value.strip()
+        if text in NIL_MARKS:
+            return 0.0
+        if text.endswith("%"):
+            parsed = parse_number(text[:-1].strip())
+            return parsed if parsed is not None else value
+        parsed = parse_number(text)
+        return parsed if parsed is not None else value
+    return value
+
+
+SAFE_GLOBALS["_coerce_cell"] = _coerce_cell
+
+
+def _safe_method_aggregate(value, method: str):
+    """Run scalar/collection aggregates without depending on eval builtins."""
+    value = _coerce_cell(value)
+    if isinstance(value, (pd.Series, pd.DataFrame)):
+        return getattr(value, method)()
+    if isinstance(value, (list, tuple, set)):
+        values = [_coerce_cell(item) for item in value]
+        if method == "sum":
+            return sum(values)
+        if method == "max":
+            return max(values)
+        if method == "mean":
+            return sum(values) / len(values)
+    if isinstance(value, bool):
+        return int(value) if method == "sum" else value
+    if hasattr(value, "item"):
+        scalar = value.item()
+        if isinstance(scalar, bool):
+            return int(scalar) if method == "sum" else scalar
+        return scalar
+    return value
+
+
+SAFE_GLOBALS["_safe_method_aggregate"] = _safe_method_aggregate
+
+
+def _scalar_slice(node: ast.AST) -> bool:
+    return not isinstance(node, (ast.Slice, ast.List, ast.Set, ast.Dict))
+
+
+def _df_name(node: ast.AST) -> bool:
+    return isinstance(node, ast.Name) and node.id.startswith("df") and node.id[2:].isdigit()
+
+
+def _iloc_or_iat(node: ast.AST) -> bool:
+    return isinstance(node, ast.Attribute) and node.attr in {"iloc", "iat"} and _df_name(node.value)
+
+
+def _scalar_iloc_tuple(node: ast.Subscript) -> bool:
+    if not _iloc_or_iat(node.value) or not isinstance(node.slice, ast.Tuple):
+        return False
+    return len(node.slice.elts) == 2 and all(_scalar_slice(elt) for elt in node.slice.elts)
+
+
+def _row_then_column(node: ast.Subscript) -> bool:
+    value = node.value
+    if not isinstance(value, ast.Subscript) or not _iloc_or_iat(value.value):
+        return False
+    return _scalar_slice(value.slice) and _scalar_slice(node.slice)
+
+
+def _series_iloc_scalar(node: ast.Subscript) -> bool:
+    value = node.value
+    if not isinstance(value, ast.Attribute) or value.attr not in {"iloc", "iat"}:
+        return False
+    # Do not wrap df.iloc[row]: that returns a row Series. Other .iloc[row]
+    # patterns here are normally Series -> scalar, e.g. df["col"].iloc[0].
+    return not _df_name(value.value) and _scalar_slice(node.slice)
+
+
+class _CellReadCoercer(ast.NodeTransformer):
+    """Wrap scalar dataframe cell reads in _coerce_cell(...)."""
+
+    def visit_Call(self, node: ast.Call):  # noqa: N802 - ast API name
+        node = self.generic_visit(node)
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"sum", "max", "mean"}
+            and not node.args
+            and not node.keywords
+        ):
+            return ast.copy_location(
+                ast.Call(
+                    func=ast.Name(id="_safe_method_aggregate", ctx=ast.Load()),
+                    args=[node.func.value, ast.Constant(node.func.attr)],
+                    keywords=[],
+                ),
+                node,
+            )
+        return node
+
+    def visit_Subscript(self, node: ast.Subscript):  # noqa: N802 - ast API name
+        node = self.generic_visit(node)
+        if not isinstance(node.ctx, ast.Load):
+            return node
+        if _scalar_iloc_tuple(node) or _row_then_column(node) or _series_iloc_scalar(node):
+            return ast.copy_location(
+                ast.Call(func=ast.Name(id="_coerce_cell", ctx=ast.Load()), args=[node], keywords=[]),
+                node,
+            )
+        return node
+
+
+def _compile_query(query: str, mode: str):
+    tree = ast.parse(query, mode=mode)
+    tree = _CellReadCoercer().visit(tree)
+    ast.fix_missing_locations(tree)
+    return compile(tree, "<query>", mode)
 
 
 def query_names(query: str) -> set[str]:
@@ -47,9 +172,9 @@ def run_query(query: str, frames: dict[str, pd.DataFrame]) -> float:
     """Evaluate an expression query, or execute statements that assign ``answer``."""
     namespace = dict(frames)
     try:
-        result = eval(compile(query, "<query>", "eval"), SAFE_GLOBALS, namespace)
+        result = eval(_compile_query(query, "eval"), SAFE_GLOBALS, namespace)
     except SyntaxError:
-        exec(compile(query, "<query>", "exec"), SAFE_GLOBALS, namespace)
+        exec(_compile_query(query, "exec"), SAFE_GLOBALS, namespace)
         if "answer" not in namespace:
             raise ValueError("multi-statement query must assign `answer`")
         result = namespace["answer"]
@@ -64,6 +189,7 @@ def run_query(query: str, frames: dict[str, pd.DataFrame]) -> float:
             )
     elif hasattr(result, "item"):
         result = result.item()
+    result = _coerce_cell(result)
     value = float(result)
     if not math.isfinite(value):
         raise ValueError(f"query returned non-finite {value!r}")

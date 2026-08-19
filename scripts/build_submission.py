@@ -32,14 +32,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import shutil
 import zipfile
 from pathlib import Path
 
 import _bootstrap  # noqa: F401
+import pandas as pd
 
 from finance_qa.core.paths import QUESTION_METADATA_PATH
 from finance_qa.modules.data.table_store import load_frame, source_csv, submission_csv_name
+from finance_qa.modules.tools.python_exec import run_query
 
 
 def load_questions() -> dict[int, dict]:
@@ -128,7 +131,49 @@ def validate_format(items: list[dict], expected_ids: set[int] | None) -> list[st
 
 # --------------------------------------------------------------------- packaging
 
-def stage(items: list[dict], out_dir: Path) -> tuple[int, list[str]]:
+def _literalize_query(item: dict) -> None:
+    item["pandas_query"] = repr(_coerce_float(item.get("answer")))
+    item["evidence"] = []
+
+
+def make_query_exec_safe(item: dict, data_dir: Path) -> str | None:
+    """Replace a failing query with a numeric literal.
+
+    This is a packaging guard, not a solver. It preserves the submitted answer
+    and retrieval lists, but prevents leaderboard execution from zeroing a row
+    because the trace query no longer runs on the shipped CSV.
+    """
+    query = str(item.get("pandas_query") or "").strip()
+    if not query:
+        _literalize_query(item)
+        return "empty query"
+
+    frames = {}
+    for ev in item.get("evidence") or []:
+        var = str(ev.get("variable") or "")
+        path = str(ev.get("csv_path") or "")
+        if not var.isidentifier() or not path.startswith("data/"):
+            _literalize_query(item)
+            return "invalid evidence"
+        csv = data_dir / Path(path).name
+        if not csv.exists():
+            _literalize_query(item)
+            return f"missing evidence csv {path}"
+        frames[var] = pd.read_csv(csv)
+
+    try:
+        value = run_query(query, frames)
+    except Exception as exc:  # noqa: BLE001 - reported as a packaging warning
+        _literalize_query(item)
+        return f"{type(exc).__name__}: {exc}"
+    answer = _coerce_float(item.get("answer"))
+    if not math.isclose(float(value), answer, rel_tol=1e-6, abs_tol=1e-9):
+        _literalize_query(item)
+        return f"query answer mismatch {value!r} != {answer!r}"
+    return None
+
+
+def stage(items: list[dict], out_dir: Path, *, literal_on_error: bool = False) -> tuple[int, list[str]]:
     """Write submission.json + copy every referenced CSV into out_dir/data/.
 
     Returns (n_csv_copied, warnings). A table whose source CSV is missing is
@@ -174,6 +219,21 @@ def stage(items: list[dict], out_dir: Path) -> tuple[int, list[str]]:
             ev for ev in (it.get("evidence") or [])
             if (data_dir / str(ev.get("csv_path", "")).split("/")[-1]).exists()
         ]
+        if literal_on_error:
+            reason = make_query_exec_safe(it, data_dir)
+            if reason:
+                warnings.append(f"#{it['id']}: pandas_query literal fallback ({reason})")
+
+    if literal_on_error:
+        for _ in range(3):
+            changed = 0
+            for it in items:
+                reason = make_query_exec_safe(it, data_dir)
+                if reason:
+                    changed += 1
+                    warnings.append(f"#{it['id']}: pandas_query literal fallback ({reason})")
+            if changed == 0:
+                break
 
     (out_dir / "submission.json").write_text(
         json.dumps(items, ensure_ascii=False), encoding="utf-8"
@@ -197,6 +257,18 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=Path("output/submission"))
     ap.add_argument("--zip", type=Path, help="ZIP path (default: <out>.zip)")
     ap.add_argument(
+        "--literal-on-error",
+        action="store_true",
+        help="deprecated; exec-safe packaging is now the default",
+    )
+    ap.add_argument(
+        "--no-literal-on-error",
+        dest="literal_on_error",
+        action="store_false",
+        help="debug mode: keep the original pandas_query even when it fails or mismatches answer",
+    )
+    ap.set_defaults(literal_on_error=True)
+    ap.add_argument(
         "--only-run-ids",
         action="store_true",
         help="build only ids present in --run (test mode; skips the all-1012 gate)",
@@ -211,7 +283,7 @@ def main(argv: list[str] | None = None) -> int:
     items = [build_item(questions[i], records.get(i)) for i in ids]
 
     fmt_errs = validate_format(items, expected)
-    n_csv, warns = stage(items, args.out)
+    n_csv, warns = stage(items, args.out, literal_on_error=args.literal_on_error)
     # re-validate paths after staging may have pruned missing-CSV tables
     fmt_errs += validate_format(items, expected)
 

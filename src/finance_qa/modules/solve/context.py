@@ -87,8 +87,14 @@ def _grid(df: pd.DataFrame) -> str:
     return f"{head}\n   ... {hidden} hàng ở giữa bị ẩn ...\n{tail}"
 
 
-def table_context(variable: str, table_id: str, df: pd.DataFrame) -> str:
-    """Full context block for one evidence table."""
+def table_context(variable: str, table_id: str, df: pd.DataFrame, *, grid: bool = True) -> str:
+    """Full context block for one evidence table.
+
+    `grid=False` keeps the header — identity, declared unit, column names and the
+    year legend — and drops the rows. That is the shape a lookup-first prompt
+    wants: the period/unit facts a query needs are all in the header, while the
+    rows are what a second near-duplicate table turns into noise.
+    """
     meta = meta_for(table_id)
     unit, where = detect_table_unit(df, meta.get("context_page_text") or "")
 
@@ -114,6 +120,9 @@ def table_context(variable: str, table_id: str, df: pd.DataFrame) -> str:
     legend = year_legend(df, table_id, meta.get("year"))
     if legend:
         header.append(legend)
+    if not grid:
+        header.append("Cột: " + " | ".join(str(c) for c in df.columns))
+        return "\n".join(header)
     return "\n".join(header) + "\n\n" + _grid(df)
 
 

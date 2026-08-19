@@ -10,7 +10,7 @@ def make_retrieve_node(cfg):
     """Build the LangGraph retrieve node bound to agent config ``cfg``."""
 
     async def retrieve(state: Mapping[str, Any]) -> dict[str, Any]:
-        table_ids, retrieve_errors = await aretrieve_table_ids(
+        table_ids, shortlist, retrieve_errors = await aretrieve_table_ids(
             state["question"],
             int(state["id"]),
             list(state.get("tickers") or []),
@@ -23,6 +23,9 @@ def make_retrieve_node(cfg):
         )
         return {
             "table_ids": table_ids,
+            # Everything past the hard filter, for `find_rows` to search. Not
+            # submitted — `table_ids` is the scored list.
+            "shortlist": shortlist,
             "errors": list(state.get("errors") or []) + retrieve_errors,
         }
 
