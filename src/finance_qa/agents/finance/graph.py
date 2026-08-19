@@ -827,6 +827,20 @@ def make_solve_single_cell(config: FinanceAgentConfig):
     return solve_single_cell
 
 
+# The narrow solvers (cell_locator, formula_facts, raw_table_linker,
+# selection_facts, raw_selection_linker, structured_facts) each say, in their own
+# comment, that they leave `codegen_prompt` empty so verify_answer passes
+# through — which meant diag["verify"] was empty for every one of them. Measured
+# on a full 1012-question run: present for 495 of 520 codegen answers, 0 of 492
+# answers from the other five solvers combined, so half the corpus carried no
+# quality signal at all. True keeps that half a *measurement* only: `averify`
+# runs and diag["verify"] gets filled in, but `arevise` never does, because none
+# of those solvers build the table_ids/evidence bookkeeping a kept revision
+# would need — a revision that silently miswrote that would ship a wrong answer
+# instead of falling back, which is what happens on the codegen path below.
+VERIFY_NARROW_SOLVERS_OBSERVE_ONLY = True
+
+
 def make_verify_answer(config: FinanceAgentConfig):
     """Check the cell the query read, and rewrite the query once if it is wrong.
 
@@ -848,7 +862,7 @@ def make_verify_answer(config: FinanceAgentConfig):
         names = state.get("names") or {}
         prompt = state.get("codegen_prompt") or ""
         drop = {"codegen_prompt": ""}  # prompt text, not a result
-        if not config.verify_answer or not frames or not prompt:
+        if not config.verify_answer:
             return drop
         # A query that never ran has no cell to check, and the verifier shown one
         # reads the 0.0 as an answer and approves it (qid280). Repair already had
@@ -856,6 +870,20 @@ def make_verify_answer(config: FinanceAgentConfig):
         # different idea.
         if (state.get("diag") or {}).get("units", {}).get("failed"):
             return drop
+
+        # A narrow solver never built a codegen prompt (see the comment above),
+        # so there is nothing to show the checker unless one is built here — the
+        # same question + evidence grids codegen would have shown, empty for the
+        # three solvers (formula_facts, selection_facts, structured_facts) that
+        # answer from the fact catalog rather than a loaded table.
+        narrow = not prompt
+        if narrow:
+            if not VERIFY_NARROW_SOLVERS_OBSERVE_ONLY or not query:
+                return drop
+            prompt = build_prompt(state["question"], frames, names)
+        elif not frames or not prompt:
+            return drop
+
         try:
             verdict, _ = await averify(
                 prompt, query, float(state.get("answer") or 0.0),
@@ -863,6 +891,17 @@ def make_verify_answer(config: FinanceAgentConfig):
             )
         except Exception as exc:  # noqa: BLE001 - a failed check is not a failed answer
             return {**drop, "errors": list(state.get("errors") or []) + [f"verify: {exc}"]}
+
+        if narrow:
+            # Observe-only: record the verdict, never touch the answer.
+            return {
+                **drop,
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "verify": {"correct": verdict.correct, "reason": verdict.reason},
+                },
+            }
+
         if verdict.correct:
             return {**drop, "diag": {**(state.get("diag") or {}), "verify": {"correct": True}}}
 
