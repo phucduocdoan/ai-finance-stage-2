@@ -880,6 +880,32 @@ def make_verify_answer(config: FinanceAgentConfig):
         if narrow:
             if not VERIFY_NARROW_SOLVERS_OBSERVE_ONLY or not query:
                 return drop
+            if not frames:
+                # Those three solvers leave `frames`/`names` at `{}` (see their
+                # own returns above), so without this the checker was shown a
+                # bare question and no table at all — it judged qid18 (gold
+                # 2077.87) wrong for a right answer, because it had nothing to
+                # check the number against. Loaded the same way `generate_pandas`
+                # does, from the ids the solver actually used rather than a new
+                # limit, so the grids match what produced the answer.
+                evidence_ids = state.get("evidence_tables") or state.get("table_ids") or []
+                max_tables = (
+                    config.codegen_max_tables_multi_year
+                    if state.get("multi_year")
+                    else config.codegen_max_tables
+                )
+                names, frames, _ = load_evidence(evidence_ids, max_tables)
+                if not frames:
+                    # Nothing to show the checker even after trying to load it —
+                    # a verdict here would be the verifier grading a blank page,
+                    # so the signal is recorded as missing rather than negative.
+                    return {
+                        **drop,
+                        "diag": {
+                            **(state.get("diag") or {}),
+                            "verify": {"skipped": "no_evidence"},
+                        },
+                    }
             prompt = build_prompt(state["question"], frames, names)
         elif not frames or not prompt:
             return drop
