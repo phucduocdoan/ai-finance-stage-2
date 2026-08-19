@@ -98,7 +98,7 @@ async def aretrieve_table_ids(
     Returns ``(table_ids, shortlist, errors)``. The shortlist is everything that
     survived the ticker/year/doc_type hard filter — 106 tables at the median
     against the handful `table_ids` narrows to. It is carried out of here so the
-    solver can look a row up by name across all of it (`modules/solve/lookup.py`)
+    solver can look a row up by name across all of it (`modules/solve/common/lookup.py`)
     without re-running retrieval; measured on the 60 cell-truth questions, the
     shortlist holds the gold table 60/60 while the returned ids hold it 55/60.
     It is *not* an alternative submission list: `table_ids` is what gets scored.

@@ -18,8 +18,8 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 import pandas as pd
 
-from finance_qa.modules.solve import execute as ex
-from finance_qa.modules.solve.codegen import PandasSolution
+from finance_qa.modules.solve.codegen import execute as ex
+from finance_qa.modules.solve.common.solution import PandasSolution
 
 fails: list[str] = []
 

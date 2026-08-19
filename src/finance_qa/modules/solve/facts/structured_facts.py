@@ -22,7 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from finance_qa.core.llm import get_chat_model
 from finance_qa.core.paths import DATA_DIR, LONG_FORMAT_PATH, TABLE_METADATA_PATH
-from finance_qa.modules.solve.units import conversion_factor, detect_unit, unit_from_hint
+from finance_qa.modules.solve.common.units import conversion_factor, detect_unit, unit_from_hint
 from finance_qa.modules.tools.numeric import parse_number
 
 

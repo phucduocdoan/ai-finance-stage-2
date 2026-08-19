@@ -6,11 +6,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve.selection_facts import (  # noqa: E402
+from finance_qa.modules.solve.facts.structured_facts import execute_plan  # noqa: E402
+from finance_qa.modules.solve.solvers.selection_facts import (  # noqa: E402
     deterministic_selection_plan,
     should_attempt_selection_facts,
 )
-from finance_qa.modules.solve.structured_facts import execute_plan  # noqa: E402
 
 
 def check(name: str, condition: bool) -> None:

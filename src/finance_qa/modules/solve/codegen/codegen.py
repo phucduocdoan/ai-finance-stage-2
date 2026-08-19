@@ -16,7 +16,7 @@ carries the answer's unit.
 """
 from __future__ import annotations
 
-from typing import Literal, Mapping, Sequence
+from typing import Mapping, Sequence
 
 import pandas as pd
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
@@ -24,33 +24,15 @@ from pydantic import BaseModel, Field
 
 from finance_qa.core.llm import get_chat_model
 from finance_qa.modules.data.table_store import load_frame
-from finance_qa.modules.solve.context import table_context
-from finance_qa.modules.solve.lookup import render_hits, search_rows
-from finance_qa.modules.solve.metric_hints import render_metric_hints
-from finance_qa.modules.solve.table_profile import table_profile_context
+from finance_qa.modules.solve.common.context import table_context
+from finance_qa.modules.solve.common.lookup import render_hits, search_rows
+from finance_qa.modules.solve.common.metric_hints import render_metric_hints
+from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD, PandasSolution
+from finance_qa.modules.solve.facts.table_profile import table_profile_context
 
 # Completion budget. A well-formed reply is ~110 tokens (measured over 4 questions),
 # so this is pure headroom. It is NOT a fix for truncation: see STRUCTURED_METHOD.
 MAX_TOKENS = 1024
-
-# Tool-calling, not the langchain default. The default (`response_format` with a
-# strict json_schema) is broken on the vLLM server we talk to: the grammar lets the
-# model emit unbounded whitespace inside a string, and it does — measured on qid1 it
-# wrote `{"table_variable": "df1", "target_row":` then 3,900 spaces until the budget
-# ran out. That killed 26 of 75 questions in the first measured run, and raising the
-# budget cannot help (4096 loops exactly like 1536).
-#
-# Tool-calling answers the same prompt in ~110 tokens and still enforces the `Unit`
-# enum. Plain json_object mode also terminates, but it is unconstrained, so the model
-# invents units outside `Unit` ("triệu VND", "tỷ đồng") that fail validation.
-STRUCTURED_METHOD = "function_calling"
-
-# Mirrors units.UNITS; kept as a Literal so structured output rejects a unit the
-# converter has no factor for. tests/test_solve_units.py asserts they agree.
-Unit = Literal[
-    "vnd", "thousand_vnd", "million_vnd", "billion_vnd", "hundred_billion_vnd",
-    "trillion_vnd", "percent", "ratio", "count", "share", "year", "unknown",
-]
 
 # ONE expression, and measured: letting the model write a program is much worse.
 # `tools.python_exec.run_query` already executes statements that assign `answer`,
@@ -134,21 +116,6 @@ declares nothing, and "percent" or "ratio" when the value is not money at all �
 is the case where your answer decides whether any conversion happens.
 
 Set target_unit to the unit the question asks for, or "unknown" if it does not say."""
-
-
-class PandasSolution(BaseModel):
-    """The model's plan and its query."""
-
-    table_variable: str = Field(
-        default="",
-        description="Variable of the main table read, e.g. df1. When the expression reads "
-        "several tables, name the one whose declared unit applies to the answer.",
-    )
-    target_row: str = Field(default="", description="Label text of the main row read, copied from the grid.")
-    target_column: str = Field(default="", description="Name of the main column read, copied from the grid.")
-    source_unit: Unit = Field(default="unknown", description="Unit the value is printed in.")
-    target_unit: Unit = Field(default="unknown", description="Unit the question asks for.")
-    pandas_query: str = Field(default="", description="Single pandas expression returning one number.")
 
 
 def build_prompt(
@@ -375,6 +342,5 @@ async def agenerate(
 
 
 __all__ = [
-    "CODEGEN_SYSTEM", "MAX_TOKENS", "STRUCTURED_METHOD", "FindRows", "PandasSolution",
-    "ShowTable", "Unit", "agenerate", "build_prompt",
+    "CODEGEN_SYSTEM", "MAX_TOKENS", "FindRows", "ShowTable", "agenerate", "build_prompt",
 ]

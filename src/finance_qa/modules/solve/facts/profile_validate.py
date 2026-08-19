@@ -15,20 +15,20 @@ from typing import Any, Literal, Mapping
 import pandas as pd
 from pydantic import BaseModel, Field
 
-from finance_qa.modules.solve.structured_facts import (
+from finance_qa.modules.solve.common.units import MONEY_SCALE, unit_from_hint
+from finance_qa.modules.solve.facts.structured_facts import (
     DERIVED_ALIASES,
     PRIMITIVES,
     canonical_metric,
     metric_source_unit,
     metrics_in_text,
 )
-from finance_qa.modules.solve.table_profile import (
+from finance_qa.modules.solve.facts.table_profile import (
     ProfileColumn,
     ProfileRow,
     TableProfile,
     build_table_profile,
 )
-from finance_qa.modules.solve.units import MONEY_SCALE, unit_from_hint
 
 
 Severity = Literal["info", "weak", "strong"]

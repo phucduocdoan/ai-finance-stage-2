@@ -29,9 +29,9 @@ from typing import Iterable, Mapping, Sequence
 import pandas as pd
 
 from finance_qa.modules.data.table_store import load_frame
-from finance_qa.modules.solve.context import meta_for
-from finance_qa.modules.solve.metric_hints import metric_search_labels
-from finance_qa.modules.solve.units import detect_table_unit
+from finance_qa.modules.solve.common.context import meta_for
+from finance_qa.modules.solve.common.metric_hints import metric_search_labels
+from finance_qa.modules.solve.common.units import detect_table_unit
 
 # Share of the query's tokens a row label must carry. Low enough that asking for
 # "tổng chi phí thuế thu nhập doanh nghiệp hiện hành" still reaches a row printed

@@ -18,8 +18,8 @@ from functools import lru_cache
 import pandas as pd
 
 from finance_qa.core.paths import TABLE_METADATA_PATH
-from finance_qa.modules.solve.columns import year_legend
-from finance_qa.modules.solve.units import detect_table_unit
+from finance_qa.modules.solve.common.columns import year_legend
+from finance_qa.modules.solve.common.units import detect_table_unit
 
 # Only the fields a solver can act on. The full record has 26 keys, most of them
 # retrieval-side scores and provenance flags that would just spend prompt budget.

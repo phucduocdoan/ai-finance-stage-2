@@ -16,10 +16,10 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from finance_qa.modules.data.table_store import load_frame
-from finance_qa.modules.solve.columns import column_years, money_columns
-from finance_qa.modules.solve.context import meta_for, page_text
-from finance_qa.modules.solve.structured_facts import metrics_in_text
-from finance_qa.modules.solve.units import detect_column_unit, detect_table_unit
+from finance_qa.modules.solve.common.columns import column_years, money_columns
+from finance_qa.modules.solve.common.context import meta_for, page_text
+from finance_qa.modules.solve.common.units import detect_column_unit, detect_table_unit
+from finance_qa.modules.solve.facts.structured_facts import metrics_in_text
 from finance_qa.modules.tools.numeric import NIL_MARKS, parse_number
 
 

@@ -6,14 +6,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve.formula_facts import (  # noqa: E402
+from finance_qa.modules.solve.facts.structured_facts import StructuredPlan, execute_plan  # noqa: E402
+from finance_qa.modules.solve.solvers.formula_facts import (  # noqa: E402
     FormulaSupportedPlan,
     deterministic_formula_plan,
     execute_formula_plan,
     should_attempt_formula_facts,
     supported_formula_plan,
 )
-from finance_qa.modules.solve.structured_facts import StructuredPlan, execute_plan  # noqa: E402
 
 
 def check(name: str, condition: bool) -> None:

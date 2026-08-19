@@ -21,12 +21,12 @@ from pathlib import Path
 from typing import Any
 
 from finance_qa.core.paths import QUESTION_METADATA_PATH
-from finance_qa.modules.solve.formula_facts import (
+from finance_qa.modules.solve.common.units import MONEY_SCALE
+from finance_qa.modules.solve.facts.structured_facts import metric_source_unit, metrics_in_text
+from finance_qa.modules.solve.solvers.formula_facts import (
     deterministic_formula_plan,
     should_attempt_formula_facts,
 )
-from finance_qa.modules.solve.structured_facts import metric_source_unit, metrics_in_text
-from finance_qa.modules.solve.units import MONEY_SCALE
 
 from report_capability_failures import (  # noqa: E402
     answer_of,

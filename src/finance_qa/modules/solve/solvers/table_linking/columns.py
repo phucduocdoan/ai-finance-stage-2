@@ -14,15 +14,15 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from finance_qa.modules.data.table_store import load_frame, source_csv
-from finance_qa.modules.solve.columns import column_years, names_a_period
-from finance_qa.modules.solve.context import meta_for, page_text
-from finance_qa.modules.solve.lookup import label_column
-from finance_qa.modules.solve.table_linking.schema import (
+from finance_qa.modules.solve.common.columns import column_years, names_a_period
+from finance_qa.modules.solve.common.context import meta_for, page_text
+from finance_qa.modules.solve.common.lookup import label_column
+from finance_qa.modules.solve.common.units import detect_column_unit, detect_table_unit
+from finance_qa.modules.solve.solvers.table_linking.schema import (
     RawCellRef,
     RawGroupCandidate,
     RawScopeSlot,
 )
-from finance_qa.modules.solve.units import detect_column_unit, detect_table_unit
 from finance_qa.modules.tools.numeric import NIL_MARKS, parse_number
 
 

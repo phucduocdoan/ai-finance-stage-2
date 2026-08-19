@@ -9,8 +9,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve import raw_table_linker as raw  # noqa: E402
-from finance_qa.modules.solve.execute import aexecute  # noqa: E402
+from finance_qa.modules.solve.codegen.execute import aexecute  # noqa: E402
+from finance_qa.modules.solve.solvers import raw_table_linker as raw  # noqa: E402
 
 
 def check(name: str, condition: bool) -> None:

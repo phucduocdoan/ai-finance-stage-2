@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve.capability_router import capability_trace  # noqa: E402
+from finance_qa.modules.solve.solvers.capability_router import capability_trace  # noqa: E402
 
 
 def check(name: str, condition: bool) -> None:

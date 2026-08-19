@@ -20,7 +20,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from finance_qa.modules.solve import raw_table_linker as raw
+from finance_qa.modules.solve.solvers import raw_table_linker as raw
 
 GOLD100 = Path("data/eval/gold100_raw.jsonl")
 TUNED_GOLD = ("data/eval/unbiased60_gold.jsonl", "data/eval/manual15_gold.jsonl")

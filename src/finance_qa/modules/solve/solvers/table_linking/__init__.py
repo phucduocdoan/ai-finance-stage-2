@@ -1,17 +1,17 @@
 """Typed linking primitives shared by table-based solvers."""
 
-from finance_qa.modules.solve.table_linking.columns import (
+from finance_qa.modules.solve.solvers.table_linking.columns import (
     ColumnSemanticRole,
     LinkedColumnProfile,
     build_column_group_candidates,
     build_column_profiles,
 )
-from finance_qa.modules.solve.table_linking.rows import (
+from finance_qa.modules.solve.solvers.table_linking.rows import (
     MAX_PATH_DEPTH,
     LinkedRowProfile,
     build_row_profiles,
 )
-from finance_qa.modules.solve.table_linking.schema import (
+from finance_qa.modules.solve.solvers.table_linking.schema import (
     DocType,
     RatioAggregate,
     RawCandidateKind,

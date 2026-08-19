@@ -9,15 +9,15 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from finance_qa.modules.solve.cell_locator import build_request
-from finance_qa.modules.solve.decompose import axis_of
-from finance_qa.modules.solve.formula_facts import (
+from finance_qa.modules.solve.solvers.cell_locator import build_request
+from finance_qa.modules.solve.solvers.decompose import axis_of
+from finance_qa.modules.solve.solvers.formula_facts import (
     deterministic_formula_plan,
     should_attempt_formula_facts,
 )
-from finance_qa.modules.solve.raw_table_linker import should_attempt_raw_table_linker
-from finance_qa.modules.solve.raw_selection_linker import should_attempt_raw_selection_linker
-from finance_qa.modules.solve.selection_facts import should_attempt_selection_facts
+from finance_qa.modules.solve.solvers.raw_selection_linker import should_attempt_raw_selection_linker
+from finance_qa.modules.solve.solvers.raw_table_linker import should_attempt_raw_table_linker
+from finance_qa.modules.solve.solvers.selection_facts import should_attempt_selection_facts
 
 
 def capability_trace(

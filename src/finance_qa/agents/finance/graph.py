@@ -56,10 +56,19 @@ from finance_qa.agents.finance.utils import year_round_robin
 from finance_qa.core.http import run_sync
 from finance_qa.modules.data.service import ordered_table_names
 from finance_qa.modules.data.table_store import load_frame, submission_csv_name
-from finance_qa.modules.solve.capability_router import capability_trace
-from finance_qa.modules.solve.cell_locator import locate_single_cell
-from finance_qa.modules.solve.codegen import PandasSolution, agenerate, build_prompt
-from finance_qa.modules.solve.decompose import (
+from finance_qa.modules.solve.codegen.codegen import agenerate, build_prompt
+from finance_qa.modules.solve.codegen.execute import aexecute
+from finance_qa.modules.solve.codegen.verify import arevise, averify
+from finance_qa.modules.solve.common.solution import PandasSolution
+from finance_qa.modules.solve.common.units import unit_from_hint
+from finance_qa.modules.solve.facts.profile_validate import validate_profile_selection
+from finance_qa.modules.solve.facts.structured_facts import (
+    StructuredFactError,
+    asolve_structured_facts,
+)
+from finance_qa.modules.solve.solvers.capability_router import capability_trace
+from finance_qa.modules.solve.solvers.cell_locator import locate_single_cell
+from finance_qa.modules.solve.solvers.decompose import (
     aplan,
     axis_of,
     degenerate_query,
@@ -68,30 +77,22 @@ from finance_qa.modules.solve.decompose import (
     tables_for,
     years_in_text,
 )
-from finance_qa.modules.solve.execute import aexecute
-from finance_qa.modules.solve.formula_facts import (
+from finance_qa.modules.solve.solvers.formula_facts import (
     FormulaFactError,
     asolve_formula_facts,
 )
-from finance_qa.modules.solve.profile_validate import validate_profile_selection
-from finance_qa.modules.solve.raw_table_linker import (
-    RawTableLinkError,
-    aprepare_raw_table_linker,
-)
-from finance_qa.modules.solve.raw_selection_linker import (
+from finance_qa.modules.solve.solvers.raw_selection_linker import (
     RawSelectionError,
     aprepare_raw_selection_linker,
 )
-from finance_qa.modules.solve.selection_facts import (
+from finance_qa.modules.solve.solvers.raw_table_linker import (
+    RawTableLinkError,
+    aprepare_raw_table_linker,
+)
+from finance_qa.modules.solve.solvers.selection_facts import (
     SelectionFactError,
     asolve_selection_facts,
 )
-from finance_qa.modules.solve.structured_facts import (
-    StructuredFactError,
-    asolve_structured_facts,
-)
-from finance_qa.modules.solve.units import unit_from_hint
-from finance_qa.modules.solve.verify import arevise, averify
 
 
 _DF_VAR = re.compile(r"\bdf\d+\b")

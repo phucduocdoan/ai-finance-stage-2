@@ -38,7 +38,7 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from finance_qa.modules.data.table_store import load_frame
-from finance_qa.modules.solve.lookup import label_column
+from finance_qa.modules.solve.common.lookup import label_column
 from finance_qa.modules.tools.numeric import parse_number
 
 

@@ -39,7 +39,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from finance_qa.core.llm import get_chat_model
-from finance_qa.modules.solve.codegen import STRUCTURED_METHOD
+from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD
 
 # The surface markers that name a selection. A lower bound and evidence rather
 # than a classifier (see `CONTEXT.md`), which is exactly why they are used only

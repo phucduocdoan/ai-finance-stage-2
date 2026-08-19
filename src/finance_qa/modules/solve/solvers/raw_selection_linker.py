@@ -16,10 +16,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from finance_qa.core.llm import get_chat_model
-from finance_qa.modules.solve import raw_table_linker as raw
-from finance_qa.modules.solve.cell_locator import period_intent, value_transform
-from finance_qa.modules.solve.codegen import STRUCTURED_METHOD, PandasSolution, Unit
-from finance_qa.modules.solve.intent import (
+from finance_qa.modules.solve.common.intent import (
     FILTER_MARKER as _FILTER_MARKER,
     MAX_MARKER as _MAX_MARKER,
     MIN_MARKER as _MIN_MARKER,
@@ -27,13 +24,16 @@ from finance_qa.modules.solve.intent import (
     YEAR_ANSWER_MARKER as _YEAR_ANSWER,
     norm as _norm,
 )
-from finance_qa.modules.solve.table_linking.schema import (
+from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD, PandasSolution, Unit
+from finance_qa.modules.solve.common.units import MONEY_SCALE, unit_from_hint
+from finance_qa.modules.solve.solvers import raw_table_linker as raw
+from finance_qa.modules.solve.solvers.cell_locator import period_intent, value_transform
+from finance_qa.modules.solve.solvers.table_linking.schema import (
     RawGroupCandidate,
     RawLinkRequest,
     RawLinkedCandidate,
     RawScopeSlot,
 )
-from finance_qa.modules.solve.units import MONEY_SCALE, unit_from_hint
 
 
 SelectionAxis = Literal["year", "ticker"]

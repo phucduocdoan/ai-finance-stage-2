@@ -15,9 +15,10 @@ import pandas as pd
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from finance_qa.core.llm import get_chat_model
-from finance_qa.modules.solve.codegen import CODEGEN_SYSTEM, STRUCTURED_METHOD, PandasSolution
-from finance_qa.modules.solve.context import page_text
-from finance_qa.modules.solve.units import (
+from finance_qa.modules.solve.codegen.codegen import CODEGEN_SYSTEM
+from finance_qa.modules.solve.common.context import page_text
+from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD, PandasSolution
+from finance_qa.modules.solve.common.units import (
     detect_unit,
     resolve_source_unit,
     scale_expression,

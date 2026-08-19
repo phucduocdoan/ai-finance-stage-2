@@ -12,11 +12,12 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from finance_qa.modules.solve.intent import (
+from finance_qa.modules.solve.common.intent import (
     MAX_MARKER as _MAX_MARKER,
     MIN_MARKER as _MIN_MARKER,
 )
-from finance_qa.modules.solve.structured_facts import (
+from finance_qa.modules.solve.common.units import unit_from_hint
+from finance_qa.modules.solve.facts.structured_facts import (
     DERIVED_ALIASES,
     MetricFilter,
     PRIMITIVES,
@@ -26,7 +27,6 @@ from finance_qa.modules.solve.structured_facts import (
     metric_source_unit,
     supported_v1_plan,
 )
-from finance_qa.modules.solve.units import unit_from_hint
 
 
 _NON_WORD = re.compile(r"[^a-z0-9%]+")

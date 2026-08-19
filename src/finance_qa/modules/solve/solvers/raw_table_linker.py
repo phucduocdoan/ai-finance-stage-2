@@ -21,11 +21,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from finance_qa.core.llm import get_chat_model
 from finance_qa.modules.data.table_store import load_frame
-from finance_qa.modules.solve.cell_locator import PeriodIntent, period_intent, value_transform
-from finance_qa.modules.solve.codegen import STRUCTURED_METHOD, PandasSolution, Unit
-from finance_qa.modules.solve.columns import column_years
-from finance_qa.modules.solve.context import meta_for, page_text, table_metadata
-from finance_qa.modules.solve.intent import (
+from finance_qa.modules.solve.common.columns import column_years
+from finance_qa.modules.solve.common.context import meta_for, page_text, table_metadata
+from finance_qa.modules.solve.common.intent import (
     CONDITIONAL_FILTER_CUE as _CONDITIONAL_FILTER,
     DIFF_CUE_LOOSE as _DIFF,
     AVG_CUE as _AVG,
@@ -36,13 +34,17 @@ from finance_qa.modules.solve.intent import (
     intent_norm as _intent_norm,
     norm as _norm,
 )
-from finance_qa.modules.solve.lookup import label_column
-from finance_qa.modules.solve.table_linking.columns import (
+from finance_qa.modules.solve.common.lookup import label_column
+from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD, PandasSolution, Unit
+from finance_qa.modules.solve.common.units import MONEY_SCALE, detect_unit, unit_from_hint
+from finance_qa.modules.solve.facts.table_profile import build_table_profile
+from finance_qa.modules.solve.solvers.cell_locator import PeriodIntent, period_intent, value_transform
+from finance_qa.modules.solve.solvers.table_linking.columns import (
     build_column_group_candidates,
     build_column_profiles,
 )
-from finance_qa.modules.solve.table_linking.rows import build_row_profiles
-from finance_qa.modules.solve.table_linking.schema import (
+from finance_qa.modules.solve.solvers.table_linking.rows import build_row_profiles
+from finance_qa.modules.solve.solvers.table_linking.schema import (
     RawCellCandidate,
     RawGroupCandidate,
     RawLinkRequest,
@@ -50,8 +52,6 @@ from finance_qa.modules.solve.table_linking.schema import (
     RawOperation,
     RawScopeSlot,
 )
-from finance_qa.modules.solve.table_profile import build_table_profile
-from finance_qa.modules.solve.units import MONEY_SCALE, detect_unit, unit_from_hint
 from finance_qa.modules.tools.numeric import parse_number
 
 

@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from pydantic import ValidationError  # noqa: E402
 
-from finance_qa.modules.solve.structured_facts import (  # noqa: E402
+from finance_qa.modules.solve.facts.structured_facts import (  # noqa: E402
     PRIMITIVES,
     PlannerMetricFilter,
     StatementFactStore,

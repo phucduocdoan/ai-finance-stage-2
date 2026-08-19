@@ -8,8 +8,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve.codegen import build_prompt
-from finance_qa.modules.solve.metric_hints import (
+from finance_qa.modules.solve.codegen.codegen import build_prompt
+from finance_qa.modules.solve.common.metric_hints import (
     metric_hints,
     metric_search_labels,
     render_metric_hints,

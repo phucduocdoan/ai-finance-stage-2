@@ -2,7 +2,7 @@
 
 No LLM, no retrieval: unit detection, unit conversion, the prompt context and the
 execute/repair loop with a stubbed model. Everything here would have caught the
-q45 failure that motivated `modules/solve/units.py`.
+q45 failure that motivated `modules/solve/common/units.py`.
 
     PYTHONPATH=src .venv_bge/bin/python tests/test_solve_units.py
 """
@@ -17,7 +17,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve import codegen, context, execute, units
+from finance_qa.modules.solve.codegen import execute
+from finance_qa.modules.solve.common import context, solution, units
 from finance_qa.modules.data.table_store import load_frame
 
 # The table behind question 45: BAB total liabilities, "Triệu VND" declared in row
@@ -33,8 +34,8 @@ def check(name: str, condition: bool) -> None:
 
 # ── unit vocabulary ────────────────────────────────────────────────────────────
 check(
-    "codegen.Unit literal matches units.UNITS",
-    set(codegen.Unit.__args__) == units.UNITS,
+    "solution.Unit literal matches units.UNITS",
+    set(solution.Unit.__args__) == units.UNITS,
 )
 
 # ── unit_in_text ───────────────────────────────────────────────────────────────
@@ -179,7 +180,7 @@ def run(coro):
     return asyncio.run(coro)
 
 
-ok = codegen.PandasSolution(
+ok = solution.PandasSolution(
     table_variable="df1",
     target_row="Tiền gửi của các tổ chức tín dụng khác",
     target_column="31/12/2020",
@@ -262,7 +263,7 @@ check("failure still answers 0.0", gave_up["answer"] == 0.0)
 check("failure still submits a real query", gave_up["pandas_query"] == broken.pandas_query)
 
 # ── column -> year, the join the model cannot make ─────────────────────────────
-from finance_qa.modules.solve import columns  # noqa: E402
+from finance_qa.modules.solve.common import columns  # noqa: E402
 
 
 def frame(cols: dict) -> pd.DataFrame:
@@ -322,7 +323,7 @@ check("an unknown variable is reported as such",
 check("repair does not run at temperature 0", execute.REPAIR_TEMPERATURE > 0)
 
 # ── what the verify call is shown ──────────────────────────────────────────────
-from finance_qa.modules.solve import verify  # noqa: E402
+from finance_qa.modules.solve.codegen import verify  # noqa: E402
 
 five = pd.DataFrame({
     "Chỉ tiêu": ["a", "b", "c", "d", "e", "f"],

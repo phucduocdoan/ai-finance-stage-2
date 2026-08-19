@@ -14,15 +14,16 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from finance_qa.core.llm import get_chat_model
-from finance_qa.modules.solve.codegen import STRUCTURED_METHOD
-from finance_qa.modules.solve.intent import (
+from finance_qa.modules.solve.common.intent import (
     AVG_CUE as _AVG_CUE,
     DIFF_CUE_STRICT as _DIFF_CUE,
     GROWTH_CUE as _GROWTH_CUE,
     MEDIAN_CUE as _MEDIAN_CUE,
     SELECTION_MARKER_ACCENTED as _SELECTION_MARKER,
 )
-from finance_qa.modules.solve.structured_facts import (
+from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD
+from finance_qa.modules.solve.common.units import MONEY_SCALE, unit_from_hint
+from finance_qa.modules.solve.facts.structured_facts import (
     METRIC_KEYS,
     StructuredFactError,
     StructuredPlan,
@@ -32,7 +33,6 @@ from finance_qa.modules.solve.structured_facts import (
     metric_source_unit,
     metrics_in_text,
 )
-from finance_qa.modules.solve.units import MONEY_SCALE, unit_from_hint
 
 
 FormulaOperation = Literal["lookup", "ratio", "growth", "diff", "avg", "median"]

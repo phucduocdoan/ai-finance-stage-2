@@ -1,6 +1,6 @@
 """Evaluate the structured fact planner against hand-labeled semantic plans.
 
-This is an offline development harness for ``modules.solve.structured_facts``.
+This is an offline development harness for ``modules.solve.facts.structured_facts``.
 It measures whether the LLM fills the bounded Pydantic plan correctly; it does
 not run retrieval or pandas codegen.
 
@@ -22,7 +22,7 @@ from typing import Any
 import _bootstrap  # noqa: F401
 
 from finance_qa.core.paths import QUESTION_METADATA_PATH
-from finance_qa.modules.solve.structured_facts import (
+from finance_qa.modules.solve.facts.structured_facts import (
     StructuredFactError,
     StructuredPlan,
     aplan_structured,

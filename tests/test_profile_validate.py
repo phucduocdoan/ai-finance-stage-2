@@ -9,7 +9,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve import profile_validate, table_profile  # noqa: E402
+from finance_qa.modules.solve.facts import profile_validate, table_profile  # noqa: E402
 from finance_qa.agents.finance.config import FinanceAgentConfig  # noqa: E402
 from finance_qa.agents.finance.graph import make_profile_validate  # noqa: E402
 

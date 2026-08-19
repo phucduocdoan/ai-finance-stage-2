@@ -1,4 +1,4 @@
-"""Regression tests for `modules.solve.lookup` (row search over the shortlist).
+"""Regression tests for `modules.solve.common.lookup` (row search over the shortlist).
 
 Frames and metadata are stubbed: the point under test is the matching, the
 filtering and the rendering, none of which should need 146k metadata rows or a
@@ -14,7 +14,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve import lookup
+from finance_qa.modules.solve.common import lookup
 
 
 def check(name: str, condition: bool) -> None:

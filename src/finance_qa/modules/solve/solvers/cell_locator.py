@@ -15,12 +15,12 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from finance_qa.modules.data.table_store import load_frame
-from finance_qa.modules.solve.codegen import PandasSolution, Unit
-from finance_qa.modules.solve.columns import column_years, money_columns
-from finance_qa.modules.solve.context import meta_for, page_text
-from finance_qa.modules.solve.intent import norm as _norm
-from finance_qa.modules.solve.lookup import RowHit, search_rows
-from finance_qa.modules.solve.units import detect_unit, unit_from_hint
+from finance_qa.modules.solve.common.columns import column_years, money_columns
+from finance_qa.modules.solve.common.context import meta_for, page_text
+from finance_qa.modules.solve.common.intent import norm as _norm
+from finance_qa.modules.solve.common.lookup import RowHit, search_rows
+from finance_qa.modules.solve.common.solution import PandasSolution, Unit
+from finance_qa.modules.solve.common.units import detect_unit, unit_from_hint
 
 PeriodIntent = Literal["annual", "current", "prior", "unknown"]
 ValueTransform = Literal["as_reported", "abs"]

@@ -1,4 +1,4 @@
-"""Regression tests for `modules.solve.decompose` (selection fan-out planning).
+"""Regression tests for `modules.solve.solvers.decompose` (selection fan-out planning).
 
 Everything here is the deterministic half: the trigger, the axis, the template
 filling, the table split and the selection arithmetic. `aplan` is the only part
@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve.decompose import (
+from finance_qa.modules.solve.solvers.decompose import (
     SelectionPlan,
     axis_of,
     degenerate_query,

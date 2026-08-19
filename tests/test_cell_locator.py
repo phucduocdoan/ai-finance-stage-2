@@ -9,7 +9,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve import cell_locator, lookup  # noqa: E402
+from finance_qa.modules.solve.common import lookup  # noqa: E402
+from finance_qa.modules.solve.solvers import cell_locator  # noqa: E402
 
 
 def check(name: str, condition: bool) -> None:

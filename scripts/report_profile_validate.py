@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from finance_qa.modules.data.table_store import load_frame
-from finance_qa.modules.solve.profile_validate import validate_profile_selection
+from finance_qa.modules.solve.facts.profile_validate import validate_profile_selection
 
 from report_capability_failures import (  # noqa: E402
     answer_of,

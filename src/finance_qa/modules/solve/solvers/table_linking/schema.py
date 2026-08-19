@@ -10,8 +10,8 @@ from typing import Literal, Mapping, Sequence
 
 from pydantic import BaseModel, Field
 
-from finance_qa.modules.solve.cell_locator import PeriodIntent
-from finance_qa.modules.solve.codegen import Unit
+from finance_qa.modules.solve.common.solution import Unit
+from finance_qa.modules.solve.solvers.cell_locator import PeriodIntent
 
 
 RawOperation = Literal["direct", "diff", "sum", "avg", "ratio", "select"]

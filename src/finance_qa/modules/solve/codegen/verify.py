@@ -25,8 +25,9 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from finance_qa.core.llm import get_chat_model
-from finance_qa.modules.solve.codegen import CODEGEN_SYSTEM, STRUCTURED_METHOD, PandasSolution
-from finance_qa.modules.solve.context import meta_for
+from finance_qa.modules.solve.codegen.codegen import CODEGEN_SYSTEM
+from finance_qa.modules.solve.common.context import meta_for
+from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD, PandasSolution
 
 MAX_TOKENS = 512
 
