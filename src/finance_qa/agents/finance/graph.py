@@ -914,114 +914,85 @@ def make_profile_validate(config: FinanceAgentConfig):
     return profile_validate
 
 
+def selection_route(config: FinanceAgentConfig, state: SolveState) -> str:
+    """Shared fallback once every enabled solver in `SOLVER_CHAIN` has declined.
+
+    Does not fit the chain below: it is gated on an axis found in the question,
+    not on a flag plus a diag `done`, so it stays its own function rather than a
+    row in the table.
+    """
+    if not config.selection_decompose:
+        return "generate_pandas"
+    axis = axis_of(
+        state["question"], state.get("years") or [], state.get("tickers") or []
+    )
+    return "solve_selection" if axis else "generate_pandas"
+
+
+# Solver chain in evaluation order: (config flag, node, diag key). Every
+# `route_after_*` this replaces was the same shape repeated with one more
+# `if config.X: return "solve_x"` appended — check whether the node that just
+# ran declared its own diag key `done`, and if not, try the next enabled flag
+# in this order, falling through to `selection_route` once the table is
+# exhausted. `make_solver_router` walks this table instead of re-deriving the
+# chain in each function; the trigger stays as narrow as `route_after_retrieve`
+# used to document: everything a stage does not claim reaches `generate_pandas`
+# over an unchanged path, so a regression elsewhere cannot be this branch's doing
+# — that is what made the program-of-thought A/B attributable when it lost 11
+# points by changing the prompt for all 94 questions instead of a subset.
+SOLVER_CHAIN: list[tuple[str, str, str]] = [
+    ("cell_locator", "solve_single_cell", "cell_locator"),
+    ("formula_facts", "solve_formula_facts", "formula_facts"),
+    ("raw_table_linker", "solve_raw_table_linker", "raw_table_linker"),
+    ("selection_facts", "solve_selection_facts", "selection_facts"),
+    ("raw_selection_linker", "solve_raw_selection_linker", "raw_selection_linker"),
+    ("structured_facts", "solve_structured_facts", "structured_facts"),
+]
+
+
+def make_solver_router(config: FinanceAgentConfig, after: str | None):
+    """Build the router that runs after `after` (or, if `None`, after retrieval).
+
+    Returns `(route, destinations)`: `route` is the conditional-edge function,
+    `destinations` the node list `add_conditional_edges` needs to validate it.
+    `after=None` is the entry point, where nothing has run yet so there is no
+    "did I just succeed" check before trying the first enabled flag.
+    """
+    start = 0
+    diag_key = None
+    if after is not None:
+        start = 1 + next(i for i, (_, node, _) in enumerate(SOLVER_CHAIN) if node == after)
+        diag_key = next(key for _, node, key in SOLVER_CHAIN if node == after)
+    remaining = SOLVER_CHAIN[start:]
+
+    def route(state: SolveState) -> str:
+        if diag_key is not None and (state.get("diag") or {}).get(diag_key, {}).get("done"):
+            return "verify_answer"
+        for flag, node, _ in remaining:
+            if getattr(config, flag):
+                return node
+        return selection_route(config, state)
+
+    destinations = [node for _, node, _ in remaining] + ["solve_selection", "generate_pandas"]
+    if after is not None:
+        destinations = ["verify_answer"] + destinations
+    return route, destinations
+
+
+def route_after_selection(state: SolveState) -> str:
+    """Fall through to the normal path whenever the fan-out did not answer.
+
+    Does not fit `SOLVER_CHAIN` either: `solve_selection` is not gated on a flag
+    checked in order, and on a miss it falls straight to `generate_pandas`
+    without consulting `selection_route` again — this node is what
+    `selection_route` sent the question to in the first place.
+    """
+    done = (state.get("diag") or {}).get("selection", {}).get("done")
+    return "verify_answer" if done else "generate_pandas"
+
+
 def build_graph(config: FinanceAgentConfig | None = None) -> StateGraph:
     config = config or FinanceAgentConfig()
-
-    def selection_route(state: SolveState) -> str:
-        if not config.selection_decompose:
-            return "generate_pandas"
-        axis = axis_of(
-            state["question"], state.get("years") or [], state.get("tickers") or []
-        )
-        return "solve_selection" if axis else "generate_pandas"
-
-    def route_after_retrieve(state: SolveState) -> str:
-        """Selection questions only, and only when they name an axis.
-
-        The trigger is deliberately narrow: everything it does not match reaches
-        `generate_pandas` over an unchanged path, so a regression on the other 63
-        of 94 gold questions is not something this branch can cause. That is what
-        makes the A/B attributable — the program-of-thought run changed the prompt
-        for all 94 and lost 11 points on the block it was not aiming at.
-        """
-        if config.cell_locator:
-            return "solve_single_cell"
-        if config.formula_facts:
-            return "solve_formula_facts"
-        if config.raw_table_linker:
-            return "solve_raw_table_linker"
-        if config.selection_facts:
-            return "solve_selection_facts"
-        if config.raw_selection_linker:
-            return "solve_raw_selection_linker"
-        if config.structured_facts:
-            return "solve_structured_facts"
-        return selection_route(state)
-
-    def route_after_single_cell(state: SolveState) -> str:
-        """Use the deterministic cell only on success, else continue normally."""
-        done = (state.get("diag") or {}).get("cell_locator", {}).get("done")
-        if done:
-            return "verify_answer"
-        if config.formula_facts:
-            return "solve_formula_facts"
-        if config.raw_table_linker:
-            return "solve_raw_table_linker"
-        if config.selection_facts:
-            return "solve_selection_facts"
-        if config.raw_selection_linker:
-            return "solve_raw_selection_linker"
-        if config.structured_facts:
-            return "solve_structured_facts"
-        return selection_route(state)
-
-    def route_after_formula_facts(state: SolveState) -> str:
-        """Use the formula answer when it succeeded, otherwise fallback."""
-        done = (state.get("diag") or {}).get("formula_facts", {}).get("done")
-        if done:
-            return "verify_answer"
-        if config.raw_table_linker:
-            return "solve_raw_table_linker"
-        if config.selection_facts:
-            return "solve_selection_facts"
-        if config.raw_selection_linker:
-            return "solve_raw_selection_linker"
-        if config.structured_facts:
-            return "solve_structured_facts"
-        return selection_route(state)
-
-    def route_after_raw_table_linker(state: SolveState) -> str:
-        """Use the raw linked answer when it succeeded, otherwise fallback."""
-        done = (state.get("diag") or {}).get("raw_table_linker", {}).get("done")
-        if done:
-            return "verify_answer"
-        if config.selection_facts:
-            return "solve_selection_facts"
-        if config.raw_selection_linker:
-            return "solve_raw_selection_linker"
-        if config.structured_facts:
-            return "solve_structured_facts"
-        return selection_route(state)
-
-    def route_after_selection_facts(state: SolveState) -> str:
-        """Use deterministic selection facts on success, otherwise fallback."""
-        done = (state.get("diag") or {}).get("selection_facts", {}).get("done")
-        if done:
-            return "verify_answer"
-        if config.raw_selection_linker:
-            return "solve_raw_selection_linker"
-        if config.structured_facts:
-            return "solve_structured_facts"
-        return selection_route(state)
-
-    def route_after_raw_selection_linker(state: SolveState) -> str:
-        """Use raw selection on success, otherwise continue to fallback."""
-        done = (state.get("diag") or {}).get("raw_selection_linker", {}).get("done")
-        if done:
-            return "verify_answer"
-        if config.structured_facts:
-            return "solve_structured_facts"
-        return selection_route(state)
-
-    def route_after_structured_facts(state: SolveState) -> str:
-        """Use the structured answer when it succeeded, otherwise fallback."""
-        done = (state.get("diag") or {}).get("structured_facts", {}).get("done")
-        return "verify_answer" if done else selection_route(state)
-
-    def route_after_selection(state: SolveState) -> str:
-        """Fall through to the normal path whenever the fan-out did not answer."""
-        done = (state.get("diag") or {}).get("selection", {}).get("done")
-        return "verify_answer" if done else "generate_pandas"
 
     g = StateGraph(SolveState)
     g.add_node("understand", make_understand(config))
@@ -1042,20 +1013,10 @@ def build_graph(config: FinanceAgentConfig | None = None) -> StateGraph:
     g.set_entry_point("understand")
     g.add_edge("understand", "retrieve")
     g.add_edge("retrieve", "trace_capabilities")
-    g.add_conditional_edges("trace_capabilities", route_after_retrieve,
-                            ["solve_single_cell", "solve_formula_facts", "solve_raw_table_linker", "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
-    g.add_conditional_edges("solve_single_cell", route_after_single_cell,
-                            ["verify_answer", "solve_formula_facts", "solve_raw_table_linker", "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
-    g.add_conditional_edges("solve_formula_facts", route_after_formula_facts,
-                            ["verify_answer", "solve_raw_table_linker", "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
-    g.add_conditional_edges("solve_raw_table_linker", route_after_raw_table_linker,
-                            ["verify_answer", "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
-    g.add_conditional_edges("solve_selection_facts", route_after_selection_facts,
-                            ["verify_answer", "solve_raw_selection_linker", "solve_structured_facts", "solve_selection", "generate_pandas"])
-    g.add_conditional_edges("solve_raw_selection_linker", route_after_raw_selection_linker,
-                            ["verify_answer", "solve_structured_facts", "solve_selection", "generate_pandas"])
-    g.add_conditional_edges("solve_structured_facts", route_after_structured_facts,
-                            ["verify_answer", "solve_selection", "generate_pandas"])
+    for after in [None, "solve_single_cell", "solve_formula_facts", "solve_raw_table_linker",
+                  "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts"]:
+        route, destinations = make_solver_router(config, after)
+        g.add_conditional_edges(after or "trace_capabilities", route, destinations)
     g.add_conditional_edges("solve_selection", route_after_selection,
                             ["verify_answer", "generate_pandas"])
     g.add_edge("generate_pandas", "execute_and_repair")
