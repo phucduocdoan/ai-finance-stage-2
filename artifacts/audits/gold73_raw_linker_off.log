@@ -1,0 +1,86 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+running 73 question(s) through the graph -> artifacts/runs/gold73_raw_linker_off.jsonl
+
+ qid match         solver   sec          expected  answer
+--------------------------------------------------------------------------------------------
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 4656.08it/s]
+  27     -   cell_locator    31                 ?  -150202.62844499998
+  17    OK   cell_locator    31            713942  713942.0
+  18     -  formula_facts    31                 ?  2077.8695966550004
+   1    OK        codegen    34            208253  208253.201298
+  44    OK   cell_locator     7       3.32023e+08  332023043.0
+  37     -        codegen     7                 ?  201.004296672
+  45     -  formula_facts     9                 ?  108950874.0
+  60     -   cell_locator     6                 ?  87611.62642
+  40    OK        codegen    15       4.64233e+06  4642334.0
+  86     -   cell_locator     6                 ?  79168.0
+  55    OK        codegen    13           1.32267  1.32267349
+  88     -   cell_locator     7                 ?  80394022.0
+  62     -        codegen    10                 ?  428450055.0
+ 103     -        codegen     8                 ?  2123.935262
+ 115     -   cell_locator     6                 ?  14733282.0
+ 100    OK        codegen    10       7.00886e+08  700886434.0
+ 161     -   cell_locator     3                 ?  50555028.0
+ 120     -        codegen    10                 ?  1041601.0
+ 222     -        codegen     8                 ?  30056924.0
+ 166     -        codegen    11                 ?  4.719710357229999
+ 263     -        codegen     8                 ?  4.263610960357
+ 277     -        codegen     8                 ?  85.16023694341999
+ 262     -        codegen    17                 ?  1.27187346118
+ 283     -        codegen     9                 ?  60792.014796999996
+ 292     -        codegen     9                 ?  1.987758432856
+ 315     -        codegen     8                 ?  1.3686441034999999
+ 323     -        codegen     9                 ?  76.038454529
+ 280     -        codegen    18                 ?  4155744.0
+ 327     -   cell_locator     4                 ?  11.082194110349999
+ 330     -        codegen     8                 ?  3247590.0
+ 337     -  formula_facts     9                 ?  81.56692189
+ 353     -        codegen     9                 ?  3500.0
+ 355     -        codegen    11                 ?  99.81535566218437
+ 363     ·        codegen    10           3.31936  -109457617841.0
+ 502     -        codegen    10                 ?  1930.5213442240001
+ 488     -        codegen    11                 ?  7.053940492179
+ 521     -        codegen     8                 ?  500.688616629
+ 524     ·        codegen    10           102.424  0.0
+ 525     -        codegen     9                 ?  -0.18464881159
+ 526     -        codegen     9                 ?  -83.790676915
+ 530     -        codegen    13                 ?  131.18833899999998
+ 542     -        codegen    10                 ?  35.81537766963171
+ 553     -        codegen     8                 ?  19530395992348.0
+ 586     -  formula_facts     3                 ?  335.81896171961
+ 555     -        codegen    10                 ?  0.0
+ 582     ·        codegen    10           13.7498  132.9108682709817
+ 644     -        codegen     8                 ?  -52.401960937079814
+ 635     -        codegen    11                 ?  55.004431680135504
+ 605    OK        codegen    15           -20.734  -20.73399031126013
+ 663     -        codegen     8                 ?  36.76031567513054
+ 685     -        codegen     9                 ?  0.0
+ 732     -        codegen     5                 ?  902.4344411630631
+ 752    OK        codegen     5      -3.90353e+06  -3903526.0
+ 693     -        codegen    12                 ?  31.385622109258755
+ 744     -        codegen    11                 ?  4028106.0
+ 770     -  formula_facts     3                 ?  35153.747341507005
+ 754     ·        codegen     7       1.16644e+08  35.829682
+ 753     -        codegen    15                 ?  -998801.0
+ 790     -        codegen     7                 ?  0.0
+ 792     -        codegen     5                 ?  234471.0
+ 820    OK  formula_facts     4           4.06904  4.069037099374
+ 759     -        codegen    15                 ?  -3.100151474578
+ 833     -        codegen     6                 ?  9.710708722489999
+ 818     ·        codegen    11           145.134  0.0
+ 845     -        codegen     7                 ?  2.843
+ 868     -        codegen     9                 ?  0.0
+ 856     -        codegen    13                 ?  9179.0
+ 878     -        codegen     6                 ?  432718621923.0
+ 946     -        codegen     7                 ?  248217392159.0
+ 871     -        codegen    16                 ?  38.77606547
+ 955     -        codegen    11                 ?  0.5494801622412201
+ 920     -        codegen    14                 ?  0.0
+ 974     -        codegen     7                 ?  3880200648.0
+--------------------------------------------------------------------------------------------
+SCORED: 9/14 match (rel<0.01)   [unscored: 59]
+
+by solver:
+    cell_locator: 2/2  [17,44]
+         codegen: 6/11  [1,40,55,100,363,524,582,605,752,754,818]
+   formula_facts: 1/1  [820]

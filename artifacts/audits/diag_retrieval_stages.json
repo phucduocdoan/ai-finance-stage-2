@@ -1,0 +1,939 @@
+[
+ {
+  "id": 18,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "FIT_financial_statements_2015_consolidated|5"
+  ],
+  "n_shortlist": 50,
+  "n_pool": 26,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 12,
+  "n_picks": 2,
+  "n_primary_tail": 3,
+  "rank_in_bm25": 6
+ },
+ {
+  "id": 27,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "DLG_financial_statements_2024_separate|9"
+  ],
+  "n_shortlist": 53,
+  "n_pool": 28,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 3,
+  "n_picks": 1,
+  "n_primary_tail": 4,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 37,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "GEX_financial_statements_2018_separate|58"
+  ],
+  "n_shortlist": 57,
+  "n_pool": 33,
+  "in_bm25": true,
+  "in_dense": false,
+  "rank_after_rerank": 15,
+  "n_picks": 2,
+  "n_primary_tail": 6,
+  "rank_in_bm25": 4
+ },
+ {
+  "id": 45,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "BAB_financial_statements_2020_separate|6"
+  ],
+  "n_shortlist": 63,
+  "n_pool": 29,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 12,
+  "n_picks": 1,
+  "n_primary_tail": 5,
+  "rank_in_bm25": 3
+ },
+ {
+  "id": 60,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "VSF_financial_statements_2022_separate|49"
+  ],
+  "n_shortlist": 59,
+  "n_pool": 32,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 9,
+  "n_picks": 3,
+  "n_primary_tail": 4,
+  "rank_in_bm25": 4
+ },
+ {
+  "id": 62,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "MBB_financial_statements_2022_separate_1|29"
+  ],
+  "n_shortlist": 192,
+  "n_pool": 42,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 5,
+  "n_picks": 4,
+  "n_primary_tail": 12,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 86,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "SGB_financial_statements_2024_consolidated|8"
+  ],
+  "n_shortlist": 72,
+  "n_pool": 33,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 2,
+  "n_picks": 2,
+  "n_primary_tail": 8,
+  "rank_in_bm25": 2
+ },
+ {
+  "id": 88,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "NVB_financial_statements_2019_consolidated|4"
+  ],
+  "n_shortlist": 58,
+  "n_pool": 32,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 17,
+  "n_picks": 1,
+  "n_primary_tail": 8,
+  "rank_in_bm25": 5
+ },
+ {
+  "id": 103,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "GEX_financial_statements_2019_separate|42"
+  ],
+  "n_shortlist": 57,
+  "n_pool": 29,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 1,
+  "n_primary_tail": 6,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 115,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "CTG_financial_statements_2019_separate|7"
+  ],
+  "n_shortlist": 79,
+  "n_pool": 29,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 4,
+  "n_picks": 1,
+  "n_primary_tail": 5,
+  "rank_in_bm25": 3
+ },
+ {
+  "id": 120,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "KLB_financial_statements_2019_consolidated|8"
+  ],
+  "n_shortlist": 75,
+  "n_pool": 33,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 6,
+  "n_picks": 2,
+  "n_primary_tail": 12,
+  "rank_in_bm25": 2
+ },
+ {
+  "id": 161,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "EIB_financial_statements_2020_consolidated|29"
+  ],
+  "n_shortlist": 88,
+  "n_pool": 32,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 3,
+  "n_picks": 3,
+  "n_primary_tail": 6,
+  "rank_in_bm25": 5
+ },
+ {
+  "id": 166,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "HBC_financial_statements_2016_separate|71"
+  ],
+  "n_shortlist": 69,
+  "n_pool": 33,
+  "in_bm25": false,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 2,
+  "n_primary_tail": 5,
+  "rank_in_bm25": null
+ },
+ {
+  "id": 222,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "VIC_financial_statements_2025_separate|17"
+  ],
+  "n_shortlist": 102,
+  "n_pool": 35,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 3,
+  "n_primary_tail": 6,
+  "rank_in_bm25": 2
+ },
+ {
+  "id": 259,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "VIC_financial_statements_2023_consolidated|20"
+  ],
+  "n_shortlist": 97,
+  "n_pool": 38,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 2,
+  "n_picks": 1,
+  "n_primary_tail": 8,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 262,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "SJG_financial_statements_2019_consolidated|8"
+  ],
+  "n_shortlist": 78,
+  "n_pool": 29,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 16,
+  "n_picks": 2,
+  "n_primary_tail": 8,
+  "rank_in_bm25": 3
+ },
+ {
+  "id": 263,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "SSI_financial_statements_2019_separate|5"
+  ],
+  "n_shortlist": 96,
+  "n_pool": 41,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 4,
+  "n_picks": 1,
+  "n_primary_tail": 14,
+  "rank_in_bm25": 10
+ },
+ {
+  "id": 277,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "VNM_financial_statements_2022_consolidated|70"
+  ],
+  "n_shortlist": 68,
+  "n_pool": 30,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 1,
+  "n_primary_tail": 9,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 280,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "HDB_financial_statements_2022_consolidated|19"
+  ],
+  "n_shortlist": 106,
+  "n_pool": 34,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 1,
+  "n_primary_tail": 6,
+  "rank_in_bm25": 2
+ },
+ {
+  "id": 283,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "PC1_financial_statements_2025_consolidated|25"
+  ],
+  "n_shortlist": 67,
+  "n_pool": 26,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 1,
+  "n_primary_tail": 7,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 292,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "CRE_financial_statements_2019_separate|3"
+  ],
+  "n_shortlist": 35,
+  "n_pool": 27,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 3,
+  "n_picks": 1,
+  "n_primary_tail": 3,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 315,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "SAB_financial_statements_2023_separate|38"
+  ],
+  "n_shortlist": 145,
+  "n_pool": 36,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 2,
+  "n_picks": 2,
+  "n_primary_tail": 13,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 323,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "SSI_financial_statements_2016_separate|35"
+  ],
+  "n_shortlist": 91,
+  "n_pool": 40,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 4,
+  "n_picks": 3,
+  "n_primary_tail": 15,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 327,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "PC1_financial_statements_2021_separate|14"
+  ],
+  "n_shortlist": 62,
+  "n_pool": 27,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 1,
+  "n_primary_tail": 6,
+  "rank_in_bm25": 5
+ },
+ {
+  "id": 330,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "MBB_financial_statements_2015_consolidated|81"
+  ],
+  "n_shortlist": 101,
+  "n_pool": 35,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 1,
+  "n_primary_tail": 5,
+  "rank_in_bm25": 2
+ },
+ {
+  "id": 337,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "BAF_financial_statements_2023_separate|5"
+  ],
+  "n_shortlist": 65,
+  "n_pool": 30,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 5,
+  "n_picks": 3,
+  "n_primary_tail": 3,
+  "rank_in_bm25": 3
+ },
+ {
+  "id": 353,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "MPC_financial_statements_2019_consolidated|29"
+  ],
+  "n_shortlist": 70,
+  "n_pool": 34,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 11,
+  "n_picks": 2,
+  "n_primary_tail": 9,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 355,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "MSN_financial_statements_2022_consolidated|23"
+  ],
+  "n_shortlist": 93,
+  "n_pool": 32,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 2,
+  "n_primary_tail": 6,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 488,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "DCM_financial_statements_2016_consolidated|7",
+   "DPM_financial_statements_2016_consolidated|6",
+   "GVR_financial_statements_2016_consolidated|9"
+  ],
+  "n_shortlist": 211,
+  "n_pool": 44,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 4,
+  "n_picks": 4,
+  "n_primary_tail": 19,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 663,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "HAG_financial_statements_2022_separate|7",
+   "HAG_financial_statements_2022_separate|6"
+  ],
+  "n_shortlist": 74,
+  "n_pool": 29,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 6,
+  "n_picks": 2,
+  "n_primary_tail": 3,
+  "rank_in_bm25": 13
+ },
+ {
+  "id": 685,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "BAB_financial_statements_2025_separate|24",
+   "BAB_financial_statements_2025_separate|29"
+  ],
+  "n_shortlist": 69,
+  "n_pool": 31,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 6,
+  "n_picks": 6,
+  "n_primary_tail": 5,
+  "rank_in_bm25": 11
+ },
+ {
+  "id": 693,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "VCB_financial_statements_2025_separate|56",
+   "VCB_financial_statements_2025_separate|57"
+  ],
+  "n_shortlist": 91,
+  "n_pool": 32,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 3,
+  "n_primary_tail": 6,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 732,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "FIT_financial_statements_2023_separate|6",
+   "FIT_financial_statements_2023_separate|8"
+  ],
+  "n_shortlist": 50,
+  "n_pool": 27,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 14,
+  "n_picks": 3,
+  "n_primary_tail": 7,
+  "rank_in_bm25": 3
+ },
+ {
+  "id": 644,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "DIG_financial_statements_2023_consolidated|48"
+  ],
+  "n_shortlist": 138,
+  "n_pool": 42,
+  "in_bm25": true,
+  "in_dense": false,
+  "rank_after_rerank": 10,
+  "n_picks": 2,
+  "n_primary_tail": 14,
+  "rank_in_bm25": 13
+ },
+ {
+  "id": 586,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "ACV_financial_statements_2021_consolidated|4",
+   "ACV_financial_statements_2022_consolidated|4"
+  ],
+  "n_shortlist": 171,
+  "n_pool": 36,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 13,
+  "n_picks": 2,
+  "n_primary_tail": 15,
+  "rank_in_bm25": 7
+ },
+ {
+  "id": 635,
+  "stage": "2. không lọt BM25@20 ∪ dense@20",
+  "gt": [
+   "ABB_financial_statements_2020_separate|4",
+   "ABB_financial_statements_2023_separate|5"
+  ],
+  "n_shortlist": 417,
+  "n_pool": 56,
+  "in_bm25": false,
+  "in_dense": false,
+  "rank_after_rerank": 6,
+  "n_picks": 7,
+  "n_primary_tail": 21,
+  "rank_in_bm25": null
+ },
+ {
+  "id": 770,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "GAS_financial_statements_2023_separate|3",
+   "POW_financial_statements_2023_separate|4"
+  ],
+  "n_shortlist": 123,
+  "n_pool": 38,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 12,
+  "n_picks": 5,
+  "n_primary_tail": 9,
+  "rank_in_bm25": 2
+ },
+ {
+  "id": 744,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "KLB_financial_statements_2024_separate|42",
+   "EIB_financial_statements_2024_separate|54"
+  ],
+  "n_shortlist": 166,
+  "n_pool": 39,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 2,
+  "n_picks": 2,
+  "n_primary_tail": 15,
+  "rank_in_bm25": 5
+ },
+ {
+  "id": 753,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "VIB_financial_statements_2017_separate|7",
+   "MSB_financial_statements_2017_separate|5"
+  ],
+  "n_shortlist": 189,
+  "n_pool": 37,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 2,
+  "n_primary_tail": 11,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 759,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "SCR_financial_statements_2025_consolidated|5",
+   "NVL_financial_statements_2025_consolidated|7"
+  ],
+  "n_shortlist": 154,
+  "n_pool": 35,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 5,
+  "n_picks": 2,
+  "n_primary_tail": 12,
+  "rank_in_bm25": 7
+ },
+ {
+  "id": 792,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "EIB_financial_statements_2022_consolidated|5",
+   "MBB_financial_statements_2022_consolidated|5"
+  ],
+  "n_shortlist": 192,
+  "n_pool": 39,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 15,
+  "n_picks": 1,
+  "n_primary_tail": 11,
+  "rank_in_bm25": 8
+ },
+ {
+  "id": 833,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "VGT_financial_statements_2016_separate|53",
+   "VGT_financial_statements_2024_separate|49",
+   "VGT_financial_statements_2025_separate|50"
+  ],
+  "n_shortlist": 182,
+  "n_pool": 40,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 6,
+  "n_picks": 3,
+  "n_primary_tail": 21,
+  "rank_in_bm25": 15
+ },
+ {
+  "id": 845,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "BVH_financial_statements_2024_consolidated|81"
+  ],
+  "n_shortlist": 452,
+  "n_pool": 60,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 2,
+  "n_picks": 4,
+  "n_primary_tail": 36,
+  "rank_in_bm25": 2
+ },
+ {
+  "id": 856,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "PC1_financial_statements_2015_consolidated|46",
+   "PC1_financial_statements_2020_consolidated|60",
+   "PC1_financial_statements_2022_consolidated|70",
+   "PC1_financial_statements_2023_consolidated|73",
+   "PC1_financial_statements_2024_consolidated|77"
+  ],
+  "n_shortlist": 350,
+  "n_pool": 75,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 2,
+  "n_picks": 8,
+  "n_primary_tail": 47,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 868,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "VCB_financial_statements_2022_consolidated|83"
+  ],
+  "n_shortlist": 498,
+  "n_pool": 58,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 3,
+  "n_picks": 8,
+  "n_primary_tail": 30,
+  "rank_in_bm25": 6
+ },
+ {
+  "id": 871,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "MPC_financial_statements_2024_consolidated|46"
+  ],
+  "n_shortlist": 283,
+  "n_pool": 51,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 4,
+  "n_picks": 6,
+  "n_primary_tail": 35,
+  "rank_in_bm25": 5
+ },
+ {
+  "id": 878,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "KBC_financial_statements_2019_consolidated|25"
+  ],
+  "n_shortlist": 184,
+  "n_pool": 50,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 3,
+  "n_primary_tail": 22,
+  "rank_in_bm25": 2
+ },
+ {
+  "id": 920,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "DPM_financial_statements_2025_consolidated|6",
+   "|33",
+   "GVR_financial_statements_2025_consolidated|33",
+   "VIF_financial_statements_2025_consolidated|31"
+  ],
+  "n_shortlist": 381,
+  "n_pool": 62,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 12,
+  "n_picks": 7,
+  "n_primary_tail": 28,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 946,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "NVL_financial_statements_2022_consolidated|8"
+  ],
+  "n_shortlist": 268,
+  "n_pool": 38,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 15,
+  "n_picks": 3,
+  "n_primary_tail": 15,
+  "rank_in_bm25": 7
+ },
+ {
+  "id": 955,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "ACB_financial_statements_2019_separate|27",
+   "BID_financial_statements_2019_separate|27",
+   "MBB_financial_statements_2019_separate|28",
+   "STB_financial_statements_2019_separate|29"
+  ],
+  "n_shortlist": 374,
+  "n_pool": 57,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 4,
+  "n_primary_tail": 24,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 974,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "CTG_financial_statements_2022_consolidated|82",
+   "CTG_financial_statements_2023_consolidated|83",
+   "CTG_financial_statements_2024_consolidated|83",
+   "CTG_financial_statements_2025_consolidated|81"
+  ],
+  "n_shortlist": 373,
+  "n_pool": 54,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 4,
+  "n_primary_tail": 24,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 502,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "PLX_financial_statements_2020_separate|35",
+   "PLX_financial_statements_2020_separate|12"
+  ],
+  "n_shortlist": 317,
+  "n_pool": 61,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 4,
+  "n_picks": 6,
+  "n_primary_tail": 39,
+  "rank_in_bm25": 5
+ },
+ {
+  "id": 521,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "HDG_financial_statements_2021_consolidated|12",
+   "HDG_financial_statements_2024_consolidated|10",
+   "HDG_financial_statements_2025_consolidated|11",
+   "HDG_financial_statements_2025_consolidated|51"
+  ],
+  "n_shortlist": 197,
+  "n_pool": 51,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 5,
+  "n_picks": 7,
+  "n_primary_tail": 22,
+  "rank_in_bm25": 1
+ },
+ {
+  "id": 526,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "MWG_financial_statements_2025_consolidated|7"
+  ],
+  "n_shortlist": 137,
+  "n_pool": 43,
+  "in_bm25": true,
+  "in_dense": false,
+  "rank_after_rerank": 5,
+  "n_picks": 3,
+  "n_primary_tail": 12,
+  "rank_in_bm25": 6
+ },
+ {
+  "id": 530,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "NAB_financial_statements_2025_consolidated|30"
+  ],
+  "n_shortlist": 736,
+  "n_pool": 69,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 19,
+  "n_picks": 10,
+  "n_primary_tail": 42,
+  "rank_in_bm25": 14
+ },
+ {
+  "id": 542,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "DCM_financial_statements_2021_consolidated|4",
+   "DCM_financial_statements_2022_consolidated|6",
+   "DPM_financial_statements_2021_consolidated|8",
+   "DPM_financial_statements_2022_consolidated|9"
+  ],
+  "n_shortlist": 422,
+  "n_pool": 51,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 8,
+  "n_picks": 6,
+  "n_primary_tail": 36,
+  "rank_in_bm25": 9
+ },
+ {
+  "id": 553,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "PLX_financial_statements_2019_consolidated|10",
+   "PLX_financial_statements_2019_consolidated|8"
+  ],
+  "n_shortlist": 185,
+  "n_pool": 45,
+  "in_bm25": true,
+  "in_dense": false,
+  "rank_after_rerank": 2,
+  "n_picks": 3,
+  "n_primary_tail": 18,
+  "rank_in_bm25": 7
+ },
+ {
+  "id": 555,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "CEO_financial_statements_2024_consolidated|6"
+  ],
+  "n_shortlist": 177,
+  "n_pool": 35,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 3,
+  "n_primary_tail": 12,
+  "rank_in_bm25": 3
+ },
+ {
+  "id": 790,
+  "stage": "OK - có trong kết quả",
+  "gt": [
+   "VIB_financial_statements_2023_separate|33",
+   "BID_financial_statements_2023_separate|30"
+  ],
+  "n_shortlist": 97,
+  "n_pool": 37,
+  "in_bm25": true,
+  "in_dense": true,
+  "rank_after_rerank": 1,
+  "n_picks": 1,
+  "n_primary_tail": 7,
+  "rank_in_bm25": 2
+ },
+ {
+  "id": 525,
+  "stage": "5. JUDGE nhìn thấy mà KHÔNG chọn",
+  "gt": [
+   "OCB_financial_statements_2022_separate_1|5"
+  ],
+  "n_shortlist": 389,
+  "n_pool": 56,
+  "in_bm25": true,
+  "in_dense": false,
+  "rank_after_rerank": 17,
+  "n_picks": 6,
+  "n_primary_tail": 27,
+  "rank_in_bm25": 11
+ }
+]

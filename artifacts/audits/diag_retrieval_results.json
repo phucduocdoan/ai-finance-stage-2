@@ -1,0 +1,1330 @@
+[
+  {
+    "qid": 166,
+    "gold": [
+      "HBC_financial_statements_2016_separate|71"
+    ],
+    "enriched_tickers": [
+      "HBC"
+    ],
+    "enriched_years": [
+      2016
+    ],
+    "enriched_doc_type": "separate",
+    "live_tickers": [
+      "HBC"
+    ],
+    "live_years": [
+      2016
+    ],
+    "live_doc_type": "separate",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "HBC_financial_statements_2016_separate|71"
+    ],
+    "bm25_hits": [],
+    "dense_hits": [
+      "HBC_financial_statements_2016_separate|71"
+    ],
+    "post_rrf_hits": [
+      "HBC_financial_statements_2016_separate|71"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "HBC_financial_statements_2016_separate|71": 2
+    },
+    "pool_size": 33,
+    "in_window": [
+      "HBC_financial_statements_2016_separate|71"
+    ],
+    "judge_picks": [
+      "HBC_financial_statements_2016_separate|23",
+      "HBC_financial_statements_2016_separate|22"
+    ],
+    "gold_in_final": [],
+    "gold_in_actual_run": [],
+    "n_gold": 1
+  },
+  {
+    "qid": 259,
+    "gold": [
+      "VIC_financial_statements_2023_consolidated|20"
+    ],
+    "enriched_tickers": [
+      "VIC"
+    ],
+    "enriched_years": [
+      2023
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "VIC"
+    ],
+    "live_years": [
+      2023
+    ],
+    "live_doc_type": "unknown",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "VIC_financial_statements_2023_consolidated|20"
+    ],
+    "bm25_hits": [
+      "VIC_financial_statements_2023_consolidated|20"
+    ],
+    "dense_hits": [
+      "VIC_financial_statements_2023_consolidated|20"
+    ],
+    "post_rrf_hits": [
+      "VIC_financial_statements_2023_consolidated|20"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "VIC_financial_statements_2023_consolidated|20": 2
+    },
+    "pool_size": 38,
+    "in_window": [
+      "VIC_financial_statements_2023_consolidated|20"
+    ],
+    "judge_picks": [
+      "VIC_financial_statements_2023_consolidated|21",
+      "VIC_financial_statements_2023_consolidated|20"
+    ],
+    "gold_in_final": [
+      "VIC_financial_statements_2023_consolidated|20"
+    ],
+    "gold_in_actual_run": [],
+    "n_gold": 1
+  },
+  {
+    "qid": 280,
+    "gold": [
+      "HDB_financial_statements_2022_consolidated|19"
+    ],
+    "enriched_tickers": [
+      "HDB"
+    ],
+    "enriched_years": [
+      2022
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "HDB"
+    ],
+    "live_years": [
+      2022
+    ],
+    "live_doc_type": "unknown",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "HDB_financial_statements_2022_consolidated|19"
+    ],
+    "bm25_hits": [
+      "HDB_financial_statements_2022_consolidated|19"
+    ],
+    "dense_hits": [
+      "HDB_financial_statements_2022_consolidated|19"
+    ],
+    "post_rrf_hits": [
+      "HDB_financial_statements_2022_consolidated|19"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "HDB_financial_statements_2022_consolidated|19": 1
+    },
+    "pool_size": 34,
+    "in_window": [
+      "HDB_financial_statements_2022_consolidated|19"
+    ],
+    "judge_picks": [
+      "HDB_financial_statements_2022_consolidated|21"
+    ],
+    "gold_in_final": [],
+    "gold_in_actual_run": [],
+    "n_gold": 1
+  },
+  {
+    "qid": 355,
+    "gold": [
+      "MSN_financial_statements_2022_consolidated|23"
+    ],
+    "enriched_tickers": [
+      "MSN"
+    ],
+    "enriched_years": [
+      2022
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "MSN"
+    ],
+    "live_years": [
+      2022
+    ],
+    "live_doc_type": "consolidated",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "MSN_financial_statements_2022_consolidated|23"
+    ],
+    "bm25_hits": [
+      "MSN_financial_statements_2022_consolidated|23"
+    ],
+    "dense_hits": [
+      "MSN_financial_statements_2022_consolidated|23"
+    ],
+    "post_rrf_hits": [
+      "MSN_financial_statements_2022_consolidated|23"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "MSN_financial_statements_2022_consolidated|23": 1
+    },
+    "pool_size": 32,
+    "in_window": [
+      "MSN_financial_statements_2022_consolidated|23"
+    ],
+    "judge_picks": [
+      "MSN_financial_statements_2022_consolidated|7",
+      "MSN_financial_statements_2022_consolidated|6"
+    ],
+    "gold_in_final": [],
+    "gold_in_actual_run": [],
+    "n_gold": 1
+  },
+  {
+    "qid": 488,
+    "gold": [
+      "DCM_financial_statements_2016_consolidated|7",
+      "DPM_financial_statements_2016_consolidated|6",
+      "GVR_financial_statements_2016_consolidated|9"
+    ],
+    "enriched_tickers": [
+      "AAA",
+      "DCM",
+      "DPM",
+      "GVR"
+    ],
+    "enriched_years": [
+      2016
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "AAA",
+      "DCM",
+      "DPM",
+      "GVR"
+    ],
+    "live_years": [
+      2016
+    ],
+    "live_doc_type": "unknown",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "DCM_financial_statements_2016_consolidated|7",
+      "DPM_financial_statements_2016_consolidated|6",
+      "GVR_financial_statements_2016_consolidated|9"
+    ],
+    "bm25_hits": [
+      "DCM_financial_statements_2016_consolidated|7",
+      "DPM_financial_statements_2016_consolidated|6",
+      "GVR_financial_statements_2016_consolidated|9"
+    ],
+    "dense_hits": [
+      "DCM_financial_statements_2016_consolidated|7",
+      "DPM_financial_statements_2016_consolidated|6"
+    ],
+    "post_rrf_hits": [
+      "DCM_financial_statements_2016_consolidated|7",
+      "DPM_financial_statements_2016_consolidated|6",
+      "GVR_financial_statements_2016_consolidated|9"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "DCM_financial_statements_2016_consolidated|7": 5,
+      "DPM_financial_statements_2016_consolidated|6": 4,
+      "GVR_financial_statements_2016_consolidated|9": 7
+    },
+    "pool_size": 44,
+    "in_window": [
+      "DCM_financial_statements_2016_consolidated|7",
+      "DPM_financial_statements_2016_consolidated|6",
+      "GVR_financial_statements_2016_consolidated|9"
+    ],
+    "judge_picks": [
+      "AAA_financial_statements_2016_consolidated|4",
+      "DPM_financial_statements_2016_consolidated|6",
+      "DCM_financial_statements_2016_consolidated|7",
+      "GVR_financial_statements_2016_consolidated|9"
+    ],
+    "gold_in_final": [
+      "DCM_financial_statements_2016_consolidated|7",
+      "DPM_financial_statements_2016_consolidated|6",
+      "GVR_financial_statements_2016_consolidated|9"
+    ],
+    "gold_in_actual_run": [
+      "DCM_financial_statements_2016_consolidated|7",
+      "DPM_financial_statements_2016_consolidated|6",
+      "GVR_financial_statements_2016_consolidated|9"
+    ],
+    "n_gold": 3
+  },
+  {
+    "qid": 502,
+    "gold": [
+      "PLX_financial_statements_2020_separate|35",
+      "PLX_financial_statements_2020_separate|12"
+    ],
+    "enriched_tickers": [
+      "PLX"
+    ],
+    "enriched_years": [
+      2015,
+      2016,
+      2018,
+      2019,
+      2020,
+      2021
+    ],
+    "enriched_doc_type": "separate",
+    "live_tickers": [
+      "PLX"
+    ],
+    "live_years": [
+      2015,
+      2016,
+      2018,
+      2019,
+      2020,
+      2021
+    ],
+    "live_doc_type": "separate",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "PLX_financial_statements_2020_separate|35",
+      "PLX_financial_statements_2020_separate|12"
+    ],
+    "bm25_hits": [
+      "PLX_financial_statements_2020_separate|35"
+    ],
+    "dense_hits": [
+      "PLX_financial_statements_2020_separate|35"
+    ],
+    "post_rrf_hits": [
+      "PLX_financial_statements_2020_separate|35"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "PLX_financial_statements_2020_separate|35": 3
+    },
+    "pool_size": 61,
+    "in_window": [
+      "PLX_financial_statements_2020_separate|35"
+    ],
+    "judge_picks": [
+      "PLX_financial_statements_2019_separate|36",
+      "PLX_financial_statements_2021_separate|39",
+      "PLX_financial_statements_2020_separate|35",
+      "PLX_financial_statements_2016_separate|32",
+      "PLX_financial_statements_2015_separate|33",
+      "PLX_financial_statements_2018_separate|34"
+    ],
+    "gold_in_final": [
+      "PLX_financial_statements_2020_separate|35"
+    ],
+    "gold_in_actual_run": [],
+    "n_gold": 2
+  },
+  {
+    "qid": 521,
+    "gold": [
+      "HDG_financial_statements_2021_consolidated|12",
+      "HDG_financial_statements_2024_consolidated|10",
+      "HDG_financial_statements_2025_consolidated|11",
+      "HDG_financial_statements_2025_consolidated|51"
+    ],
+    "enriched_tickers": [
+      "HDG"
+    ],
+    "enriched_years": [
+      2021,
+      2023,
+      2025
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "HDG"
+    ],
+    "live_years": [
+      2021,
+      2023,
+      2025
+    ],
+    "live_doc_type": "consolidated",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "HDG_financial_statements_2021_consolidated|12",
+      "HDG_financial_statements_2025_consolidated|11",
+      "HDG_financial_statements_2025_consolidated|51"
+    ],
+    "bm25_hits": [
+      "HDG_financial_statements_2021_consolidated|12",
+      "HDG_financial_statements_2025_consolidated|11",
+      "HDG_financial_statements_2025_consolidated|51"
+    ],
+    "dense_hits": [
+      "HDG_financial_statements_2025_consolidated|51"
+    ],
+    "post_rrf_hits": [
+      "HDG_financial_statements_2021_consolidated|12",
+      "HDG_financial_statements_2025_consolidated|11",
+      "HDG_financial_statements_2025_consolidated|51"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "HDG_financial_statements_2021_consolidated|12": 6,
+      "HDG_financial_statements_2025_consolidated|11": 9,
+      "HDG_financial_statements_2025_consolidated|51": 4
+    },
+    "pool_size": 51,
+    "in_window": [
+      "HDG_financial_statements_2021_consolidated|12",
+      "HDG_financial_statements_2025_consolidated|11",
+      "HDG_financial_statements_2025_consolidated|51"
+    ],
+    "judge_picks": [
+      "HDG_financial_statements_2021_consolidated|17",
+      "HDG_financial_statements_2025_consolidated|17",
+      "HDG_financial_statements_2023_consolidated|17",
+      "HDG_financial_statements_2025_consolidated|51",
+      "HDG_financial_statements_2023_consolidated|49",
+      "HDG_financial_statements_2021_consolidated|54"
+    ],
+    "gold_in_final": [
+      "HDG_financial_statements_2021_consolidated|12",
+      "HDG_financial_statements_2025_consolidated|11",
+      "HDG_financial_statements_2025_consolidated|51"
+    ],
+    "gold_in_actual_run": [
+      "HDG_financial_statements_2021_consolidated|12",
+      "HDG_financial_statements_2025_consolidated|11",
+      "HDG_financial_statements_2025_consolidated|51"
+    ],
+    "n_gold": 4
+  },
+  {
+    "qid": 542,
+    "gold": [
+      "DCM_financial_statements_2021_consolidated|4",
+      "DCM_financial_statements_2022_consolidated|6",
+      "DPM_financial_statements_2021_consolidated|8",
+      "DPM_financial_statements_2022_consolidated|9"
+    ],
+    "enriched_tickers": [
+      "DCM",
+      "DPM",
+      "GVR"
+    ],
+    "enriched_years": [
+      2021,
+      2022
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "DCM",
+      "DPM",
+      "GVR"
+    ],
+    "live_years": [
+      2021,
+      2022
+    ],
+    "live_doc_type": "unknown",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "DCM_financial_statements_2021_consolidated|4",
+      "DCM_financial_statements_2022_consolidated|6",
+      "DPM_financial_statements_2021_consolidated|8",
+      "DPM_financial_statements_2022_consolidated|9"
+    ],
+    "bm25_hits": [
+      "DCM_financial_statements_2021_consolidated|4",
+      "DCM_financial_statements_2022_consolidated|6",
+      "DPM_financial_statements_2021_consolidated|8",
+      "DPM_financial_statements_2022_consolidated|9"
+    ],
+    "dense_hits": [
+      "DCM_financial_statements_2022_consolidated|6",
+      "DPM_financial_statements_2021_consolidated|8",
+      "DPM_financial_statements_2022_consolidated|9"
+    ],
+    "post_rrf_hits": [
+      "DCM_financial_statements_2021_consolidated|4",
+      "DCM_financial_statements_2022_consolidated|6",
+      "DPM_financial_statements_2021_consolidated|8",
+      "DPM_financial_statements_2022_consolidated|9"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "DCM_financial_statements_2021_consolidated|4": 16,
+      "DCM_financial_statements_2022_consolidated|6": 12,
+      "DPM_financial_statements_2021_consolidated|8": 9,
+      "DPM_financial_statements_2022_consolidated|9": 8
+    },
+    "pool_size": 51,
+    "in_window": [
+      "DCM_financial_statements_2021_consolidated|4",
+      "DCM_financial_statements_2022_consolidated|6",
+      "DPM_financial_statements_2021_consolidated|8",
+      "DPM_financial_statements_2022_consolidated|9"
+    ],
+    "judge_picks": [
+      "DPM_financial_statements_2021_consolidated|43",
+      "DPM_financial_statements_2022_consolidated|48",
+      "DPM_financial_statements_2022_consolidated|9",
+      "DPM_financial_statements_2021_consolidated|8",
+      "DCM_financial_statements_2022_consolidated|6",
+      "DCM_financial_statements_2021_consolidated|4"
+    ],
+    "gold_in_final": [
+      "DCM_financial_statements_2021_consolidated|4",
+      "DCM_financial_statements_2022_consolidated|6",
+      "DPM_financial_statements_2021_consolidated|8",
+      "DPM_financial_statements_2022_consolidated|9"
+    ],
+    "gold_in_actual_run": [
+      "DCM_financial_statements_2021_consolidated|4",
+      "DCM_financial_statements_2022_consolidated|6",
+      "DPM_financial_statements_2021_consolidated|8",
+      "DPM_financial_statements_2022_consolidated|9"
+    ],
+    "n_gold": 4
+  },
+  {
+    "qid": 553,
+    "gold": [
+      "PLX_financial_statements_2019_consolidated|10",
+      "PLX_financial_statements_2019_consolidated|8"
+    ],
+    "enriched_tickers": [
+      "BSR",
+      "PLX",
+      "PVT"
+    ],
+    "enriched_years": [
+      2019
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "BSR",
+      "PLX",
+      "PVT"
+    ],
+    "live_years": [
+      2019
+    ],
+    "live_doc_type": "unknown",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "PLX_financial_statements_2019_consolidated|10",
+      "PLX_financial_statements_2019_consolidated|8"
+    ],
+    "bm25_hits": [
+      "PLX_financial_statements_2019_consolidated|10",
+      "PLX_financial_statements_2019_consolidated|8"
+    ],
+    "dense_hits": [],
+    "post_rrf_hits": [
+      "PLX_financial_statements_2019_consolidated|10",
+      "PLX_financial_statements_2019_consolidated|8"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "PLX_financial_statements_2019_consolidated|10": 3,
+      "PLX_financial_statements_2019_consolidated|8": 2
+    },
+    "pool_size": 45,
+    "in_window": [
+      "PLX_financial_statements_2019_consolidated|10",
+      "PLX_financial_statements_2019_consolidated|8"
+    ],
+    "judge_picks": [
+      "BSR_financial_statements_2019_consolidated|5",
+      "BSR_financial_statements_2019_consolidated|4",
+      "PVT_financial_statements_2019_consolidated|59"
+    ],
+    "gold_in_final": [
+      "PLX_financial_statements_2019_consolidated|10",
+      "PLX_financial_statements_2019_consolidated|8"
+    ],
+    "gold_in_actual_run": [
+      "PLX_financial_statements_2019_consolidated|10",
+      "PLX_financial_statements_2019_consolidated|8"
+    ],
+    "n_gold": 2
+  },
+  {
+    "qid": 685,
+    "gold": [
+      "BAB_financial_statements_2025_separate|24",
+      "BAB_financial_statements_2025_separate|29"
+    ],
+    "enriched_tickers": [
+      "BAB"
+    ],
+    "enriched_years": [
+      2025
+    ],
+    "enriched_doc_type": "separate",
+    "live_tickers": [
+      "BAB"
+    ],
+    "live_years": [
+      2025
+    ],
+    "live_doc_type": "separate",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "BAB_financial_statements_2025_separate|24",
+      "BAB_financial_statements_2025_separate|29"
+    ],
+    "bm25_hits": [
+      "BAB_financial_statements_2025_separate|24"
+    ],
+    "dense_hits": [
+      "BAB_financial_statements_2025_separate|24",
+      "BAB_financial_statements_2025_separate|29"
+    ],
+    "post_rrf_hits": [
+      "BAB_financial_statements_2025_separate|24",
+      "BAB_financial_statements_2025_separate|29"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "BAB_financial_statements_2025_separate|24": 6,
+      "BAB_financial_statements_2025_separate|29": 9
+    },
+    "pool_size": 31,
+    "in_window": [
+      "BAB_financial_statements_2025_separate|24",
+      "BAB_financial_statements_2025_separate|29"
+    ],
+    "judge_picks": [
+      "BAB_financial_statements_2025_separate|61",
+      "BAB_financial_statements_2025_separate|25",
+      "BAB_financial_statements_2025_separate|71",
+      "BAB_financial_statements_2025_separate|24",
+      "BAB_financial_statements_2025_separate|29",
+      "BAB_financial_statements_2025_separate|5",
+      "BAB_financial_statements_2025_separate|8",
+      "BAB_financial_statements_2025_separate|64",
+      "BAB_financial_statements_2025_separate|43"
+    ],
+    "gold_in_final": [
+      "BAB_financial_statements_2025_separate|24",
+      "BAB_financial_statements_2025_separate|29"
+    ],
+    "gold_in_actual_run": [
+      "BAB_financial_statements_2025_separate|24",
+      "BAB_financial_statements_2025_separate|29"
+    ],
+    "n_gold": 2
+  },
+  {
+    "qid": 744,
+    "gold": [
+      "KLB_financial_statements_2024_separate|42",
+      "EIB_financial_statements_2024_separate|54"
+    ],
+    "enriched_tickers": [
+      "KLB",
+      "EIB"
+    ],
+    "enriched_years": [
+      2024
+    ],
+    "enriched_doc_type": "separate",
+    "live_tickers": [
+      "KLB",
+      "EIB"
+    ],
+    "live_years": [
+      2024
+    ],
+    "live_doc_type": "separate",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "KLB_financial_statements_2024_separate|42",
+      "EIB_financial_statements_2024_separate|54"
+    ],
+    "bm25_hits": [
+      "KLB_financial_statements_2024_separate|42",
+      "EIB_financial_statements_2024_separate|54"
+    ],
+    "dense_hits": [
+      "KLB_financial_statements_2024_separate|42",
+      "EIB_financial_statements_2024_separate|54"
+    ],
+    "post_rrf_hits": [
+      "KLB_financial_statements_2024_separate|42",
+      "EIB_financial_statements_2024_separate|54"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "KLB_financial_statements_2024_separate|42": 8,
+      "EIB_financial_statements_2024_separate|54": 2
+    },
+    "pool_size": 39,
+    "in_window": [
+      "KLB_financial_statements_2024_separate|42",
+      "EIB_financial_statements_2024_separate|54"
+    ],
+    "judge_picks": [
+      "KLB_financial_statements_2024_separate|42",
+      "EIB_financial_statements_2024_separate|95"
+    ],
+    "gold_in_final": [
+      "KLB_financial_statements_2024_separate|42"
+    ],
+    "gold_in_actual_run": [
+      "KLB_financial_statements_2024_separate|42"
+    ],
+    "n_gold": 2
+  },
+  {
+    "qid": 753,
+    "gold": [
+      "VIB_financial_statements_2017_separate|7",
+      "MSB_financial_statements_2017_separate|5"
+    ],
+    "enriched_tickers": [
+      "VIB",
+      "MSB"
+    ],
+    "enriched_years": [
+      2017
+    ],
+    "enriched_doc_type": "separate",
+    "live_tickers": [
+      "VIB",
+      "MSB"
+    ],
+    "live_years": [
+      2017
+    ],
+    "live_doc_type": "separate",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "VIB_financial_statements_2017_separate|7",
+      "MSB_financial_statements_2017_separate|5"
+    ],
+    "bm25_hits": [
+      "VIB_financial_statements_2017_separate|7",
+      "MSB_financial_statements_2017_separate|5"
+    ],
+    "dense_hits": [
+      "VIB_financial_statements_2017_separate|7",
+      "MSB_financial_statements_2017_separate|5"
+    ],
+    "post_rrf_hits": [
+      "VIB_financial_statements_2017_separate|7",
+      "MSB_financial_statements_2017_separate|5"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "VIB_financial_statements_2017_separate|7": 2,
+      "MSB_financial_statements_2017_separate|5": 1
+    },
+    "pool_size": 37,
+    "in_window": [
+      "VIB_financial_statements_2017_separate|7",
+      "MSB_financial_statements_2017_separate|5"
+    ],
+    "judge_picks": [
+      "VIB_financial_statements_2017_separate|7"
+    ],
+    "gold_in_final": [
+      "VIB_financial_statements_2017_separate|7",
+      "MSB_financial_statements_2017_separate|5"
+    ],
+    "gold_in_actual_run": [
+      "VIB_financial_statements_2017_separate|7",
+      "MSB_financial_statements_2017_separate|5"
+    ],
+    "n_gold": 2
+  },
+  {
+    "qid": 759,
+    "gold": [
+      "SCR_financial_statements_2025_consolidated|5",
+      "NVL_financial_statements_2025_consolidated|7"
+    ],
+    "enriched_tickers": [
+      "SCR",
+      "NVL"
+    ],
+    "enriched_years": [
+      2025
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "SCR",
+      "NVL"
+    ],
+    "live_years": [
+      2025
+    ],
+    "live_doc_type": "unknown",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "SCR_financial_statements_2025_consolidated|5",
+      "NVL_financial_statements_2025_consolidated|7"
+    ],
+    "bm25_hits": [
+      "SCR_financial_statements_2025_consolidated|5",
+      "NVL_financial_statements_2025_consolidated|7"
+    ],
+    "dense_hits": [
+      "SCR_financial_statements_2025_consolidated|5",
+      "NVL_financial_statements_2025_consolidated|7"
+    ],
+    "post_rrf_hits": [
+      "SCR_financial_statements_2025_consolidated|5",
+      "NVL_financial_statements_2025_consolidated|7"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "SCR_financial_statements_2025_consolidated|5": 5,
+      "NVL_financial_statements_2025_consolidated|7": 6
+    },
+    "pool_size": 35,
+    "in_window": [
+      "SCR_financial_statements_2025_consolidated|5",
+      "NVL_financial_statements_2025_consolidated|7"
+    ],
+    "judge_picks": [
+      "SCR_financial_statements_2025_consolidated|5",
+      "NVL_financial_statements_2025_consolidated|7"
+    ],
+    "gold_in_final": [
+      "SCR_financial_statements_2025_consolidated|5",
+      "NVL_financial_statements_2025_consolidated|7"
+    ],
+    "gold_in_actual_run": [
+      "SCR_financial_statements_2025_consolidated|5",
+      "NVL_financial_statements_2025_consolidated|7"
+    ],
+    "n_gold": 2
+  },
+  {
+    "qid": 790,
+    "gold": [
+      "VIB_financial_statements_2023_separate|33",
+      "BID_financial_statements_2023_separate|30"
+    ],
+    "enriched_tickers": [
+      "VIB"
+    ],
+    "enriched_years": [
+      2023
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "VIB"
+    ],
+    "live_years": [
+      2023
+    ],
+    "live_doc_type": "separate",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "VIB_financial_statements_2023_separate|33"
+    ],
+    "bm25_hits": [
+      "VIB_financial_statements_2023_separate|33"
+    ],
+    "dense_hits": [
+      "VIB_financial_statements_2023_separate|33"
+    ],
+    "post_rrf_hits": [
+      "VIB_financial_statements_2023_separate|33"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "VIB_financial_statements_2023_separate|33": 1
+    },
+    "pool_size": 37,
+    "in_window": [
+      "VIB_financial_statements_2023_separate|33"
+    ],
+    "judge_picks": [
+      "VIB_financial_statements_2023_separate|33"
+    ],
+    "gold_in_final": [
+      "VIB_financial_statements_2023_separate|33"
+    ],
+    "gold_in_actual_run": [
+      "VIB_financial_statements_2023_separate|33"
+    ],
+    "n_gold": 2
+  },
+  {
+    "qid": 856,
+    "gold": [
+      "PC1_financial_statements_2015_consolidated|46",
+      "PC1_financial_statements_2020_consolidated|60",
+      "PC1_financial_statements_2022_consolidated|70",
+      "PC1_financial_statements_2023_consolidated|73",
+      "PC1_financial_statements_2024_consolidated|77"
+    ],
+    "enriched_tickers": [
+      "PC1"
+    ],
+    "enriched_years": [
+      2015,
+      2020,
+      2022,
+      2023,
+      2024
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "PC1"
+    ],
+    "live_years": [
+      2015,
+      2020,
+      2022,
+      2023,
+      2024
+    ],
+    "live_doc_type": "consolidated",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "PC1_financial_statements_2015_consolidated|46",
+      "PC1_financial_statements_2020_consolidated|60",
+      "PC1_financial_statements_2022_consolidated|70",
+      "PC1_financial_statements_2023_consolidated|73",
+      "PC1_financial_statements_2024_consolidated|77"
+    ],
+    "bm25_hits": [
+      "PC1_financial_statements_2015_consolidated|46",
+      "PC1_financial_statements_2020_consolidated|60",
+      "PC1_financial_statements_2022_consolidated|70",
+      "PC1_financial_statements_2023_consolidated|73",
+      "PC1_financial_statements_2024_consolidated|77"
+    ],
+    "dense_hits": [
+      "PC1_financial_statements_2015_consolidated|46",
+      "PC1_financial_statements_2020_consolidated|60",
+      "PC1_financial_statements_2022_consolidated|70",
+      "PC1_financial_statements_2023_consolidated|73",
+      "PC1_financial_statements_2024_consolidated|77"
+    ],
+    "post_rrf_hits": [
+      "PC1_financial_statements_2015_consolidated|46",
+      "PC1_financial_statements_2020_consolidated|60",
+      "PC1_financial_statements_2022_consolidated|70",
+      "PC1_financial_statements_2023_consolidated|73",
+      "PC1_financial_statements_2024_consolidated|77"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "PC1_financial_statements_2015_consolidated|46": 2,
+      "PC1_financial_statements_2020_consolidated|60": 3,
+      "PC1_financial_statements_2022_consolidated|70": 11,
+      "PC1_financial_statements_2023_consolidated|73": 5,
+      "PC1_financial_statements_2024_consolidated|77": 4
+    },
+    "pool_size": 75,
+    "in_window": [
+      "PC1_financial_statements_2015_consolidated|46",
+      "PC1_financial_statements_2020_consolidated|60",
+      "PC1_financial_statements_2022_consolidated|70",
+      "PC1_financial_statements_2023_consolidated|73",
+      "PC1_financial_statements_2024_consolidated|77"
+    ],
+    "judge_picks": [
+      "PC1_financial_statements_2015_consolidated|46",
+      "PC1_financial_statements_2020_consolidated|60",
+      "PC1_financial_statements_2024_consolidated|77",
+      "PC1_financial_statements_2022_consolidated|72",
+      "PC1_financial_statements_2022_consolidated|70",
+      "PC1_financial_statements_2015_consolidated|9",
+      "PC1_financial_statements_2020_consolidated|7"
+    ],
+    "gold_in_final": [
+      "PC1_financial_statements_2015_consolidated|46",
+      "PC1_financial_statements_2020_consolidated|60",
+      "PC1_financial_statements_2022_consolidated|70",
+      "PC1_financial_statements_2024_consolidated|77"
+    ],
+    "gold_in_actual_run": [
+      "PC1_financial_statements_2015_consolidated|46",
+      "PC1_financial_statements_2020_consolidated|60",
+      "PC1_financial_statements_2022_consolidated|70"
+    ],
+    "n_gold": 5
+  },
+  {
+    "qid": 920,
+    "gold": [
+      "DPM_financial_statements_2025_consolidated|6",
+      "GVR_financial_statements_2025_consolidated|33",
+      "VIF_financial_statements_2025_consolidated|31"
+    ],
+    "enriched_tickers": [
+      "VIF",
+      "GVR",
+      "DPM"
+    ],
+    "enriched_years": [
+      2025
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "VIF",
+      "GVR",
+      "DPM"
+    ],
+    "live_years": [
+      2025
+    ],
+    "live_doc_type": "consolidated",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "DPM_financial_statements_2025_consolidated|6",
+      "GVR_financial_statements_2025_consolidated|33",
+      "VIF_financial_statements_2025_consolidated|31"
+    ],
+    "bm25_hits": [
+      "VIF_financial_statements_2025_consolidated|31"
+    ],
+    "dense_hits": [
+      "GVR_financial_statements_2025_consolidated|33",
+      "VIF_financial_statements_2025_consolidated|31"
+    ],
+    "post_rrf_hits": [
+      "GVR_financial_statements_2025_consolidated|33",
+      "VIF_financial_statements_2025_consolidated|31"
+    ],
+    "added_by_primary": [
+      "DPM_financial_statements_2025_consolidated|6"
+    ],
+    "rank_of": {
+      "DPM_financial_statements_2025_consolidated|6": 33,
+      "GVR_financial_statements_2025_consolidated|33": 19,
+      "VIF_financial_statements_2025_consolidated|31": 12
+    },
+    "pool_size": 62,
+    "in_window": [
+      "GVR_financial_statements_2025_consolidated|33",
+      "VIF_financial_statements_2025_consolidated|31"
+    ],
+    "judge_picks": [
+      "VIF_financial_statements_2025_consolidated|29",
+      "DPM_financial_statements_2025_consolidated|34",
+      "DPM_financial_statements_2025_consolidated|33",
+      "VIF_financial_statements_2025_consolidated|30",
+      "VIF_financial_statements_2025_consolidated|32",
+      "VIF_financial_statements_2025_consolidated|31"
+    ],
+    "gold_in_final": [
+      "DPM_financial_statements_2025_consolidated|6",
+      "VIF_financial_statements_2025_consolidated|31"
+    ],
+    "gold_in_actual_run": [
+      "DPM_financial_statements_2025_consolidated|6",
+      "VIF_financial_statements_2025_consolidated|31"
+    ],
+    "n_gold": 3
+  },
+  {
+    "qid": 955,
+    "gold": [
+      "ACB_financial_statements_2019_separate|27",
+      "BID_financial_statements_2019_separate|27",
+      "MBB_financial_statements_2019_separate|28",
+      "STB_financial_statements_2019_separate|29"
+    ],
+    "enriched_tickers": [
+      "ACB",
+      "MBB",
+      "BID",
+      "STB"
+    ],
+    "enriched_years": [
+      2019
+    ],
+    "enriched_doc_type": "separate",
+    "live_tickers": [
+      "ACB",
+      "BID",
+      "MBB",
+      "STB"
+    ],
+    "live_years": [
+      2019
+    ],
+    "live_doc_type": "separate",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "ACB_financial_statements_2019_separate|27",
+      "BID_financial_statements_2019_separate|27",
+      "MBB_financial_statements_2019_separate|28",
+      "STB_financial_statements_2019_separate|29"
+    ],
+    "bm25_hits": [
+      "BID_financial_statements_2019_separate|27",
+      "MBB_financial_statements_2019_separate|28",
+      "STB_financial_statements_2019_separate|29"
+    ],
+    "dense_hits": [
+      "BID_financial_statements_2019_separate|27",
+      "MBB_financial_statements_2019_separate|28",
+      "STB_financial_statements_2019_separate|29"
+    ],
+    "post_rrf_hits": [
+      "BID_financial_statements_2019_separate|27",
+      "MBB_financial_statements_2019_separate|28",
+      "STB_financial_statements_2019_separate|29"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "BID_financial_statements_2019_separate|27": 3,
+      "MBB_financial_statements_2019_separate|28": 1,
+      "STB_financial_statements_2019_separate|29": 2
+    },
+    "pool_size": 57,
+    "in_window": [
+      "BID_financial_statements_2019_separate|27",
+      "MBB_financial_statements_2019_separate|28",
+      "STB_financial_statements_2019_separate|29"
+    ],
+    "judge_picks": [
+      "MBB_financial_statements_2019_separate|28",
+      "STB_financial_statements_2019_separate|29",
+      "BID_financial_statements_2019_separate|27",
+      "ACB_financial_statements_2019_separate|91"
+    ],
+    "gold_in_final": [
+      "BID_financial_statements_2019_separate|27",
+      "MBB_financial_statements_2019_separate|28",
+      "STB_financial_statements_2019_separate|29"
+    ],
+    "gold_in_actual_run": [
+      "BID_financial_statements_2019_separate|27",
+      "MBB_financial_statements_2019_separate|28",
+      "STB_financial_statements_2019_separate|29"
+    ],
+    "n_gold": 4
+  },
+  {
+    "qid": 974,
+    "gold": [
+      "CTG_financial_statements_2022_consolidated|82",
+      "CTG_financial_statements_2023_consolidated|83",
+      "CTG_financial_statements_2024_consolidated|83",
+      "CTG_financial_statements_2025_consolidated|81"
+    ],
+    "enriched_tickers": [
+      "CTG"
+    ],
+    "enriched_years": [
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "CTG"
+    ],
+    "live_years": [
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "live_doc_type": "consolidated",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "CTG_financial_statements_2022_consolidated|82",
+      "CTG_financial_statements_2023_consolidated|83",
+      "CTG_financial_statements_2024_consolidated|83",
+      "CTG_financial_statements_2025_consolidated|81"
+    ],
+    "bm25_hits": [
+      "CTG_financial_statements_2022_consolidated|82",
+      "CTG_financial_statements_2023_consolidated|83",
+      "CTG_financial_statements_2024_consolidated|83",
+      "CTG_financial_statements_2025_consolidated|81"
+    ],
+    "dense_hits": [
+      "CTG_financial_statements_2022_consolidated|82",
+      "CTG_financial_statements_2023_consolidated|83",
+      "CTG_financial_statements_2024_consolidated|83",
+      "CTG_financial_statements_2025_consolidated|81"
+    ],
+    "post_rrf_hits": [
+      "CTG_financial_statements_2022_consolidated|82",
+      "CTG_financial_statements_2023_consolidated|83",
+      "CTG_financial_statements_2024_consolidated|83",
+      "CTG_financial_statements_2025_consolidated|81"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "CTG_financial_statements_2022_consolidated|82": 2,
+      "CTG_financial_statements_2023_consolidated|83": 5,
+      "CTG_financial_statements_2024_consolidated|83": 3,
+      "CTG_financial_statements_2025_consolidated|81": 1
+    },
+    "pool_size": 54,
+    "in_window": [
+      "CTG_financial_statements_2022_consolidated|82",
+      "CTG_financial_statements_2023_consolidated|83",
+      "CTG_financial_statements_2024_consolidated|83",
+      "CTG_financial_statements_2025_consolidated|81"
+    ],
+    "judge_picks": [
+      "CTG_financial_statements_2025_consolidated|81",
+      "CTG_financial_statements_2022_consolidated|82",
+      "CTG_financial_statements_2024_consolidated|83",
+      "CTG_financial_statements_2023_consolidated|83"
+    ],
+    "gold_in_final": [
+      "CTG_financial_statements_2022_consolidated|82",
+      "CTG_financial_statements_2023_consolidated|83",
+      "CTG_financial_statements_2024_consolidated|83",
+      "CTG_financial_statements_2025_consolidated|81"
+    ],
+    "gold_in_actual_run": [
+      "CTG_financial_statements_2022_consolidated|82",
+      "CTG_financial_statements_2023_consolidated|83",
+      "CTG_financial_statements_2024_consolidated|83",
+      "CTG_financial_statements_2025_consolidated|81"
+    ],
+    "n_gold": 4
+  },
+  {
+    "qid": 525,
+    "gold": [
+      "OCB_financial_statements_2022_separate_1|5"
+    ],
+    "enriched_tickers": [
+      "OCB"
+    ],
+    "enriched_years": [
+      2017,
+      2019,
+      2022
+    ],
+    "enriched_doc_type": "separate",
+    "live_tickers": [
+      "OCB"
+    ],
+    "live_years": [
+      2017,
+      2019,
+      2022
+    ],
+    "live_doc_type": "separate",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "OCB_financial_statements_2022_separate_1|5"
+    ],
+    "bm25_hits": [
+      "OCB_financial_statements_2022_separate_1|5"
+    ],
+    "dense_hits": [],
+    "post_rrf_hits": [
+      "OCB_financial_statements_2022_separate_1|5"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "OCB_financial_statements_2022_separate_1|5": 17
+    },
+    "pool_size": 56,
+    "in_window": [
+      "OCB_financial_statements_2022_separate_1|5"
+    ],
+    "judge_picks": [
+      "OCB_financial_statements_2019_separate|33",
+      "OCB_financial_statements_2017_separate|9",
+      "OCB_financial_statements_2019_separate|74"
+    ],
+    "gold_in_final": [
+      "OCB_financial_statements_2022_separate_1|5"
+    ],
+    "gold_in_actual_run": [
+      "OCB_financial_statements_2022_separate_1|5"
+    ],
+    "n_gold": 1
+  },
+  {
+    "qid": 530,
+    "gold": [
+      "NAB_financial_statements_2025_consolidated|30"
+    ],
+    "enriched_tickers": [
+      "NAB"
+    ],
+    "enriched_years": [
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "enriched_doc_type": "unknown",
+    "live_tickers": [
+      "NAB"
+    ],
+    "live_years": [
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "live_doc_type": "unknown",
+    "absent_from_corpus": [],
+    "survived_filter": [
+      "NAB_financial_statements_2025_consolidated|30"
+    ],
+    "bm25_hits": [
+      "NAB_financial_statements_2025_consolidated|30"
+    ],
+    "dense_hits": [
+      "NAB_financial_statements_2025_consolidated|30"
+    ],
+    "post_rrf_hits": [
+      "NAB_financial_statements_2025_consolidated|30"
+    ],
+    "added_by_primary": [],
+    "rank_of": {
+      "NAB_financial_statements_2025_consolidated|30": 19
+    },
+    "pool_size": 69,
+    "in_window": [
+      "NAB_financial_statements_2025_consolidated|30"
+    ],
+    "judge_picks": [
+      "NAB_financial_statements_2023_consolidated_1|25",
+      "NAB_financial_statements_2023_consolidated_2|25",
+      "NAB_financial_statements_2024_consolidated|28",
+      "NAB_financial_statements_2025_consolidated|26",
+      "NAB_financial_statements_2022_consolidated_1|35",
+      "NAB_financial_statements_2022_consolidated_2|35",
+      "NAB_financial_statements_2023_consolidated_1|29",
+      "NAB_financial_statements_2023_consolidated_2|29",
+      "NAB_financial_statements_2025_consolidated|30",
+      "NAB_financial_statements_2024_consolidated|32"
+    ],
+    "gold_in_final": [
+      "NAB_financial_statements_2025_consolidated|30"
+    ],
+    "gold_in_actual_run": [
+      "NAB_financial_statements_2025_consolidated|30"
+    ],
+    "n_gold": 1
+  }
+]

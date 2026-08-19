@@ -1,0 +1,87 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+running 73 question(s) through the graph -> artifacts/runs/gold73_raw_linker_on.jsonl
+
+ qid match         solver   sec          expected  answer
+--------------------------------------------------------------------------------------------
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 4927.98it/s]
+  17    OK   cell_locator    46            713942  713942.0
+  27     -   cell_locator    48                 ?  -150202.62844499998
+   1    OK raw_table_linker    48            208253  208253.201298
+  18     -  formula_facts    48                 ?  2077.8695966550004
+  44    OK   cell_locator    11       3.32023e+08  332023043.0
+  40    OK raw_table_linker    21       4.64233e+06  4642334.0
+  45     -  formula_facts    23                 ?  108950874.0
+  60     -   cell_locator     3                 ?  87611.62642
+  62     - raw_table_linker    22                 ?  428450055.0
+  37     -        codegen    46                 ?  201.004296672
+  86     -   cell_locator    23                 ?  79168.0
+  55     · raw_table_linker    36           1.32267  2.202166223231
+  88     -   cell_locator     5                 ?  80394022.0
+ 103     - raw_table_linker    22                 ?  2123.935262
+ 115     -   cell_locator    23                 ?  14733282.0
+ 120     - raw_table_linker    39                 ?  1.041601
+ 161     -   cell_locator    26                 ?  50555028.0
+ 100    OK        codegen    60       7.00886e+08  700886434.0
+ 166     -        codegen    44                 ?  4.719710357229999
+ 262     - raw_table_linker    24                 ?  1.621567804574
+ 277     - raw_table_linker    16                 ?  85.16023694341999
+ 280     - raw_table_linker    23                 ?  4.89e-06
+ 263     - raw_table_linker    37                 ?  9.3932433e-05
+ 222     -        codegen    64                 ?  30056924.0
+ 283     - raw_table_linker    23                 ?  0.0
+ 327     -   cell_locator    10                 ?  11.082194110349999
+ 315     -        codegen    21                 ?  1.3686441034999999
+ 323     -        codegen    11                 ?  76.038454529
+ 337     -  formula_facts    26                 ?  81.56692189
+ 353     - raw_table_linker    24                 ?  7306.508578
+ 292     -        codegen    53                 ?  1.987758432856
+ 330     -        codegen    38                 ?  3247590.0
+ 355     -        codegen    13                 ?  11.0
+ 363     ·        codegen    14           3.31936  -109457617841.0
+ 488     -        codegen    16                 ?  7.053940492179
+ 524     ·        codegen     8           102.424  0.0
+ 521     -        codegen    10                 ?  694.458293386
+ 502     -        codegen    12                 ?  1529.1990643660001
+ 525     -        codegen    10                 ?  -1.582259850422
+ 526     -        codegen    10                 ?  -83.790676915
+ 542     -        codegen     9                 ?  4.651932753976107
+ 530     -        codegen    10                 ?  114.57533799999999
+ 586     -  formula_facts     3                 ?  335.81896171961
+ 553     -        codegen     9                 ?  0.5735193257328931
+ 555     -        codegen    10                 ?  0.0
+ 644     -        codegen     8                 ?  -52.401960937079814
+ 582     ·        codegen    17           13.7498  -7.243285473125632
+ 605    OK        codegen    14           -20.734  -20.73399031126013
+ 635     -        codegen    13                 ?  52.98103923661748
+ 732     - raw_table_linker     4                 ?  15330585.0
+ 663     -        codegen    10                 ?  36.76031567513054
+ 685     -        codegen    10                 ?  0.0
+ 693     -        codegen    54                 ?  31.385622109258755
+ 753     - raw_table_linker    61                 ?  571308.0
+ 744     - raw_table_linker    63                 ?  -2880000.0
+ 752    OK raw_table_linker    76      -3.90353e+06  -3903526.0
+ 770     -  formula_facts    70                 ?  35153.747341507005
+ 754    OK raw_table_linker    91       1.16644e+08  116644397.0
+ 759     - raw_table_linker    74                 ?  -3.100151474578
+ 820    OK  formula_facts     4           4.06904  4.069037099374
+ 818    OK raw_table_linker    27           145.134  145.134
+ 790     -        codegen    86                 ?  5.03
+ 792     - raw_table_linker   138                 ?  234305.0
+ 833     - raw_table_linker   130                 ?  9.710708722489999
+ 845     -        codegen   108                 ?  2.843
+ 878     -        codegen    40                 ?  432718621923.0
+ 871     -        codegen    43                 ?  38.77606547
+ 856     - raw_table_linker   151                 ?  2992.4
+ 868     -        codegen    45                 ?  0.00840686
+ 920     - raw_table_linker    93                 ?  817.002314167
+ 946     -        codegen    93                 ?  144444530677.0
+ 955     - raw_table_linker    92                 ?  316877939.5
+ 974     -        codegen    93                 ?  3880200648.0
+--------------------------------------------------------------------------------------------
+SCORED: 10/14 match (rel<0.01)   [unscored: 59]
+
+by solver:
+    cell_locator: 2/2  [17,44]
+         codegen: 2/5  [100,363,524,582,605]
+   formula_facts: 1/1  [820]
+  raw_table_linker: 5/6  [1,40,55,752,754,818]
