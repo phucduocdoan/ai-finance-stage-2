@@ -10,6 +10,12 @@ nhưng "chênh lệch giữa hai công ty" và "chênh lệch giữa hai năm" t
 đếm mã và đếm năm, và cả hai phép đếm đều thiếu khi câu gọi tên đầy đủ. Đọc số theo
 bậc như chặn trên của độ tin cậy, đừng đọc như nhãn thật.
 
+Chỗ sót đã đo: 44 câu trong 1012 nêu từ ba pháp nhân trở lên bằng tên đầy đủ, không
+mã nào, nên `is_screening` không thấy. Chúng rơi xuống L1 (13), L3 (12), L2 (3),
+L4 (2) và 14 câu vẫn vào L5 nhờ cue khác. Trên 119 câu eval sạch chỉ 3 câu bị sót
+(q506 vào L1, q735 vào L3, q919 vào L5), nên bảng điểm dưới đây lệch không đáng kể,
+nhưng con số 210 câu của lớp sàng lọc thì là chặn dưới, thực tế khoảng 240.
+
 Dùng:
     PYTHONPATH=src:scripts .venv_bge/bin/python scripts/gate_type_split.py \
         output/submission_v9_sign/submission.json
