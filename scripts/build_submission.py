@@ -93,6 +93,31 @@ def build_item(qrow: dict, record: dict | None) -> dict:
     }
 
 
+def round_final(item: dict) -> None:
+    """Round the submitted answer to 2 decimals, per the organizer's arithmetic rule.
+
+    Slide p35: "Không làm tròn trung gian; chỉ làm tròn kết quả cuối 2 chữ số thập
+    phân." Packaging is the only place that can honour the first half, which is why
+    this lives here and not in a solver.
+
+    Measured, not inferred. Scoring the v7 submission against the 60 hand-labeled
+    questions reproduces the leaderboard under exactly one rule -- our full-precision
+    float against a 2-decimal gold, 15/60 = 0.250 (leaderboard 0.3043) -- while every
+    looser rule lands at 0.533 (exact) to 0.683 (1% relative, or both sides rounded).
+    690 of the 1012 answers carry more than two decimals, every one of them the
+    product of a unit conversion.
+
+    `round` goes into `pandas_query` as well as onto the number: EXECUTION_ACCURACY
+    re-runs the submitted string, so rounding only the number would make the two
+    metrics disagree. `abs(...)` already ships in 81 queries and executes there, so
+    builtins are available.
+    """
+    item["answer"] = round(_coerce_float(item.get("answer")), 2)
+    query = str(item.get("pandas_query") or "").strip()
+    if query:
+        item["pandas_query"] = f"round({query}, 2)"
+
+
 # ------------------------------------------------------------------ validation
 
 def validate_format(items: list[dict], expected_ids: set[int] | None) -> list[str]:
@@ -269,6 +294,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.set_defaults(literal_on_error=True)
     ap.add_argument(
+        "--no-round-final",
+        dest="round_final",
+        action="store_false",
+        help="control arm: submit full-precision answers (what v7 did, 0.3043)",
+    )
+    ap.set_defaults(round_final=True)
+    ap.add_argument(
         "--only-run-ids",
         action="store_true",
         help="build only ids present in --run (test mode; skips the all-1012 gate)",
@@ -281,6 +313,9 @@ def main(argv: list[str] | None = None) -> int:
     expected = None if args.only_run_ids else set(questions)
 
     items = [build_item(questions[i], records.get(i)) for i in ids]
+    if args.round_final:
+        for it in items:
+            round_final(it)
 
     fmt_errs = validate_format(items, expected)
     n_csv, warns = stage(items, args.out, literal_on_error=args.literal_on_error)
