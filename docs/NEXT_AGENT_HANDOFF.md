@@ -301,6 +301,12 @@ branch itself is stable, but the total gold73 score is not stable enough to cite
 as a solved gain. Keep `SOLVE_RAW_SELECTION_LINKER=0` unless you are running a
 targeted probe.
 
+> Superseded 2026-08-22. This flag now defaults to `True`, because
+> `artifacts/runs/full1012_v7.flags` shows both submitted runs had it on while the
+> code default had it off. The gold73 evidence behind the advice above is also
+> unusable: 27 of that set's 75 ids are hardcoded in `src`/`tests`. See the comment
+> at `agents/finance/config.py:186`.
+
 The next implementation should not be another question-specific branch. Work in
 this order:
 
@@ -566,6 +572,9 @@ Decision:
 - Keep `SOLVE_RAW_SELECTION_LINKER=0` in the baseline.
 - Use it only for targeted development until a broad repeat shows the component
   group and flow-top paths do not create a false-positive cluster.
+
+> Superseded 2026-08-22: the default is now `True` to match what both submissions
+> actually ran. `config.py:186` records why, and that the branch is still unmeasured.
 
 ## Known Tradeoff
 

@@ -108,7 +108,9 @@ understand -> retrieve -> solve_raw_table_linker -> execute
 - **solve_raw_selection_linker** (`modules/solve/raw_selection_linker.py`): experimental
   opt-in branch for temporal/cross-company raw-table max/min selection. It asks the LLM only to
   choose bounded candidate ids; Python validates slot coverage, units, total-row policy, ties,
-  and the final ranking. Toggle: `SOLVE_RAW_SELECTION_LINKER=1`. Keep this off by default:
+  and the final ranking. Toggle: `SOLVE_RAW_SELECTION_LINKER=1`. (Superseded 2026-08-22: the
+  default is now `True`, matching what both submitted runs used — `config.py:186`.) The advice
+  that follows was written when the default was off:
   current deterministic targeted wins are `q868` and `q974`; older planner-owned wins on `q878`
   and `q946` are not stable. The branch now models component-row group sums per slot and in-year
   flow/payable top-candidate selection. It only accepts these paths when Python can choose one

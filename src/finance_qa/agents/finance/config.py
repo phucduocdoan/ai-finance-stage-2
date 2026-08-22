@@ -32,12 +32,54 @@ class FinanceAgentConfig:
     understand_thinking: bool = False    # understand node: enable_thinking
     reranker: str | None = "qwen3-0.6b"  # retrieve node: cross-encoder reranker
     judge_top_n: int = 20                # retrieve node: tables shown to the judge
+    # Which dense index the retrieve node reads. `bge-m3-dense-text` is the same encoder over
+    # `dense_text` (= doc_text minus header_flat); BM25 keeps the full doc_text either way,
+    # because an unmatched token is free for BM25 and not for a bi-encoder.
+    #
+    # "bge-m3", and measured — but read the config it was measured in. Over 154 gold questions
+    # `dense_text` is worth top-3 +7 / top-10 +4 with **the reranker off**
+    # (docs/retrieval_preprocessing_2026-08-21.md §10.4). That win is in the *fused order*, and
+    # `_arerank` re-scores the whole pool and replaces `pool.ranked` wholesale, so with the
+    # default reranker the fused order is thrown away and the dense channel can only act
+    # through pool membership. Measured on membership alone (which the reranker does not
+    # change, so this is exact for production): pools differ on 150/154 questions by a median
+    # 5 tables of ~36, and gold-in-pool goes 150 -> 149 — one loss (q166), zero gains.
+    #
+    # Measured the rest of the chain too, rather than inferring it. With the reranker on, the
+    # two backends tie at top-20 (148 each), which is the window `judge_top_n` cuts. End to end
+    # through `_evidence` (scripts/gate_retrieval_full.py), DOCS F2 is identical to three
+    # decimals — `relevant_docs` comes from the hard filter via primary expansion, not from
+    # ranking — and TABLES F2 sits inside the churn floor: the same `doc_text` config scored
+    # top-3 23 then 26 on unbiased60 across two runs, against dense_text's 26. The one cell
+    # outside that band is unbiased60 recall, 0.867 -> 0.804, i.e. worse. So the +7 is real and
+    # unreachable: the rerank replaces the fused order and the judge re-picks after it.
+    # This is the right default only for a reranker-off config, or once the reranker preserves
+    # rather than replaces the order it was given (§9.3: `_ordered()` throws the scores away,
+    # so there is no threshold-to-reject variant yet).
+    #
+    # The end-to-end half of that was taken against the checkpoint the local server had loaded
+    # at the time (Qwen3.5-9B-Opus-Distilled-v2), which is not the one it serves now, and the
+    # judge is a large part of that measurement. The membership and top-20 halves do not depend
+    # on the judge at all, so they still hold; the DOCS-tier result holds for a stronger reason
+    # than any model — `relevant_docs` never sees the ranking.
+    dense_backend: str = "bge-m3"        # retrieve node: dense index / text view
     # The judge's own docstring recommends thinking (recall@15 69.3% vs 84-89%), but
     # that was measured with no reranker over the whole pool, where the judge had to
     # re-sort a noisy list itself. With qwen3-0.6b reranking and judge_top_n=20 the
     # input is already ordered: measured on the 59 gold questions that name their
     # table, thinking=False here beats the base run's thinking=True at every K
     # (MRR 0.714 vs 0.611, top-3 81.4% vs 71.2%) and costs ~15x less latency.
+    #
+    # Two further reasons on the current checkpoint (Qwen3.5-9B), docs §10.8. First, True is
+    # not merely worse, it is inert: `enable_thinking=True` leaves `<think>` open in the
+    # template, this model reasons in plain prose and never emits `</think>`, so vLLM's parser
+    # buffers the whole budget and returns content=None / finish_reason=length at 256 through
+    # 16384 tokens alike. Every question would get zero picks. Second, the variant that *does*
+    # run -- thinking off, prompt asking for a rationale before the JSON, max_tokens 1536 --
+    # measures worse: top-3 124 -> 114 over 154 gold questions against a churn floor of 1-2
+    # questions, because reasoning makes the judge more selective (median picks 3 -> 2, recall
+    # 0.892 -> 0.827) and F2 weights recall four times precision. Being choosier is the wrong
+    # direction for this stage; `scripts/gate_retrieval_full.py --arms reasoning` is the probe.
     judge_thinking: bool = False         # retrieve node: judge enable_thinking
     frozen_fallback: bool = True         # retrieve node: use frozen cache on failure
 
@@ -67,16 +109,44 @@ class FinanceAgentConfig:
     structured_facts_planner_thinking: bool = field(
         default_factory=lambda: _flag("SOLVE_STRUCTURED_FACTS_PLANNER_THINKING", False)
     )
+    # ── the measured solver stack ───────────────────────────────────────────────
+    # The five flags below default True as of 2026-08-21, and these numbers are why.
+    # Measured over the 73 hand-labeled gold questions (`scripts/score_gold75.py`),
+    # checkpoint Qwen3.5-9B, against a churn floor of 2 questions -- the 08-18 run
+    # scored 54 and then 52 on a byte-identical config, so 2 is what noise alone buys:
+    #
+    #   all five off (codegen only)                     39/73    codegen 73
+    #   + cell_locator, formula_facts,
+    #     raw_table_linker, selection_facts             47/73    rtl 9, cl 7, ff 6, sf 2
+    #   + raw_table_linker_planner                      52/73    rtl 17, cl 8, ff 6, sf 2
+    #
+    # Head to head that is 10 better / 2 worse for the first step and 6 better / 1
+    # worse for the second: both clear the floor several times over.
+    #
+    # The gap between the last two rows is worth recording, because it is not a
+    # routing decision. `capability_router` emits an identical verdict in both arms
+    # (`raw_table_linker: {"enabled": true, "attempt": true}`); the linker *tries* and
+    # fails closed, printing "ratio raw linker requires planner" (q355, 663, 685, 693,
+    # 955) or "slot-wise top candidates are not strong enough" (q744, 754, 833, 856).
+    # Turning the planner on returns all nine to the linker.
+    #
+    # Each of these was measured on its own and left False "while measured", which
+    # added up to a default run scoring 39/73 while the good numbers lived only in
+    # whichever shell had the env vars exported. That is the failure this flip fixes,
+    # not any new evidence. `SOLVE_<NAME>=0` still gives every A/B its control arm.
+    # Artifacts: gold73_qwen35.jsonl, gold73_qwen35_flagson.jsonl,
+    # gold73_qwen35_planner.jsonl; docs/leaderboard_and_strategy_2026-08-21.md §2.
+    #
     # Deterministic direct-cell arm for L1-shaped questions. It consumes the
     # semantic fields from `understand`, then verifies row/column/unit against
-    # the actual tables. It is opt-in while measured because a low-confidence
-    # miss must fall back to codegen, not silently replace it.
-    cell_locator: bool = field(default_factory=lambda: _flag("SOLVE_CELL_LOCATOR", False))
+    # the actual tables. A low-confidence miss falls back to codegen rather than
+    # silently replacing it, which is what makes it safe as a default.
+    cell_locator: bool = field(default_factory=lambda: _flag("SOLVE_CELL_LOCATOR", True))
     # Deterministic non-selection formula solver over long_format facts. The
-    # planner emits only a small schema; Python executes catalog formulae. Kept
-    # behind its own flag so Type 2/3/4/5 coverage can be measured independently
-    # from the existing selection-focused structured_facts branch.
-    formula_facts: bool = field(default_factory=lambda: _flag("SOLVE_FORMULA_FACTS", False))
+    # planner emits only a small schema; Python executes catalog formulae. Its own
+    # flag so Type 2/3/4/5 coverage can be measured independently from the existing
+    # selection-focused structured_facts branch. Fires on 6 of the 73 gold questions.
+    formula_facts: bool = field(default_factory=lambda: _flag("SOLVE_FORMULA_FACTS", True))
     formula_facts_planner_thinking: bool = field(
         default_factory=lambda: _flag("SOLVE_FORMULA_FACTS_PLANNER_THINKING", False)
     )
@@ -85,15 +155,17 @@ class FinanceAgentConfig:
     # other detail tables. The default path is deterministic and fail-closed:
     # choose top-ranked real cell candidates only when the slot evidence is
     # strong; Python validates scope/unit and builds the pandas expression.
-    # Kept opt-in while the first diff/avg/sum slices are measured.
+    # The widest of the five: 17 of the 73 gold questions, with the planner on.
     raw_table_linker: bool = field(
-        default_factory=lambda: _flag("SOLVE_RAW_TABLE_LINKER", False)
+        default_factory=lambda: _flag("SOLVE_RAW_TABLE_LINKER", True)
     )
-    # Optional LLM semantic linker. It emits phrase constraints over bounded
-    # candidates; Python still validates slot coverage, unit kind, ambiguity,
-    # and builds the expression.
+    # LLM semantic linker. It emits phrase constraints over bounded candidates;
+    # Python still validates slot coverage, unit kind, ambiguity, and builds the
+    # expression -- the model never writes a number. Worth 47 -> 52 of 73 on its
+    # own: without it the deterministic path fails closed on every ratio question
+    # ("ratio raw linker requires planner") and nine questions fall to codegen.
     raw_table_linker_planner: bool = field(
-        default_factory=lambda: _flag("SOLVE_RAW_TABLE_LINKER_PLANNER", False)
+        default_factory=lambda: _flag("SOLVE_RAW_TABLE_LINKER_PLANNER", True)
     )
     raw_table_linker_planner_thinking: bool = field(
         default_factory=lambda: _flag("SOLVE_RAW_TABLE_LINKER_PLANNER_THINKING", False)
@@ -106,16 +178,31 @@ class FinanceAgentConfig:
     )
     # Deterministic selection over the structured fact catalog. This is narrower
     # than `structured_facts`: it has no LLM planner and only runs when one axis
-    # and selector/answer metrics are explicitly anchored in the question.
+    # and selector/answer metrics are explicitly anchored in the question. Narrow
+    # by construction, and the measurement agrees -- 2 of the 73 gold questions.
     selection_facts: bool = field(
-        default_factory=lambda: _flag("SOLVE_SELECTION_FACTS", False)
+        default_factory=lambda: _flag("SOLVE_SELECTION_FACTS", True)
     )
     # Raw-table selection for note/detail metrics that are outside the structured
     # fact catalog. The planner only chooses bounded candidate ids; Python
-    # performs max/min and builds the final pandas expression. Kept behind a
-    # separate flag until targeted temporal-selection gates are scored.
+    # performs max/min and builds the final pandas expression.
+    #
+    # True for reproducibility, not for performance -- and unlike the five above that
+    # is *not* a measurement, it is the absence of one. `artifacts/runs/full1012_v7.flags`
+    # records `SOLVE_RAW_SELECTION_LINKER=1`, so both submissions that produced the best
+    # leaderboard numbers (v7 0.3043, v8 0.3261) ran with this branch on while the code
+    # default was off. A plain run then reproduced neither submission, which is the same
+    # divergence the five flips above fixed.
+    #
+    # It stays unmeasured, and neither eval set can settle it. gold73 said 53/73 against
+    # the arm's 52 -- inside the churn floor of 2 -- and that set is contaminated anyway
+    # (27 of its 75 ids are hardcoded in `src`/`tests`; docs §8). The clean 120-question
+    # set is uncontaminated but underpowered here: the branch fired on 30 of 1,012
+    # questions, so ~4 of the 120. Measuring it needs a targeted run over the questions
+    # it actually claims, not either eval set. `SOLVE_RAW_SELECTION_LINKER=0` is the
+    # control arm.
     raw_selection_linker: bool = field(
-        default_factory=lambda: _flag("SOLVE_RAW_SELECTION_LINKER", False)
+        default_factory=lambda: _flag("SOLVE_RAW_SELECTION_LINKER", True)
     )
 
     # solve_qa pipeline (grounded codegen). Retrieval hands the solver 14 tables at
