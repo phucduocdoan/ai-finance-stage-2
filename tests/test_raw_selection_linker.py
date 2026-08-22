@@ -122,6 +122,15 @@ for table_id in FRAMES:
     }
 
 
+# Module-level, so it outlives this file: under `pytest tests/` the fakes were still
+# installed when `test_table_linking_columns.py` imported, and its NVL cell-candidate
+# checks failed against these four synthetic tables. `_RAW_ORIGINALS` + the restore at
+# the end of the file keep the patch scoped to this module.
+_RAW_ORIGINALS = {
+    name: getattr(raw, name)
+    for name in ("load_frame", "meta_for", "page_text", "table_metadata")
+}
+
 raw.load_frame = lambda table_id: FRAMES[table_id]
 raw.meta_for = lambda table_id: META.get(table_id, {})
 raw.page_text = lambda table_id: META.get(table_id, {}).get("context_page_text", "")
@@ -722,3 +731,6 @@ listed, _, _, _, reason = raw_sel.build_request({
 })
 assert listed is not None
 check("explicit year list does not inherit expanded missing years", [slot.year for slot in listed.slots] == [2015, 2016, 2018, 2019, 2020, 2021])
+
+for _name, _fn in _RAW_ORIGINALS.items():
+    setattr(raw, _name, _fn)
