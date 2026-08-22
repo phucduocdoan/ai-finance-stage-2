@@ -18,8 +18,8 @@ year / doc_type and those come from it — the node that lifted DOCS_F2MACRO fro
 
 There is deliberately no evidence-selection step. It used to be its own node; it is
 now a `[:codegen_max_tables]` slice of retrieval's ranking inside `generate_pandas`
-(interleaved by year and widened to 5 first when the question names a period),
-because that is all it ever was. Choosing which of those tables to read is part of
+(interleaved and widened first when the question names a period or several
+companies — see `codegen_budget`), because that is all it ever was. Choosing which of those tables to read is part of
 the call that writes the query — one decision by the one model that can see the
 contents, instead of two decisions where the first was made blind.
 
@@ -44,7 +44,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import Any
+from typing import Any, Mapping
 
 from langgraph.graph import END, StateGraph
 
@@ -52,7 +52,7 @@ from finance_qa.agents.finance.config import FinanceAgentConfig
 from finance_qa.agents.finance.state import FinanceState
 from finance_qa.agents.finance.retrieve import make_retrieve_node
 from finance_qa.agents.finance.understand import make_understand
-from finance_qa.agents.finance.utils import year_round_robin
+from finance_qa.agents.finance.utils import slot_round_robin, year_round_robin
 from finance_qa.core.http import run_sync
 from finance_qa.modules.data.service import ordered_table_names
 from finance_qa.modules.data.table_store import load_frame, submission_csv_name
@@ -131,16 +131,42 @@ def load_evidence(table_ids: list[str], max_tables: int) -> tuple[dict, dict, li
     return {var: tid for var, tid in names.items() if var in frames}, frames, errors
 
 
+def codegen_budget(
+    state: Mapping[str, Any], config: FinanceAgentConfig
+) -> tuple[list[str], int]:
+    """`(table_ids in load order, how many to load)` for one question.
+
+    A question that names several companies or several years is the only kind
+    that can run out of slots before it runs out of relevance, so it is the only
+    kind that gets more of them — and it needs its ids interleaved, because
+    ranking alone puts the third company's table at position 14.
+
+    Companies are checked first: a question naming both several companies and
+    several years (85 of the 310 multi-ticker questions) needs a table per
+    (ticker, year) pair, which is what `slot_round_robin` spreads and what the
+    multi-company budget is sized for. `year_round_robin` would interleave only
+    the years and leave the companies to the ranking.
+    """
+    table_ids = list(state.get("table_ids") or [])
+    tickers = list(state.get("tickers") or [])
+    years = list(state.get("years") or [])
+    if len(tickers) >= 2:
+        needed = len(tickers) * max(len(years), 1)
+        return (
+            slot_round_robin(table_ids),
+            max(
+                config.codegen_max_tables,
+                min(needed, config.codegen_max_tables_multi_company),
+            ),
+        )
+    if state.get("multi_year"):
+        return year_round_robin(table_ids), config.codegen_max_tables_multi_year
+    return table_ids, config.codegen_max_tables
+
+
 def make_generate_pandas(config: FinanceAgentConfig):
     async def generate_pandas(state: SolveState) -> dict:
-        table_ids = list(state.get("table_ids") or [])
-        # A period question is the only one that can run out of slots before it
-        # runs out of relevance, so it is the only one that gets more of them.
-        if state.get("multi_year"):
-            table_ids = year_round_robin(table_ids)
-            max_tables = config.codegen_max_tables_multi_year
-        else:
-            max_tables = config.codegen_max_tables
+        table_ids, max_tables = codegen_budget(state, config)
         names, frames, errors = load_evidence(table_ids, max_tables)
         errors = list(state.get("errors") or []) + errors
         loaded = {
@@ -890,11 +916,7 @@ def make_verify_answer(config: FinanceAgentConfig):
                 # does, from the ids the solver actually used rather than a new
                 # limit, so the grids match what produced the answer.
                 evidence_ids = state.get("evidence_tables") or state.get("table_ids") or []
-                max_tables = (
-                    config.codegen_max_tables_multi_year
-                    if state.get("multi_year")
-                    else config.codegen_max_tables
-                )
+                _, max_tables = codegen_budget(state, config)
                 names, frames, _ = load_evidence(evidence_ids, max_tables)
                 if not frames:
                     # Nothing to show the checker even after trying to load it —

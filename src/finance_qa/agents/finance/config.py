@@ -228,6 +228,38 @@ class FinanceAgentConfig:
     # buys almost nothing past 5 once `year_round_robin` interleaves: 42% of those
     # questions covered at 5 tables, 44% at 12, 44% for the whole pool.
     codegen_max_tables_multi_year: int = 5
+    # Ceiling for a question naming two or more tickers. The budget it caps is
+    # computed per question as `len(tickers) * len(years)`, because that is exactly
+    # how many (ticker, year) slots `slot_round_robin` has to fit: those 310
+    # questions need 4 slots at the median, 10 at p90 and 18 at worst.
+    #
+    # 3 — equal to `codegen_max_tables`, so the widening is *off* and only the
+    # re-ordering ships. Both were measured on the 38 clean-eval questions naming two
+    # or more tickers, and the readout was flat:
+    #
+    #   nhánh                     phủ đủ mã (38)   phủ đủ mã (1012, ngoại tuyến)   đúng
+    #   theo hạng, 3 bảng               10/38            107/310                   4/38
+    #   trộn, 3 bảng                    12/38            182/310                   4/38
+    #   trộn, trần 12                   20/38            310/310                   4/38
+    #
+    # Coverage moved the whole way it could and the score did not move at all
+    # (+1/-1 on both arms). So this is not a "not yet tuned" number, it is a
+    # constraint located elsewhere: of the 18 questions that saw every company they
+    # asked about and still answered wrong, 17 produced a `pandas_query` that adds or
+    # multiplies straight across all the companies, because a single expression has
+    # nowhere to put a predicate. Screening asks "which of these companies satisfy X"
+    # and the schema can only say "compute X". More tables cannot fix that.
+    #
+    # Keeping the ordering is still right: it is strictly free — median tables loaded
+    # stays at 3, the prompt does not grow, so it cannot pay the cost the
+    # `codegen_max_tables` paragraph measured (10 tables worse than 3 through
+    # near-duplicate confusion). Widening is what carries that risk, so it waits
+    # behind `SOLVE_MAX_TABLES_MULTI_COMPANY` until the predicate step lands and
+    # there is something for the extra companies to be filtered *by*.
+    # `scripts/gate_slot_budget.py` reproduces all three rows offline, no LLM.
+    codegen_max_tables_multi_company: int = field(
+        default_factory=lambda: _count("SOLVE_MAX_TABLES_MULTI_COMPANY", 3)
+    )
     # False, and measured: the vLLM server on 8990 now serves Qwen/Qwen3.5-9B under
     # the old alias, and with enable_thinking=True it returns an empty reply at every
     # budget tried (2048/4096/8192 completion tokens, finish_reason=length, both
