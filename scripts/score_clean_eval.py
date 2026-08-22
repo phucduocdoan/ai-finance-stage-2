@@ -23,6 +23,7 @@ from pathlib import Path
 
 LABELS = Path("artifacts/eval_clean")
 # Cùng dung sai với scripts/score_gold75.py, để hai bộ chấm so sánh được với nhau.
+# Nhãn là năm thì đòi khớp tuyệt đối, xem `correct`.
 TOL = 0.01
 
 
@@ -48,10 +49,19 @@ def as_float(x) -> float | None:
         return None
 
 
+def is_year_label(gold: float) -> bool:
+    """Nhãn là một cái năm, không phải một con số tiền."""
+    return gold == int(gold) and 1990 <= gold <= 2100
+
+
 def correct(sub_answer, gold_answer) -> bool:
     a, b = as_float(sub_answer), as_float(gold_answer)
     if a is None or b is None:
         return False
+    # Dung sai tương đối vô nghĩa với nhãn phân loại: 2018 lệch 2019 đúng 0.05%, lọt hết.
+    # Ba câu "năm nào" của tập này (866, 928, 842) đều bị chấm đúng dù trả sai năm.
+    if is_year_label(b):
+        return a == b
     if abs(a - b) <= TOL:
         return True
     scale = max(abs(a), abs(b))
