@@ -241,6 +241,7 @@ def make_execute_and_repair(config: FinanceAgentConfig):
             question=state["question"],
             unit_hint=state.get("unit_hint") or "",
             names=state.get("names") or {},
+            tickers=state.get("tickers") or [],
             max_repairs=config.max_repairs,
             repair_history=config.repair_history,
         )
@@ -649,6 +650,7 @@ def make_solve_raw_table_linker(config: FinanceAgentConfig):
             question=state["question"],
             unit_hint=state.get("unit_hint") or "",
             names=prepared["names"],
+            tickers=state.get("tickers") or [],
             max_repairs=0,
             repair_history=False,
         )
@@ -723,6 +725,7 @@ def make_solve_raw_selection_linker(config: FinanceAgentConfig):
             question=state["question"],
             unit_hint=state.get("unit_hint") or "",
             names=prepared["names"],
+            tickers=state.get("tickers") or [],
             max_repairs=0,
             repair_history=False,
         )
@@ -812,6 +815,7 @@ def make_solve_single_cell(config: FinanceAgentConfig):
                 question=state["question"],
                 unit_hint=state.get("unit_hint") or "",
                 names=names,
+                tickers=state.get("tickers") or [],
                 max_repairs=0,
                 repair_history=False,
             )
@@ -960,7 +964,8 @@ def make_verify_answer(config: FinanceAgentConfig):
             result = await aexecute(
                 revised, prompt, frames,
                 question=state["question"], unit_hint=state.get("unit_hint") or "",
-                names=names, max_repairs=config.max_repairs,
+                names=names, tickers=state.get("tickers") or [],
+                max_repairs=config.max_repairs,
                 repair_history=config.repair_history,
             )
         except Exception as exc:  # noqa: BLE001

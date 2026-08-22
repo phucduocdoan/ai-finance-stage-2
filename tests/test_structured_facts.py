@@ -464,4 +464,76 @@ check_raises(
     ),
 )
 
+
+# --- filter_aggregate: aggregate the survivors instead of ranking them -------
+# One case per aggregation, all on DCM/DPM/GVR 2024 so the same survivors and
+# the same raw rows back every expectation. Every number below was computed by
+# hand from the consolidated ma_so rows, not read off the executor:
+#   net profit (60)  DCM 1_428_006_581_442  DPM   554_266_541_498  GVR  4_826_666_026_951
+#   net revenue (10) DCM 13_455_585_149_640 DPM 13_496_142_223_703 GVR 26_241_944_114_845
+#   liabilities(300) DCM  5_551_670_737_163 DPM  5_372_450_027_238 GVR 24_986_520_299_896
+#   equity     (400) DCM 10_177_176_600_982 DPM 11_179_836_420_269 GVR 58_397_162_212_108
+# All three are reported in plain VND, which keeps these expectations free of the
+# thousand-VND scaling MSR's reports would bring in.
+CHEM = dict(
+    operation="filter_aggregate", axis="ticker", tickers=["DCM", "DPM", "GVR"],
+    years=[2024], doc_type="consolidated",
+)
+PROFITABLE = [{"metric": "net_profit", "relation": "gt", "value": 0}]
+CHEM_Q = "Năm 2024, xét nhóm DCM, DPM và GVR có lợi nhuận sau thuế dương."
+
+# All three are profitable, so `count` is 3 -- and it gets there without reading
+# an answer metric at all.
+got = execute_plan(
+    StructuredPlan(**CHEM, aggregation="count", filters=PROFITABLE), question=CHEM_Q,
+)["answer"]
+check("filter_aggregate count needs no answer metric", close(got, 3.0))
+
+# 5551.670737163 + 5372.450027238 + 24986.520299896
+got = execute_plan(
+    StructuredPlan(**CHEM, aggregation="sum", answer_metric="liabilities",
+                   filters=PROFITABLE, target_unit="billion_vnd"), question=CHEM_Q,
+)["answer"]
+check("filter_aggregate sum adds the survivors", close(got, 35910.641064297))
+
+# median(5551.67, 5372.45, 24986.52) = DCM's
+got = execute_plan(
+    StructuredPlan(**CHEM, aggregation="median", answer_metric="liabilities",
+                   filters=PROFITABLE, target_unit="billion_vnd"), question=CHEM_Q,
+)["answer"]
+check("filter_aggregate median picks the middle survivor", close(got, 5551.670737163))
+
+# (10.612742334 + 4.106851664 + 18.392943777) / 3
+got = execute_plan(
+    StructuredPlan(**CHEM, aggregation="mean", answer_metric="net_margin",
+                   filters=PROFITABLE, target_unit="percent"), question=CHEM_Q,
+)["answer"]
+check("filter_aggregate mean averages a ratio metric", close(got, 11.037512591527))
+
+# D/E is DCM 0.5455, DPM 0.4805, GVR 0.4279, so only DCM is above the median of
+# three -- and the denominator is the whole trio, not just the survivor.
+got = execute_plan(
+    StructuredPlan(
+        **CHEM, aggregation="share", answer_metric="liabilities", target_unit="percent",
+        filters=[{"metric": "de_ratio", "relation": "gt", "value_source": "median"}],
+    ),
+    question="Nhóm có D/E cao hơn trung vị chiếm bao nhiêu phần trăm tổng nợ phải trả của cả nhóm?",
+)["answer"]
+check("filter_aggregate share divides by the whole group", close(got, 15.459681511179063))
+
+# An unreadable peer makes an aggregate wrong rather than approximate: NKG 2022
+# has no consolidated cash-flow statement, so a CFO sign filter over a group
+# containing it must abort instead of quietly aggregating the other three.
+check_raises(
+    "filter_aggregate fails closed when a peer cannot be read",
+    lambda: execute_plan(
+        StructuredPlan(
+            operation="filter_aggregate", axis="ticker", tickers=["HPG", "HSG", "MSR", "NKG"],
+            years=[2022], doc_type="consolidated", aggregation="count",
+            filters=[{"metric": "cfo", "relation": "gt", "value": 0}],
+        ),
+        question="Năm 2022, bao nhiêu doanh nghiệp trong nhóm có CFO dương?",
+    ),
+)
+
 print("tất cả PASS")

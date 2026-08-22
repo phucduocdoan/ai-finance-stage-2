@@ -23,8 +23,11 @@ from finance_qa.modules.solve.common.intent import (
     MAGNITUDE_BLOCK,
     MAGNITUDE_METRIC,
     MIN_MARKER,
+    PAID_OUT,
+    SELECTION_MARKER,
     SIGNED_METRIC,
     YEAR_ANSWER_MARKER,
+    YEAR_MENTION,
     intent_norm,
 )
 from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD, PandasSolution
@@ -241,27 +244,60 @@ async def arun_with_repair(
     return solution, None, errors
 
 
-def as_magnitude(question: str, target_row: str) -> bool:
-    """Does this expense-row question want the amount rather than the signed cell?
+def between_two_companies(normalized: str, tickers: Sequence[str]) -> bool:
+    """Is this a difference between two companies in a single period?
+
+    Then the sign is an artifact of which company the question happens to name
+    first, and gold reports the magnitude: on the 1,012-question run 27 answers
+    match this shape and are negative, and all four that the clean eval labels
+    (q774, q777, and q735/q769, wrong for other reasons) have positive gold. A
+    difference *across periods* is the opposite case: q623 ("cuối năm 2023 và cuối
+    năm 2022") means 2023 minus 2022, so flipping the sign flips the meaning. That
+    is what the year count separates.
+
+    Two guards earn their keep. `SELECTION_MARKER` drops screening questions
+    (q417, q418, q445), where "cao hơn" trips `DIFF_CUE_LOOSE` but the answer is
+    one company's ratio, and that ratio may legitimately be negative. The
+    normalized text must come from `intent_norm`, not `norm`: "công ty cổ phần"
+    matches `SELECTION_MARKER`'s `cong ty co\\b` alternative otherwise.
+    """
+    if len({str(t).upper().strip() for t in tickers if str(t).strip()}) < 2:
+        return False
+    if SELECTION_MARKER.search(normalized):
+        return False
+    if len(set(YEAR_MENTION.findall(normalized))) > 1:
+        return False
+    return bool(DIFF_CUE_LOOSE.search(normalized))
+
+
+def as_magnitude(question: str, target_row: str, tickers: Sequence[str] = ()) -> bool:
+    """Does this question want the amount rather than the signed cell?
 
     `cell_locator.value_transform` has answered this for the narrow solvers all
     along; codegen never asked. That is why q526 submits −83.790.676.915 for a
     cell printed `(83.790.676.915)` while gold is positive: the parenthesised
     expense parses to a negative and nothing on this path undoes it.
 
-    The two extra cues are the difference between a gain and a regression. On the
-    1,012-question run 14 codegen answers are negative on an expense metric; this
-    guard flips 11 and blocks 3 (q454, q601 differences; q639 wording), because in
-    those the sign *is* the answer: a difference (`DIFF_CUE_LOOSE`), growth
-    (`GROWTH_CUE`), or the wordings neither covers (`MAGNITUDE_BLOCK`). On gold73
-    that is +2 (q525, q526) / −0. Three more questions the guard would block
-    (q599, q603, q778) are answered by `raw_table_linker`/`formula_facts` and never
-    reach `apply_units` at all.
+    Every solver reaches this one call (`graph.py` runs each of them through
+    `aexecute`), and `abs` here wraps the *whole* query, so it also fixes the two
+    cases the per-term `value_transform` cannot: a two-company difference, where
+    `abs(a) - abs(b)` is still negative, and an average of amounts paid out.
+    Measured on the clean eval those two additions are +3 (q774, q777, q894) / −0,
+    and they flip 28 of the 1,012 answers.
+
+    The three cues below are the difference between a gain and a regression. On
+    the 1,012-question run 14 codegen answers are negative on an expense metric;
+    this guard flips 11 and blocks 3 (q454, q601 differences; q639 wording),
+    because in those the sign *is* the answer: a difference (`DIFF_CUE_LOOSE`),
+    growth (`GROWTH_CUE`), or the wordings neither covers (`MAGNITUDE_BLOCK`). On
+    gold73 that is +2 (q525, q526) / −0.
     """
+    normalized = intent_norm(question)
+    if between_two_companies(normalized, tickers) or PAID_OUT.search(normalized):
+        return True
     text = f"{question} {target_row}"
     if SIGNED_METRIC.search(text) or not MAGNITUDE_METRIC.search(text):
         return False
-    normalized = intent_norm(question)
     return not (
         DIFF_CUE_LOOSE.search(normalized)
         or GROWTH_CUE.search(normalized)
@@ -394,6 +430,7 @@ def apply_units(
     question: str,
     unit_hint: str = "",
     names: Mapping[str, str] | None = None,
+    tickers: Sequence[str] = (),
 ) -> tuple[str, dict]:
     """Convert the value's unit exactly once. Returns ``(query, diag)``.
 
@@ -438,7 +475,7 @@ def apply_units(
     # `abs` goes inside the scale factor, and into the *query* rather than onto the
     # number, because the execution objective re-runs the submitted string: a
     # magnitude applied outside it would make the two metrics disagree.
-    magnitude = as_magnitude(question, solution.target_row)
+    magnitude = as_magnitude(question, solution.target_row, tickers)
     inner = f"abs({raw_query})" if magnitude else raw_query
     query = scale_expression(inner, source, target)
     return query, {
@@ -460,6 +497,7 @@ async def aexecute(
     question: str,
     unit_hint: str = "",
     names: Mapping[str, str] | None = None,
+    tickers: Sequence[str] = (),
     max_repairs: int = MAX_REPAIRS,
     repair_history: bool = False,
 ) -> dict:
@@ -481,7 +519,8 @@ async def aexecute(
         }
 
     query, diag = apply_units(
-        solution, frames, question=question, unit_hint=unit_hint, names=names
+        solution, frames, question=question, unit_hint=unit_hint, names=names,
+        tickers=tickers,
     )
     try:
         answer = float(run_query(query, dict(frames)))
@@ -508,6 +547,6 @@ async def aexecute(
 
 __all__ = [
     "HISTORY_TEMPERATURE", "MAX_REPAIRS", "REPAIR_TEMPERATURE", "aexecute",
-    "apply_units", "arun_with_repair", "as_magnitude", "describe_error",
-    "project_year",
+    "apply_units", "arun_with_repair", "as_magnitude", "between_two_companies",
+    "describe_error", "project_year",
 ]

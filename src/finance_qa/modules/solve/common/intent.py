@@ -65,6 +65,39 @@ MEDIAN_CUE = re.compile(r"\btrung\s+vi\b", re.I)
 DIFF_CUE_STRICT = re.compile(r"\bchenh\s+lech\b|\bhieu\s+so\b|\bhon\b", re.I)  # formula_facts._DIFF_CUE
 DIFF_CUE_LOOSE = re.compile(r"\b(?:chenh\s+lech|hieu(?:\s+so)?|hon|kem|so\s+voi)\b")  # raw_table_linker._DIFF
 
+# --- cell_locator.py:64-71: does a signed cell answer as a magnitude? --------
+# Expense and provision rows are printed negative -- or parenthesised, which
+# parses to negative -- in Vietnamese statements, while a question asking "chi
+# phi ... la bao nhieu" wants the amount. These two read the *raw* question, not
+# `norm()` output, so they carry both spellings of each vowel; that is how
+# cell_locator has always applied them and normalising here would be a silent
+# behavior change.
+MAGNITUDE_METRIC = re.compile(
+    r"chi\s+ph[ií]|d[uự]\s+ph[oò]ng|hao\s+m[oò]n|kh[aấ]u\s+hao|l[aã]i\s+vay",
+    re.I,
+)
+SIGNED_METRIC = re.compile(
+    r"l[uư]u\s+chuy[eể]n|d[oò]ng\s+ti[eề]n|l[aã]i\s*/\s*l[oỗ]|l[oỗ]\b|ch[eê]nh\s+l[ệe]ch",
+    re.I,
+)
+# Money that has already left the company ("thue TNDN da nop", "co tuc da tra")
+# is printed negative in the cash-flow statement, and a question asking for it
+# wants the amount. `MAGNITUDE_METRIC` above misses these entirely: none of its
+# five words appear in "thue TNDN da nop" (q894). One question in the
+# 1,012-question run answers negative on this wording, and gold is positive.
+PAID_OUT = re.compile(r"\bda\s+(?:nop|tra|chi)\b")
+# Any year mentioned in the question. Used to tell a difference *between two
+# companies in one period* from a difference *across periods*: `norm()` keeps
+# digits, so counting these on normalized text works.
+YEAR_MENTION = re.compile(r"\b(?:19|20)\d\d\b")
+
+# Cues that keep the sign even when `MAGNITUDE_METRIC` fires, for callers that
+# read arithmetic questions `SIGNED_METRIC` was never written for. It covers
+# only what `DIFF_CUE_LOOSE` and `GROWTH_CUE` miss: measured on the 1,012-question
+# run, "tru di" (q778) and "ty le tang" (q639) are the two subtraction/growth
+# wordings that reach an expense metric without any diff or growth cue.
+MAGNITUDE_BLOCK = re.compile(r"\btru\s+di\b|\bty\s+le\s+tang\b")
+
 # formula_facts._AVG_CUE and raw_table_linker._AVG were written as two
 # separate regexes (`a|b` vs `(?:a|b)`, with/without re.I) but match the exact
 # same set of normalized (already-lowercase) text, so this is a genuine merge,
@@ -119,24 +152,127 @@ FILTER_MARKER = re.compile(
 YEAR_ANSWER_MARKER = re.compile(r"\bnam\s+nao\b|\bvao\s+nam\s+nao\b")
 TICKER_ANSWER_MARKER = re.compile(r"\b(?:cong\s+ty|doanh\s+nghiep|ngan\s+hang)\s+nao\b")
 
+# --- Candidate-filter forms other than a literal threshold ------------------
+# `FILTER_MARKER` above only reads "lon hon 5" / "duoi 10%". Measured over the
+# 72 two-stage questions the selection_facts gate declines, a literal threshold
+# is the *rarest* form (5); the group median (30) and the sign of a metric (45)
+# dominate. The executor already runs both -- `value_source="median"` resolves
+# the candidate-set median in `_execute_selection`, and a sign filter is just
+# `value=0` -- so these two patterns are what the emitter was missing.
+#
+# `MEDIAN_FILTER_CUE` deliberately requires the comparator to sit immediately
+# before "trung vi", which is what separates a *filter* ("thap hon trung vi cua
+# nhom") from the median as the *answer* ("lay trung vi ty trong hang ton kho").
+MEDIAN_FILTER_CUE = re.compile(
+    r"\b(?P<cmp>lon\s+hon|cao\s+hon|tren|vuot|thap\s+hon|nho\s+hon|duoi)\s+"
+    r"(?:muc\s+|gia\s+tri\s+)?trung\s+vi\b"
+)
+# "duong"/"am" as a sign predicate on the quantity named just before it.
+# This matches the bare token on purpose: `duong` is also a company-name token
+# ("Duong Quang Ngai", "Dai Duong"), and the disambiguation belongs to the
+# caller, which only emits a filter when a *catalog metric* occurs immediately
+# before the match -- the same anchoring `_FILTER_RE` already relies on.
+SIGN_FILTER_CUE = re.compile(r"\b(?P<sign>duong|am)\b")
+
+# --- Aggregating a filtered group -------------------------------------------
+# `RATIO_CUE` cannot be reused for a group share: it fires on ratio *metrics*
+# ("ty le no phai tra tren tong tai san") just as readily. What distinguishes a
+# share of the group is the explicit reference back to the whole group, so that
+# reference is required rather than the ratio wording alone.
+GROUP_SHARE_CUE = re.compile(
+    # "dong gop bao nhieu phan tram vao tong loi nhuan ..."
+    r"\b(?:dong\s+gop|chiem|chiem\s+ty\s+le)\b[^?]{0,60}?\bvao\s+tong\b"
+    # "... chiem bao nhieu phan tram tong no phai tra cua ca nhom"
+    r"|\b(?:ty\s+trong|chiem|tren\s+tong|so\s+voi\s+tong)\b[^?]{0,90}?"
+    r"\b(?:ca\s+nhom|toan\s+nhom|cua\s+nhom|ca\s+\d+\s+doanh\s+nghiep|"
+    r"toan\s+bo\s+nhom|ca\s+ro|nhom\s+nay|nhom\s+sau\s+loc)\b"
+    # A bare "ty trong X" is a group share only when X is not itself stated as a
+    # ratio: `inventory_to_assets` is spelled "ty trong hang ton kho tren tong
+    # tai san" in the catalog, and reading that as a share would hijack every
+    # question that merely averages a ratio metric.
+    # `(?<!cong )` is not optional: "co bao nhieu cong ty trong so ..." contains
+    # the token pair "ty trong" purely because "cong ty" is followed by "trong".
+    r"|(?<!cong )\bty\s+trong\b(?![^?]{0,45}?\b(?:tren|trong)\s+tong\b)"
+)
+
+# A hypothetical adjustment to the reported figures ("neu doanh thu dong loat
+# giam 10%", "sau khi giam 50% gia tri hang ton kho"). A plan that does not
+# carry the adjustment would answer the unadjusted question instead, so callers
+# that cannot express it must fail closed rather than silently drop the clause.
+SCENARIO_CUE = re.compile(
+    r"\bdong\s+loat\s+(?:giam|tang)\b|\bsau\s+khi\s+(?:giam|tang|dieu\s+chinh)\b|"
+    r"\bgiu\s+nguyen\b|\bkich\s+ban\b|\bgia\s+dinh\b|"
+    r"\bneu\b[^?]{0,60}?\b(?:giam|tang)\s+\d+(?:[,.]\d+)?\s*%"
+)
+GROUP_COUNT_CUE = re.compile(
+    r"\bbao\s+nhieu\s+(?:cong\s+ty|doanh\s+nghiep|ngan\s+hang|ma|nam)\b|\bso\s+luong\b"
+)
+
+# --- What a filter -> aggregate plan cannot express --------------------------
+# A plan that drops a clause answers a *different* question with full
+# confidence, which is strictly worse than declining. These four cues mark the
+# clauses this shape has no slot for, and callers use them to fail closed.
+#
+# `ARITHMETIC_CONNECTOR` sits between two catalog metric mentions when the
+# question names a composite the catalog does not ("hang ton kho / no ngan han",
+# "tai san ngan han tru hang ton kho roi chia cho no ngan han"). Anchoring a
+# filter on either operand silently changes the condition, so a connector with
+# no alias spanning it means the metric is unnameable. Note `/` never survives
+# normalisation -- it is stripped to a space -- hence the empty alternative.
+ARITHMETIC_CONNECTOR = re.compile(
+    r"^\s*(?:tren|chia\s+cho|so\s+voi|tru|cong|nhan|roi\s+chia\s+cho|va)?\s*$"
+)
+# A comparator that no filter form consumed. "tai san ngan han thap hon no ngan
+# han" compares two metrics to each other, which is not a threshold, a median or
+# a sign. Bare `tren` is excluded: it is the ratio connector far more often than
+# a comparator.
+UNCONSUMED_COMPARATOR_CUE = re.compile(
+    r"\b(?:lon\s+hon|cao\s+hon|thap\s+hon|nho\s+hon|vuot)\b"
+)
+# The answer is a difference -- between two metrics, or between the surviving
+# subgroup and its complement. Either needs an expression or a second group.
+SUBGROUP_DIFF_CUE = re.compile(
+    r"\bchenh\s+lech\b|\bkhac\s+biet\b|\bnhom\s+con\s+lai\b|\bphan\s+nhom\b"
+)
+# The denominator of a group share is itself restricted ("tong loi nhuan sau
+# thue cua cac doanh nghiep co lai"). `share` divides by the whole group, so a
+# restricted total would be answered against the wrong denominator.
+CONDITIONED_TOTAL_CUE = re.compile(
+    r"\b(?:co\s+lai|bi\s+lo|duong|am|sau\s+loc|thoa\s+man|dap\s+ung)\b"
+)
+
 
 __all__ = [
+    "ARITHMETIC_CONNECTOR",
     "AVG_CUE",
     "CONDITIONAL_FILTER_CUE",
+    "CONDITIONED_TOTAL_CUE",
     "DIFF_CUE_LOOSE",
     "DIFF_CUE_STRICT",
     "FILTER_MARKER",
+    "GROUP_COUNT_CUE",
+    "GROUP_SHARE_CUE",
     "GROWTH_CUE",
+    "MAGNITUDE_BLOCK",
+    "MAGNITUDE_METRIC",
     "MAX_MARKER",
     "MEDIAN_CUE",
+    "MEDIAN_FILTER_CUE",
     "MIN_MARKER",
     "MULTIPLIER_RATIO_CUE",
+    "PAID_OUT",
     "RATIO_CUE",
+    "SCENARIO_CUE",
     "SELECTION_MARKER",
     "SELECTION_MARKER_ACCENTED",
+    "SIGNED_METRIC",
+    "SIGN_FILTER_CUE",
+    "SUBGROUP_DIFF_CUE",
     "SUM_CUE",
     "TICKER_ANSWER_MARKER",
+    "UNCONSUMED_COMPARATOR_CUE",
     "YEAR_ANSWER_MARKER",
+    "YEAR_MENTION",
     "intent_norm",
     "norm",
 ]

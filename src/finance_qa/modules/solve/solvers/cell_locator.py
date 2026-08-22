@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from finance_qa.modules.data.table_store import load_frame
 from finance_qa.modules.solve.common.columns import column_years, money_columns
 from finance_qa.modules.solve.common.context import meta_for, page_text
+from finance_qa.modules.solve.common.intent import MAGNITUDE_METRIC, SIGNED_METRIC
 from finance_qa.modules.solve.common.intent import norm as _norm
 from finance_qa.modules.solve.common.lookup import RowHit, search_rows
 from finance_qa.modules.solve.common.solution import PandasSolution, Unit
@@ -59,14 +60,6 @@ _SCOPE_MARKER = re.compile(
 _UNIT_WORDS = re.compile(
     r"\b(?:tri[eệ]u|t[ỷy]|ngh[iì]n|tr[aă]m|đ[oồ]ng|vnd|vnđ|c[oổ]\s*ph[iế]u|"
     r"c[oổ]\s*ph[aầ]n|%|ph[aầ]n\s*tr[aă]m)\b",
-    re.I,
-)
-_MAGNITUDE_METRIC = re.compile(
-    r"chi\s+ph[ií]|d[uự]\s+ph[oò]ng|hao\s+m[oò]n|kh[aấ]u\s+hao|l[aã]i\s+vay",
-    re.I,
-)
-_SIGNED_METRIC = re.compile(
-    r"l[uư]u\s+chuy[eể]n|d[oò]ng\s+ti[eề]n|l[aã]i\s*/\s*l[oỗ]|l[oỗ]\b|ch[eê]nh\s+l[ệe]ch",
     re.I,
 )
 _TOTAL_TOKEN = re.compile(r"\btong\b|\btong\s+cong\b")
@@ -207,9 +200,9 @@ def value_transform(question: str, metric_phrases: Sequence[str]) -> ValueTransf
     for the accounting sign. Cash-flow and profit/loss wording stay signed.
     """
     text = " ".join([question, *metric_phrases])
-    if _SIGNED_METRIC.search(text):
+    if SIGNED_METRIC.search(text):
         return "as_reported"
-    return "abs" if _MAGNITUDE_METRIC.search(text) else "as_reported"
+    return "abs" if MAGNITUDE_METRIC.search(text) else "as_reported"
 
 
 def build_request(state: Mapping[str, Any]) -> tuple[CellRequest | None, str]:

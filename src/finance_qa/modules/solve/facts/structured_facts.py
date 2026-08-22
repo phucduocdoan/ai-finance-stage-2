@@ -28,8 +28,13 @@ from finance_qa.modules.tools.numeric import parse_number
 
 Operation = Literal[
     "lookup", "ratio", "growth", "diff", "avg", "median",
-    "argmax", "argmin", "conditional_select", "unsupported",
+    "argmax", "argmin", "conditional_select", "filter_aggregate", "unsupported",
 ]
+# `filter_aggregate` reuses the candidate filtering that argmax/argmin already
+# perform, then aggregates the survivors instead of ranking them. `share` is the
+# survivors' total over the whole candidate set's total ("ty trong ... cua ca
+# nhom"); the rest aggregate the survivors alone.
+Aggregation = Literal["", "mean", "median", "sum", "count", "share"]
 Axis = Literal["year", "ticker", ""]
 Order = Literal["max", "min", ""]
 Relation = Literal["gt", "ge", "lt", "le", "eq", ""]
@@ -390,6 +395,7 @@ class StructuredPlan(BaseModel):
     filter_relation: Relation = Field(default="")
     filter_value: float | None = Field(default=None)
     filters: list[MetricFilter] = Field(default_factory=list)
+    aggregation: Aggregation = Field(default="")
     year_offset: int = Field(default=0)
     answer_expression: Expression = Field(default="")
     missing_policy: MissingPolicy = Field(default="fail")
@@ -1155,6 +1161,8 @@ def execute_plan(
         answer = sum(values) / len(values) if plan.operation == "avg" else float(median(values))
     elif plan.operation in {"argmax", "argmin", "conditional_select"}:
         answer, source_unit, selected = _execute_selection(plan, ctx)
+    elif plan.operation == "filter_aggregate":
+        answer, source_unit, selected = _execute_aggregate(plan, ctx)
     else:
         raise StructuredFactError(f"unsupported operation: {plan.operation}")
 
@@ -1179,27 +1187,7 @@ def execute_plan(
     }
 
 
-def supported_v1_plan(plan: StructuredPlan, question: str, unit_hint: str = "") -> tuple[bool, str]:
-    """The first production slice: selection over years or companies only."""
-    if not plan.supported or plan.operation == "unsupported":
-        return False, plan.reason or "plan unsupported"
-    if plan.operation not in {"argmax", "argmin"}:
-        return False, f"operation {plan.operation} outside structured_facts v1"
-    if plan.axis == "year" and len(plan.years) < 2:
-        return False, "year selection needs at least two years"
-    if plan.axis == "ticker" and len(plan.tickers) < 2:
-        return False, "ticker selection needs at least two tickers"
-    if plan.axis not in {"year", "ticker"}:
-        return False, "selection needs a concrete axis"
-    if not canonical_measure(plan.selector_metric):
-        return False, "selection needs a supported selector_metric"
-    if (
-        plan.answer_metric != "year"
-        and not canonical_measure(plan.answer_expression or plan.answer_metric)
-    ):
-        return False, "selection needs a supported answer_metric"
-    if plan.answer_expression and canonical_metric(plan.answer_metric):
-        return False, "answer_expression conflicts with direct answer_metric"
+def _supported_filters(plan: StructuredPlan) -> tuple[bool, str]:
     for flt in _plan_filters(plan):
         if not canonical_measure(flt.metric):
             return False, f"unsupported filter metric: {flt.metric}"
@@ -1207,9 +1195,12 @@ def supported_v1_plan(plan: StructuredPlan, question: str, unit_hint: str = "") 
             return False, f"filter {flt.metric} needs a relation"
         if flt.value is None and flt.value_source != "median":
             return False, f"filter {flt.metric} needs a threshold"
-    if plan.year_offset and plan.axis != "year":
-        return False, "year_offset only applies to year selections"
-    answer_unit = metric_source_unit(plan.answer_expression or plan.answer_metric)
+    return True, ""
+
+
+def _supported_answer_unit(
+    plan: StructuredPlan, question: str, unit_hint: str, answer_unit: str,
+) -> tuple[bool, str]:
     target = _resolved_target_unit(
         question=question,
         unit_hint=unit_hint,
@@ -1227,16 +1218,107 @@ def supported_v1_plan(plan: StructuredPlan, question: str, unit_hint: str = "") 
     return True, ""
 
 
-def _execute_selection(plan: StructuredPlan, ctx: _EvalContext) -> tuple[float, str, dict[str, Any]]:
+def _supported_filter_aggregate(
+    plan: StructuredPlan, question: str, unit_hint: str,
+) -> tuple[bool, str]:
+    """Validation for the filter -> aggregate slice.
+
+    Deliberately narrower than the shape the executor can run: only the ticker
+    axis over a single year, which is the slice measured as reachable without a
+    year-pair (delta) measure. Widening this is a separate, separately measured
+    change.
+    """
+    if plan.aggregation not in {"mean", "median", "sum", "count", "share"}:
+        return False, f"aggregate needs a supported aggregation, got {plan.aggregation!r}"
+    if plan.axis != "ticker":
+        return False, "filter_aggregate v1 covers the ticker axis only"
+    if len(plan.tickers) < 2:
+        return False, "aggregate needs at least two candidate tickers"
+    if len(plan.years) != 1:
+        return False, "filter_aggregate v1 covers a single-year scope only"
+    if not _plan_filters(plan):
+        return False, "aggregate needs at least one filter"
+    if plan.year_offset:
+        return False, "year_offset does not apply to filter_aggregate"
+    if plan.selector_metric or plan.selector_order:
+        return False, "filter_aggregate does not rank candidates"
+    ok, reason = _supported_filters(plan)
+    if not ok:
+        return ok, reason
+    if plan.aggregation == "count":
+        if plan.answer_metric or plan.answer_expression:
+            return False, "count aggregate must not name an answer metric"
+        return True, ""
+    if not canonical_measure(plan.answer_expression or plan.answer_metric):
+        return False, "aggregate needs a supported answer_metric"
+    if plan.answer_expression and canonical_metric(plan.answer_metric):
+        return False, "answer_expression conflicts with direct answer_metric"
+    # A share is dimensionless whatever the underlying metric is.
+    answer_unit = (
+        "ratio" if plan.aggregation == "share"
+        else metric_source_unit(plan.answer_expression or plan.answer_metric)
+    )
+    return _supported_answer_unit(plan, question, unit_hint, answer_unit)
+
+
+def supported_v1_plan(plan: StructuredPlan, question: str, unit_hint: str = "") -> tuple[bool, str]:
+    """The first production slice: selection over years or companies only."""
+    if not plan.supported or plan.operation == "unsupported":
+        return False, plan.reason or "plan unsupported"
+    if plan.operation == "filter_aggregate":
+        # Separate branch on purpose: the argmax/argmin path below is unchanged,
+        # so admitting aggregates cannot alter any plan that already validated.
+        return _supported_filter_aggregate(plan, question, unit_hint)
+    if plan.operation not in {"argmax", "argmin"}:
+        return False, f"operation {plan.operation} outside structured_facts v1"
+    if plan.aggregation:
+        return False, "aggregation only applies to filter_aggregate"
+    if plan.axis == "year" and len(plan.years) < 2:
+        return False, "year selection needs at least two years"
+    if plan.axis == "ticker" and len(plan.tickers) < 2:
+        return False, "ticker selection needs at least two tickers"
+    if plan.axis not in {"year", "ticker"}:
+        return False, "selection needs a concrete axis"
+    if not canonical_measure(plan.selector_metric):
+        return False, "selection needs a supported selector_metric"
+    if (
+        plan.answer_metric != "year"
+        and not canonical_measure(plan.answer_expression or plan.answer_metric)
+    ):
+        return False, "selection needs a supported answer_metric"
+    if plan.answer_expression and canonical_metric(plan.answer_metric):
+        return False, "answer_expression conflicts with direct answer_metric"
+    ok, reason = _supported_filters(plan)
+    if not ok:
+        return ok, reason
+    if plan.year_offset and plan.axis != "year":
+        return False, "year_offset only applies to year selections"
+    answer_unit = metric_source_unit(plan.answer_expression or plan.answer_metric)
+    return _supported_answer_unit(plan, question, unit_hint, answer_unit)
+
+
+def _resolve_axis(plan: StructuredPlan) -> str:
     axis = plan.axis or ("ticker" if len(plan.tickers) > 1 else "year")
-    selector = plan.selector_metric or plan.answer_metric
-    if not selector:
-        raise StructuredFactError("selection needs selector_metric")
-    elements: list[Any] = list(plan.tickers if axis == "ticker" else plan.years)
-    skipped: list[dict[str, str]] = []
     if axis not in {"ticker", "year"}:
         raise StructuredFactError("selection needs axis")
+    return axis
 
+
+def _survivors(
+    plan: StructuredPlan,
+    ctx: _EvalContext,
+    axis: str,
+    skipped: list[dict[str, str]],
+) -> tuple[list[Any], dict[str, float]]:
+    """Shrink the candidate set by every filter, returning the survivors.
+
+    Shared by `_execute_selection` (which then ranks them) and
+    `_execute_aggregate` (which then aggregates them). Extracted verbatim from
+    `_execute_selection`; a filter's threshold may be a literal or the
+    candidate-set median, and `missing_policy="skip"` drops candidates whose
+    filter metric has no fact coverage instead of failing the whole plan.
+    """
+    elements: list[Any] = list(plan.tickers if axis == "ticker" else plan.years)
     filter_targets: dict[str, float] = {}
     for flt in _plan_filters(plan):
         if not flt.metric:
@@ -1268,6 +1350,96 @@ def _execute_selection(plan: StructuredPlan, ctx: _EvalContext) -> tuple[float, 
             if _finite(fv) and _passes(float(fv), flt.relation or "lt", float(target)):
                 filtered.append(element)
         elements = filtered
+    return elements, filter_targets
+
+
+def _element_values(
+    plan: StructuredPlan,
+    ctx: _EvalContext,
+    axis: str,
+    metric: str,
+    elements: list[Any],
+    skipped: list[dict[str, str]],
+) -> tuple[list[tuple[Any, float]], str]:
+    """Evaluate `metric` once per candidate, honouring `missing_policy`."""
+    out: list[tuple[Any, float]] = []
+    unit = "unknown"
+    for element in elements:
+        ticker = element if axis == "ticker" else plan.tickers[0]
+        year = plan.years[-1] if axis == "ticker" else int(element)
+        try:
+            value, unit_here = _measure_value(ctx, metric, ticker, year, plan)
+        except StructuredFactError as exc:
+            if plan.missing_policy == "fail":
+                raise
+            skipped.append({"element": str(element), "reason": str(exc)})
+            continue
+        if not _finite(value):
+            if plan.missing_policy == "fail":
+                raise StructuredFactError(f"{metric} is not finite for {ticker} {year}")
+            skipped.append({"element": str(element), "reason": f"{metric} not finite"})
+            continue
+        unit = unit_here
+        out.append((element, float(value)))
+    return out, unit
+
+
+def _execute_aggregate(plan: StructuredPlan, ctx: _EvalContext) -> tuple[float, str, dict[str, Any]]:
+    """Filter the candidate set, then aggregate the survivors."""
+    axis = _resolve_axis(plan)
+    skipped: list[dict[str, str]] = []
+    survivors, filter_targets = _survivors(plan, ctx, axis, skipped)
+    selected: dict[str, Any] = {
+        "axis": axis,
+        "survivors": list(survivors),
+        "skipped": skipped,
+        "filter_targets": filter_targets,
+        "aggregation": plan.aggregation,
+    }
+
+    if plan.aggregation == "count":
+        # A count is the size of the surviving set; no answer metric is read, so
+        # an empty survivor set is a legitimate answer of zero.
+        return float(len(survivors)), "count", selected
+
+    if not survivors:
+        raise StructuredFactError("aggregate has no surviving candidates")
+    metric = plan.answer_expression or plan.answer_metric
+    if not metric:
+        raise StructuredFactError("aggregate needs answer_metric")
+
+    pairs, unit = _element_values(plan, ctx, axis, metric, survivors, skipped)
+    if not pairs:
+        raise StructuredFactError(f"aggregate has no live {metric} values")
+    values = [value for _, value in pairs]
+    selected["values"] = {str(element): value for element, value in pairs}
+
+    if plan.aggregation == "share":
+        # Share of the *whole* candidate set, so the denominator is rebuilt from
+        # every element, not just the survivors.
+        all_elements = list(plan.tickers if axis == "ticker" else plan.years)
+        whole, _ = _element_values(plan, ctx, axis, metric, all_elements, skipped)
+        total = sum(value for _, value in whole)
+        if not total:
+            raise StructuredFactError(f"share denominator for {metric} is zero")
+        selected["denominator"] = total
+        return _divide(sum(values), total), "ratio", selected
+    if plan.aggregation == "mean":
+        return sum(values) / len(values), unit, selected
+    if plan.aggregation == "median":
+        return float(median(values)), unit, selected
+    if plan.aggregation == "sum":
+        return float(sum(values)), unit, selected
+    raise StructuredFactError(f"unsupported aggregation: {plan.aggregation}")
+
+
+def _execute_selection(plan: StructuredPlan, ctx: _EvalContext) -> tuple[float, str, dict[str, Any]]:
+    axis = _resolve_axis(plan)
+    selector = plan.selector_metric or plan.answer_metric
+    if not selector:
+        raise StructuredFactError("selection needs selector_metric")
+    skipped: list[dict[str, str]] = []
+    elements, filter_targets = _survivors(plan, ctx, axis, skipped)
 
     candidates: list[tuple[Any, float]] = []
     if axis == "ticker":

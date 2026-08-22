@@ -277,6 +277,60 @@ signed = run(
 check("an untouched query keeps the reported sign", signed["answer"] == -83790676915.0)
 check("scaled flag ignores the abs wrapper", signed["diag"]["scaled"] is False)
 
+# ── a difference between two companies, and money already paid out ─────────────
+# q774/q777 ask "chênh lệch giữa A và B": which company is named first is the
+# question writer's choice, so gold is the magnitude. q623 asks the difference
+# between two year-ends of one company, where the sign is the answer. The
+# separator is the year count, and the ticker count is what says "two companies".
+TWO_CO = "Chênh lệch giữa số dư tiền mặt của công ty mẹ VIB và công ty mẹ SHB cuối năm 2019 là bao nhiêu?"
+check(
+    "a difference between two companies answers as a magnitude",
+    execute.as_magnitude(TWO_CO, "Tiền mặt", ["VIB", "SHB"]),
+)
+check(
+    "the same wording with one ticker keeps its sign",
+    not execute.as_magnitude(TWO_CO, "Tiền mặt", ["VIB"]),
+)
+check(
+    "a difference across two year-ends keeps its sign",
+    not execute.as_magnitude(
+        "Chênh lệch hàng tồn kho giữa cuối năm 2023 và cuối năm 2022 của PC1 là bao nhiêu?",
+        "Hàng tồn kho",
+        ["PC1", "PC1"],
+    ),
+)
+check(
+    "a screening question keeps its sign",
+    not execute.as_magnitude(
+        "Trong nhóm VIC, NVL, KBC năm 2024, doanh nghiệp có ROA cao hơn trung vị nhóm "
+        "có hệ số nợ trên vốn chủ sở hữu là bao nhiêu?",
+        "ROA",
+        ["VIC", "NVL", "KBC"],
+    ),
+)
+check(
+    "'công ty cổ phần' is not a selection marker",
+    execute.as_magnitude(
+        "Chênh lệch tổng tài sản giữa Công ty Cổ phần A và Công ty Cổ phần B cuối năm 2020?",
+        "Tổng tài sản",
+        ["AAA", "BBB"],
+    ),
+)
+two_co = run(
+    execute.aexecute(
+        expense_sol.model_copy(update={"target_row": "Tiền mặt"}),
+        "", {"df1": expense}, question=TWO_CO, tickers=["VIB", "SHB"],
+    )
+)
+check("aexecute passes the tickers through to the guard", two_co["answer"] == 83790676915.0)
+check(
+    "an average of tax already paid answers as a magnitude",
+    execute.as_magnitude(
+        "Giá trị trung bình cộng thuế TNDN đã nộp của VCB qua các năm 2018, 2020 và 2021?",
+        "Thuế TNDN đã nộp",
+    ),
+)
+
 # ── "năm nào": the answer is a year, not the winning amount ────────────────────
 # All 28 codegen questions asking "năm nào" submitted an amount, which is wrong by
 # definition. `raw_selection_linker` has always answered these with
