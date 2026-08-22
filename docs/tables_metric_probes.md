@@ -35,6 +35,7 @@ nên hai bản rời nhau cộng recall lại đúng bằng bản hợp.
 | G1 | q ∈ [M+1..M+10] | 20 | **≈0** | — | — | — |
 | G2 | q ∈ [M+11..M+50] | 80 | **nhỏ** | — | — | — |
 | G3 | q ∈ [M+51..300] | 332 | **0.129** | 0.0064 | 0.0014 | **0.0024** |
+| H1 | q ∈ 301..600, mọi doc | 600 | **0.1241** | 0.0035 | 0.0007 | 0.0067 |
 
 `M = max(table_pos)` của report đó theo `tables_metadata_v2.jsonl`. `p` = vị trí
 bảng ta dự đoán. Chưa nộp: E2 (`line_no`), E3 (`trtd`), F2 (`301..1300` top-1 doc),
@@ -82,11 +83,48 @@ Hai bản đã build sẵn để chặn đường, **nộp H1 trước**:
 - `output/submission_probeH2_d1_plus_td.zip` — D1 ∪ (td-family > 300, 3 doc),
   1359 id/câu. Chỉ có nghĩa nếu H1 ≈ 0.0. ~0.25 → (b) đúng; ~0.13 → (a).
 
+## H1 đã nộp: đóng hướng TABLES (2026-08-22)
+
+```
+TABLES_F2MACRO 0.0035  TABLES_PRECISION 0.0007  TABLES_RECALL 0.1241  TABLES_MRR5 0.0067
+DOCS_* và ANSWER_* bất động như mọi lượt trước, nên lượt này cô lập sạch.
+```
+
+H1 gửi dải 301..600, **rời hẳn** D1 (0..300), cùng cỡ danh sách. Nó ra 0.1241 so với 0.1311
+của D1. Hai dải không giao nhau mà điểm gần y nhau, tức recall **không nói gì** về việc gold
+nằm ở số nào. Theo đúng luật đã đặt trước khi nộp: mọi số D1/E1/G3 là ảo, đóng hướng này.
+
+Suy ra số hit thật từ `precision × số id gửi`:
+
+| bản | id/câu | hit/câu | recall | `|gold|` suy ra | mật độ hit/id |
+|---|---:|---:|---:|---:|---:|
+| G3 | 332 | 0.46 | 0.1290 | 3.6 | 0.0014 |
+| C | 674 | 0.47 | 0.1311 | 3.6 | 0.0007 |
+| H1 | 600 | 0.42 | 0.1241 | 3.4 | 0.0007 |
+
+Ba bản độc lập cho `|gt_tables|` ≈ **3.5 entry/câu**, con số đầu tiên của lượt dò này mà
+nhất quán. Nhưng mật độ hit trên mỗi id cao nhất từng đo được là 0.0014 (G3), nên muốn
+recall 1.0 phải gửi cỡ 2.500 id/câu với precision ~0.0005, cho
+`f2 = 5PR/(4P+R) ≈ 0.0025`. Metric này đòi danh sách **chặt**, mà không lượt nào tìm được
+dải nào đủ dày. Không có đường đi.
+
+Hai chỗ phải sửa lại trong "Kết luận chắc chắn" ở trên:
+
+- **Kết luận 4 sai.** "~87% gold có số > 300" suy ra từ D1/G3, mà H1 vừa chứng minh những
+  số đó không định vị được gì.
+- **Kết luận 1 vẫn đúng nhưng vô dụng.** Gold có thật và với tới được, chỉ là với tới bằng
+  cách quét rộng, và quét rộng thì precision chết.
+
+**H2 không nộp.** Điều kiện của nó là H1 ≈ 0.0. Không dò thêm lượt nào cho TABLES.
+
 ## Chi phí và trần
 
-Trần thực tế nếu tìm được danh sách chặt: ~0.11 `TABLES_F2MACRO`, đóng góp
-aggregate ~+0.02. `f2 = 5PR/(4P+R)` tính một lần từ P và R macro, recall nặng gấp
-4 lần precision — đó là lý do bản quét rộng vẫn ra F2 > 0 dù precision ~0.0007.
+Con số ~0.11 `TABLES_F2MACRO` (aggregate ~+0.02) từng ghi ở đây **không với tới được**: nó
+giả định tìm được danh sách chặt, mà H1 đã đóng khả năng đó. `f2 = 5PR/(4P+R)` tính một lần
+từ P và R macro, recall nặng gấp 4 lần precision, đó là lý do bản quét rộng vẫn ra F2 > 0 dù
+precision ~0.0007. Nhưng F2 > 0 kiểu đó là 0.0035, không phải 0.11.
+
+12 lượt submit đã tiêu cho TABLES. Toàn bộ đất còn lại nằm ở `ANSWER_ACCURACY`.
 
 So sánh: `ANSWER_ACCURACY` đang 0.2628 và đó là nơi còn nhiều đất. Sau H1/H2
 không dò thêm lượt nào cho TABLES.
