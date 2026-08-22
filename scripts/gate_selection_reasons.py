@@ -45,6 +45,7 @@ from gate_screening_class import is_screening  # noqa: E402
 
 SUBMISSION = "output/submission_v9_sign/submission.json"
 RUN = Path("artifacts/runs/full1012_v7.jsonl")
+OUT = Path("artifacts/runs/gate_selection_reasons.out")
 TICKER_IN_REPORT = re.compile(r"([A-Z0-9]{2,5})_financial_statements_")
 YEAR = re.compile(r"(?:19|20)\d{2}")
 NO_MAX_MIN = "no max/min selection marker"
@@ -98,15 +99,24 @@ def main() -> int:
             causes.setdefault(sub_cause(state), []).append(qid)
             years_seen[len(state["years"])] += 1
 
-    print(f"\n{len(screening)} câu sàng lọc, gọi thẳng deterministic_selection_plan\n")
-    for key, ids in sorted(plans.items(), key=lambda kv: -len(kv[1])):
-        print(f"  {len(ids):>4}  {score(ids):<7} {key}")
+    lines: list[str] = []
 
-    print(f"\nbóc nhóm \"{NO_MAX_MIN}\":\n")
+    def emit(text: str) -> None:
+        print(text)
+        lines.append(text)
+
+    emit(f"\n{len(screening)} câu sàng lọc, gọi thẳng deterministic_selection_plan\n")
+    for key, ids in sorted(plans.items(), key=lambda kv: -len(kv[1])):
+        emit(f"  {len(ids):>4}  {score(ids):<7} {key}")
+
+    emit(f"\nbóc nhóm \"{NO_MAX_MIN}\":\n")
     for cause, ids in sorted(causes.items(), key=lambda kv: -len(kv[1])):
-        print(f"  {len(ids):>4}  {score(ids):<7} {cause}")
-        print(f"        {sorted(ids)[:24]}")
-    print(f"\nphân bố số năm vét được trong nhóm đó: {dict(sorted(years_seen.items()))}")
+        emit(f"  {len(ids):>4}  {score(ids):<7} {cause}")
+        emit(f"        {sorted(ids)}")
+    emit(f"\nphân bố số năm vét được trong nhóm đó: {dict(sorted(years_seen.items()))}")
+
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text("\n".join(lines) + "\n")
     return 0
 
 
