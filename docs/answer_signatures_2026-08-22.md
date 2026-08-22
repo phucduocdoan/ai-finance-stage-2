@@ -344,3 +344,45 @@ nhìn thấy đủ mọi công ty mà vẫn sai, 17 câu sinh ra truy vấn cộ
 
 Nên lever còn lại chưa có bằng chứng phản là cho schema mang phần theo từng công ty, một
 điều kiện, và một phép chọn cuối, rồi gộp lại thành một biểu thức để vẫn chạy lại được.
+
+### Cần cẩu thứ năm: schema có điều kiện lọc. Cũng chết, 2/29
+
+`ScreeningSolution` (`common/solution.py`) mang một ô cho mỗi công ty trong `selector`, một
+điều kiện viết trên `s`, một `answer` tuỳ chọn khi chỉ số báo cáo khác chỉ số lọc, và một
+phép gộp. `compose` (`codegen/screening.py`) ráp lại thành đúng một biểu thức pandas, nên
+`execute`, `apply_units` và vòng sửa lỗi không phải rẽ nhánh. Bốn hình dạng câu hỏi ra từ
+cùng một cỗ máy: điều kiện rỗng là gộp thẳng, `s > 0` là ngưỡng tuyệt đối, `s > s.median()`
+là mốc của nhóm, `s == s.max()` với `reduce="first"` là chọn quán quân rồi hỏi chỉ số khác.
+
+Ngưỡng chốt trước khi chạy: baseline 4/29, đạt từ 8/29 mới đáng chạy tiếp 210 câu.
+
+| lần chạy | cơ chế nổ | giữ được `pd.Series` | điểm |
+|----------|-----------|----------------------|------|
+| control, cùng code, cờ tắt | 0/29 | 0 | 2/29 |
+| `predicate1`, trước mọi bản vá | 23/29 | 0 | 2/29 |
+| `predicate2`, sau bản vá schema | 23/29 | 3 | 2/29 |
+| `predicate3`, sau bản vá `verify_answer` | 23/29 | 14 | 2/29 |
+
+Hai bản vá là lỗi thật, đo được, và không kéo được điểm. Bản vá schema: mọi field kế thừa
+từ `PandasSolution` đều có default nên `required` chỉ chứa `reduce`, và trên q446 mô hình
+trả `{"reduce": "mean"}` rồi dừng (31 token, `finish_reason` "stop", không phải cụt ngân
+sách, 4096 token ra y hệt). Vá xong, `compose` từ chối tụt từ 21/23 xuống 4/23. Bản vá thứ
+hai: `verify_answer` gọi `arevise`, thứ này nộp một `PandasSolution` vốn không chứa nổi bộ
+lọc, và `graph.py` giữ bản viết lại chỉ cần nó chạy được. Cho câu sàng lọc thành chỉ-quan-sát
+thì số bản kế hoạch sống tới bản ghi tăng từ 3 lên 14.
+
+Đến đây cơ chế chạy thật, và chạy thật thì tệ hơn baseline. Trong 14 câu giữ được kế hoạch,
+đúng 0 câu. q571 và q798 v9 làm đúng, giờ sai. Lý do đọc được ngay trên truy vấn:
+
+- q446 hỏi phần trăm (nhãn 50,38), `selector` gom sáu ô giá trị tuyệt đối rồi trả 2,4e13.
+  Schema cho phép `expr` là một phép chia nhưng mô hình không dựng tỷ số.
+- Cùng câu đó, cột của MSN ghi "Triệu VND" còn MCH ghi "VND". Một chuỗi trộn hai đơn vị, mà
+  `apply_units` chỉ đọc một `table_variable`.
+- q798 chỉ đọc 2 công ty rồi `.iloc[0]`, ra 31,61 thay vì 67,56.
+
+Cái đắt nhất là tính được-ăn-cả-ngã-về-không. Codegen thường đọc 2 ô: sai một ô là hỏng.
+Truy vấn sàng lọc đọc 6 tới 12 ô, mỗi ô phải đúng hàng, đúng cột và đúng đơn vị. Với tỷ lệ
+đọc đúng một ô hiện tại thì xác suất cả chuỗi đúng gần như bằng không, và đó là lý do cơ
+chế đúng về mặt cấu trúc vẫn thua một heuristic đọc hai ô.
+
+`SOLVE_SCREENING` giữ mặc định False. Số liệu ở `artifacts/runs/gate_screening_predicate3.out`.
