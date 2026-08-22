@@ -225,6 +225,163 @@ lying = ok.model_copy(update={"source_unit": "vnd"})
 fixed = run(execute.aexecute(lying, "", frames, question="… bao nhiêu triệu đồng?"))
 check("grid overrides a wrong model source_unit", fixed["answer"] == float(df45.iloc[4]["31/12/2020"]))
 
+# ── expense magnitude on the codegen path ──────────────────────────────────────
+# q526: the cell reads `(83.790.676.915)`, which parses to a negative, and gold is
+# positive. `cell_locator.value_transform` has always known this; codegen did not.
+expense = pd.DataFrame({"Năm 2019": [-83790676915.0]})
+expense_sol = solution.PandasSolution(
+    table_variable="df1",
+    target_row="Chi phí khác",
+    target_column="Năm 2019",
+    source_unit="vnd",
+    target_unit="vnd",
+    pandas_query="df1.iloc[0]['Năm 2019']",
+)
+mag = run(execute.aexecute(expense_sol, "", {"df1": expense}, question="Chi phí khác của MWG là bao nhiêu?"))
+check("expense cell answers as a magnitude", mag["answer"] == 83790676915.0)
+# In the query, not on the number: the execution objective re-runs the string.
+check("the magnitude is in the submitted query", "abs(" in mag["pandas_query"])
+check("magnitude is recorded in the diag", mag["diag"]["magnitude_abs"] is True)
+
+both = run(execute.aexecute(expense_sol, "", {"df1": expense}, question="Chi phí khác là bao nhiêu tỷ đồng?"))
+check("magnitude and scaling compose", abs(both["answer"] - 83.790676915) < 1e-9)
+check("both transforms are in the one query", both["pandas_query"].startswith("(abs("))
+
+# The six blocked shapes: arithmetic *over* expense rows, where the sign is the answer.
+check(
+    "a difference between expense rows keeps its sign",
+    not execute.as_magnitude("Hiệu số giữa chi phí bán hàng và chi phí quản lý là bao nhiêu?", "Chi phí bán hàng"),
+)
+check(
+    "'trừ đi' keeps its sign",
+    not execute.as_magnitude("Chi phí lãi vay trừ đi thu nhập lãi là bao nhiêu?", "Chi phí lãi vay"),
+)
+check(
+    "a growth rate keeps its sign",
+    not execute.as_magnitude("Tỷ lệ tăng chi phí quản lý năm 2020 là bao nhiêu %?", "Chi phí quản lý"),
+)
+check(
+    "a signed metric overrides the expense wording",
+    not execute.as_magnitude("Dòng tiền chi trả lãi vay là bao nhiêu?", "Chi phí lãi vay"),
+)
+check(
+    "a row that is not an expense is untouched",
+    not execute.as_magnitude("Doanh thu thuần năm 2020 là bao nhiêu?", "Doanh thu thuần"),
+)
+signed = run(
+    execute.aexecute(
+        expense_sol.model_copy(update={"target_row": "Doanh thu thuần"}),
+        "", {"df1": expense}, question="Doanh thu thuần là bao nhiêu?",
+    )
+)
+check("an untouched query keeps the reported sign", signed["answer"] == -83790676915.0)
+check("scaled flag ignores the abs wrapper", signed["diag"]["scaled"] is False)
+
+# ── "năm nào": the answer is a year, not the winning amount ────────────────────
+# All 28 codegen questions asking "năm nào" submitted an amount, which is wrong by
+# definition. `raw_selection_linker` has always answered these with
+# `(<cell>) * 0 + <year>`, keeping the year inside the query so re-execution
+# reproduces it.
+YEARS = {
+    "df1": pd.DataFrame({"Chỉ tiêu": ["Doanh thu"], "Số cuối năm": [4e9]}),
+    "df2": pd.DataFrame({"Chỉ tiêu": ["Doanh thu"], "Số cuối năm": [7e9]}),
+}
+YEAR_NAMES = {
+    "df1": "ABC_financial_statements_2019_separate|3",
+    "df2": "ABC_financial_statements_2022_separate|3",
+}
+A, B = "df1.iloc[0]['Số cuối năm']", "df2.iloc[0]['Số cuối năm']"
+HIGHEST = "Doanh thu của ABC cao nhất vào năm nào, 2019 hay 2022?"
+
+picked = execute.project_year(f"max({A}, {B})", YEARS, YEAR_NAMES, HIGHEST)
+check("the winning year is projected", picked[1] == "2022")
+check("the year is carried by the query, not the number", picked[0] == f"({B}) * 0 + 2022")
+check("re-executing the projected query yields the year", execute.run_query(picked[0], dict(YEARS)) == 2022)
+# q978's shape: the model wraps the arguments in a list, so the commas sit one
+# bracket deep and a naive top-level split sees a single argument.
+check(
+    "max([a, b]) is read like max(a, b)",
+    execute.project_year(f"max([{A}, {B}])", YEARS, YEAR_NAMES, HIGHEST)[1] == "2022",
+)
+check(
+    "'thấp nhất' picks the argmin",
+    execute.project_year(f"max({A}, {B})", YEARS, YEAR_NAMES,
+                         "Doanh thu của ABC thấp nhất vào năm nào, 2019 hay 2022?")[1] == "2019",
+)
+check(
+    "a question about an amount is left alone",
+    execute.project_year(f"max({A}, {B})", YEARS, YEAR_NAMES,
+                         "Doanh thu cao nhất của ABC giai đoạn 2019-2022 là bao nhiêu?") is None,
+)
+# A term reading two frames belongs to no single year, so there is no year to name.
+check(
+    "a term spanning two frames declines",
+    execute.project_year(f"max({A} - {B}, {B})", YEARS, YEAR_NAMES, HIGHEST) is None,
+)
+check(
+    "a plain cell reference is not a selection",
+    execute.project_year(A, YEARS, YEAR_NAMES, HIGHEST) is None,
+)
+# codegen wraps 978 of the 1,012 v8 queries in `round(..., 2)`, and `_SELECT_CALL` is
+# anchored, so the rewrite above had never fired on a real run. q866 submits exactly
+# `round(max(df3..., df4..., df5...), 2)`.
+check(
+    "the round wrapper codegen always writes is seen through",
+    execute.project_year(f"round(max({A}, {B}), 2)", YEARS, YEAR_NAMES, HIGHEST)[1] == "2022",
+)
+check(
+    "a round with no digits argument is still seen through",
+    execute.project_year(f"round(max({A}, {B}))", YEARS, YEAR_NAMES, HIGHEST)[1] == "2022",
+)
+check(
+    "the projected query drops the wrapper and still re-executes to the year",
+    execute.run_query(
+        execute.project_year(f"round(max({A}, {B}), 2)", YEARS, YEAR_NAMES, HIGHEST)[0],
+        dict(YEARS),
+    ) == 2022,
+)
+# `round(a, b)` where b is a cell, not a digit count, is not codegen's wrapper.
+check(
+    "round over two cells is not unwrapped",
+    execute.project_year(f"round({A}, {B})", YEARS, YEAR_NAMES, HIGHEST) is None,
+)
+
+# The "Năm trước" guard: a 2023 report holds a 2022 column, so the column name
+# wins over the report id -- and the result must still be a year the question names.
+COMPARATIVE = {
+    "df1": pd.DataFrame({"31/12/2022": [9e9]}),
+    "df2": pd.DataFrame({"31/12/2021": [1e9]}),
+}
+COMPARATIVE_NAMES = {
+    "df1": "ABC_financial_statements_2023_separate|3",
+    "df2": "ABC_financial_statements_2021_separate|3",
+}
+C, D = "df1.iloc[0]['31/12/2022']", "df2.iloc[0]['31/12/2021']"
+check(
+    "the column's year beats the report id's year",
+    execute.project_year(f"max({C}, {D})", COMPARATIVE, COMPARATIVE_NAMES,
+                         "Doanh thu cao nhất vào năm nào, 2021 hay 2022?")[1] == "2022",
+)
+check(
+    "a year the question never names is refused",
+    execute.project_year(f"max({C}, {D})", COMPARATIVE, COMPARATIVE_NAMES,
+                         "Doanh thu cao nhất vào năm nào, 2023 hay 2024?") is None,
+)
+
+year_sol = solution.PandasSolution(
+    table_variable="df1",
+    target_row="Doanh thu",
+    target_column="Số cuối năm",
+    source_unit="vnd",
+    target_unit="vnd",
+    pandas_query=f"max({A}, {B})",
+)
+as_year = run(execute.aexecute(year_sol, "", YEARS, question=HIGHEST, names=YEAR_NAMES))
+check("the submitted answer is the year", as_year["answer"] == 2022)
+check("the year answer is recorded in the diag", as_year["diag"]["year_answer"] == "2022")
+check("a year is not converted", as_year["diag"]["scaled"] is False)
+check("a year has no magnitude taken", as_year["diag"]["magnitude_abs"] is False)
+
 # Repair: first attempt raises, the stub returns a working query.
 broken = ok.model_copy(update={"pandas_query": "df1.iloc[4]['31/12/2021']"})
 calls: list[str] = []

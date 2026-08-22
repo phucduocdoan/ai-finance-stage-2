@@ -17,6 +17,16 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from finance_qa.core.llm import get_chat_model
 from finance_qa.modules.solve.codegen.codegen import CODEGEN_SYSTEM
 from finance_qa.modules.solve.common.context import page_text
+from finance_qa.modules.solve.common.intent import (
+    DIFF_CUE_LOOSE,
+    GROWTH_CUE,
+    MAGNITUDE_BLOCK,
+    MAGNITUDE_METRIC,
+    MIN_MARKER,
+    SIGNED_METRIC,
+    YEAR_ANSWER_MARKER,
+    intent_norm,
+)
 from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD, PandasSolution
 from finance_qa.modules.solve.common.units import (
     detect_unit,
@@ -231,6 +241,152 @@ async def arun_with_repair(
     return solution, None, errors
 
 
+def as_magnitude(question: str, target_row: str) -> bool:
+    """Does this expense-row question want the amount rather than the signed cell?
+
+    `cell_locator.value_transform` has answered this for the narrow solvers all
+    along; codegen never asked. That is why q526 submits −83.790.676.915 for a
+    cell printed `(83.790.676.915)` while gold is positive: the parenthesised
+    expense parses to a negative and nothing on this path undoes it.
+
+    The two extra cues are the difference between a gain and a regression. On the
+    1,012-question run 14 codegen answers are negative on an expense metric; this
+    guard flips 11 and blocks 3 (q454, q601 differences; q639 wording), because in
+    those the sign *is* the answer: a difference (`DIFF_CUE_LOOSE`), growth
+    (`GROWTH_CUE`), or the wordings neither covers (`MAGNITUDE_BLOCK`). On gold73
+    that is +2 (q525, q526) / −0. Three more questions the guard would block
+    (q599, q603, q778) are answered by `raw_table_linker`/`formula_facts` and never
+    reach `apply_units` at all.
+    """
+    text = f"{question} {target_row}"
+    if SIGNED_METRIC.search(text) or not MAGNITUDE_METRIC.search(text):
+        return False
+    normalized = intent_norm(question)
+    return not (
+        DIFF_CUE_LOOSE.search(normalized)
+        or GROWTH_CUE.search(normalized)
+        or MAGNITUDE_BLOCK.search(normalized)
+    )
+
+
+# `max(a, b, c)` where each argument reads exactly one frame. Deliberately not a
+# general expression parser: the whole guard rests on knowing which *year* won, and
+# that is only well defined when each argument belongs to one year's table.
+_SELECT_CALL = re.compile(r"^\s*(max|min)\s*\((?P<args>.+)\)\s*$", re.S)
+_ROUND_CALL = re.compile(r"^\s*round\s*\((?P<args>.+)\)\s*$", re.S)
+_FRAME_REF = re.compile(r"\bdf\d+\b")
+_YEAR_IN_ID = re.compile(r"_(20\d\d)_")
+_YEAR_ANYWHERE = re.compile(r"\b(?:19|20)\d\d\b")
+
+
+def _split_args(args: str) -> list[str] | None:
+    """Top-level comma split. None if the brackets do not balance."""
+    parts, depth, start = [], 0, 0
+    for i, ch in enumerate(args):
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+            if depth < 0:
+                return None
+        elif ch == "," and depth == 0:
+            parts.append(args[start:i])
+            start = i + 1
+    parts.append(args[start:])
+    return [p.strip() for p in parts if p.strip()] if depth == 0 else None
+
+
+def _unwrap_round(query: str) -> str:
+    """Look through the `round(expr, 2)` codegen wraps almost everything in.
+
+    978 of the 1,012 queries in the v8 run start with `round(`, and `_SELECT_CALL` is
+    anchored, so `project_year` matched none of them and never fired once. q866 submits
+    `round(max(...), 2)` and answered with an amount.
+    """
+    call = _ROUND_CALL.match(query.strip())
+    if not call:
+        return query
+    args = _split_args(call.group("args"))
+    if args is None or len(args) > 2:
+        return query
+    if len(args) == 2 and not args[1].lstrip("-").isdigit():
+        return query
+    return args[0]
+
+
+def _year_of(term: str, table_id: str) -> str | None:
+    """The year the winning term speaks for.
+
+    The column name wins over the report id, because a 2023 report carries a
+    "Năm trước" column holding 2022 and the report id would then name the wrong
+    year. Neither is trusted blindly — `project_year` checks the result against the
+    years the question actually lists.
+    """
+    in_column = _YEAR_ANYWHERE.findall(term)
+    if in_column:
+        return in_column[-1]
+    found = _YEAR_IN_ID.search(table_id)
+    return found.group(1) if found else None
+
+
+def project_year(
+    query: str,
+    frames: Mapping[str, pd.DataFrame],
+    names: Mapping[str, str],
+    question: str,
+) -> tuple[str, str] | None:
+    """Turn `max(<2019 cell>, <2022 cell>)` into a query that answers *which year*.
+
+    A "năm nào" question wants a year and codegen submits the winning cell's value
+    instead: on the 1,012-question run all 28 such questions answer with an amount,
+    which is wrong by definition. `raw_selection_linker` has had the answer all
+    along — it emits `(<cell>) * 0 + <year>`, keeping the year inside the *query* so
+    that re-executing the submission still yields it. codegen never asked, exactly
+    as it never asked `cell_locator` about expense signs.
+
+    Returns `(query, year)` or None. None is the common case and is meant to be:
+    the rewrite only fires when the winning year is unambiguous, which means the
+    query is a `max`/`min` of single-frame terms, bare or under codegen's `round`
+    wrapper, *and* the year it lands on is one the question actually names. That last
+    check is what stops a "Năm trước" column from answering 2022 for a question
+    about 2023.
+    """
+    if not YEAR_ANSWER_MARKER.search(intent_norm(question)):
+        return None
+    call = _SELECT_CALL.match(_unwrap_round(query).strip())
+    if not call:
+        return None
+    args_text = call.group("args").strip()
+    # The model writes both `max(a, b)` and `max([a, b])`; q978 is the second form
+    # and was silently skipped, because its commas sit one bracket deep. Stripping a
+    # wrapping pair is safe: for `max([a, b], [c, d])` the remainder no longer
+    # balances and `_split_args` rejects it rather than mis-splitting.
+    if args_text.startswith("[") and args_text.endswith("]"):
+        args_text = args_text[1:-1]
+    args = _split_args(args_text)
+    if not args or len(args) < 2:
+        return None
+
+    values: dict[str, float] = {}
+    for term in args:
+        refs = set(_FRAME_REF.findall(term))
+        if len(refs) != 1:  # a term spanning two years names no single year
+            return None
+        try:
+            values[term] = float(run_query(term, dict(frames)))
+        except Exception:  # noqa: BLE001 - one unreadable cell voids the comparison
+            return None
+    if len(values) != len(args):
+        return None
+
+    pick = min if MIN_MARKER.search(intent_norm(question)) else max
+    winner = pick(values, key=lambda term: values[term])
+    year = _year_of(winner, names.get(_FRAME_REF.search(winner).group(0), ""))
+    if not year or year not in set(_YEAR_ANYWHERE.findall(question)):
+        return None
+    return f"({winner}) * 0 + {year}", year
+
+
 def apply_units(
     solution: PandasSolution,
     frames: Mapping[str, pd.DataFrame],
@@ -263,13 +419,35 @@ def apply_units(
     source, fallback = resolve_source_unit(detected, solution.source_unit)
     target = unit_from_hint(question) or unit_from_hint(unit_hint) or solution.target_unit or "unknown"
     raw_query, removed = strip_scale_factor(solution.pandas_query)
-    query = scale_expression(raw_query, source, target)
+    # A year is not a quantity, so this returns before both transforms below: there
+    # is no unit to convert and no sign to take a magnitude of. Stripping the
+    # model's own factors first is what lets `max(...) * 1e-9` still be recognised.
+    picked = project_year(raw_query, frames, names or {}, question)
+    if picked is not None:
+        query, year = picked
+        return query, {
+            "source_unit": source,
+            "source_unit_from": where or fallback,
+            "model_source_unit": solution.source_unit,
+            "target_unit": "year",
+            "scaled": False,
+            "magnitude_abs": False,
+            "year_answer": year,
+            "model_factors_stripped": removed,
+        }
+    # `abs` goes inside the scale factor, and into the *query* rather than onto the
+    # number, because the execution objective re-runs the submitted string: a
+    # magnitude applied outside it would make the two metrics disagree.
+    magnitude = as_magnitude(question, solution.target_row)
+    inner = f"abs({raw_query})" if magnitude else raw_query
+    query = scale_expression(inner, source, target)
     return query, {
         "source_unit": source,
         "source_unit_from": where or fallback,
         "model_source_unit": solution.source_unit,
         "target_unit": target,
-        "scaled": query != raw_query,
+        "scaled": query != inner,
+        "magnitude_abs": magnitude,
         "model_factors_stripped": removed,
     }
 
@@ -330,5 +508,6 @@ async def aexecute(
 
 __all__ = [
     "HISTORY_TEMPERATURE", "MAX_REPAIRS", "REPAIR_TEMPERATURE", "aexecute",
-    "apply_units", "arun_with_repair", "describe_error",
+    "apply_units", "arun_with_repair", "as_magnitude", "describe_error",
+    "project_year",
 ]
