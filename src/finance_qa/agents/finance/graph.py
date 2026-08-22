@@ -930,6 +930,16 @@ def make_verify_answer(config: FinanceAgentConfig):
         if (state.get("diag") or {}).get("units", {}).get("failed"):
             return drop
 
+        # A screening answer is checked but never rewritten. `arevise` submits a
+        # `PandasSolution`, which by construction cannot hold a filter, so the
+        # only rewrite it can offer is the flat shape this class already fails
+        # at — and the rewrite is kept on "it executed", not on "it is more
+        # right". Measured on the first flag-on run of the 29 labelled screening
+        # questions: `compose` produced a `pd.Series` plan for 19 of them and
+        # only 3 survived to the record, the other 16 having been revised back
+        # into a single expression with no execution error to justify it. With
+        # `SOLVE_VERIFY_ANSWER=0` the plan survived on 3 of 4 spot-checked ids.
+        screening = bool((state.get("diag") or {}).get("screening_solver"))
         # A narrow solver never built a codegen prompt (see the comment above),
         # so there is nothing to show the checker unless one is built here — the
         # same question + evidence grids codegen would have shown, empty for the
@@ -973,7 +983,7 @@ def make_verify_answer(config: FinanceAgentConfig):
         except Exception as exc:  # noqa: BLE001 - a failed check is not a failed answer
             return {**drop, "errors": list(state.get("errors") or []) + [f"verify: {exc}"]}
 
-        if narrow:
+        if narrow or screening:
             # Observe-only: record the verdict, never touch the answer.
             return {
                 **drop,

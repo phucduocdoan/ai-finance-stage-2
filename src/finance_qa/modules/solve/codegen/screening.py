@@ -37,7 +37,12 @@ from finance_qa.modules.solve.codegen.codegen import (
     _run_tool,
     build_prompt,
 )
-from finance_qa.modules.solve.common.solution import STRUCTURED_METHOD, ScreeningSolution, SeriesPart
+from finance_qa.modules.solve.common.solution import (
+    STRUCTURED_METHOD,
+    PandasSolution,
+    ScreeningSolution,
+    SeriesPart,
+)
 
 # Same task-list swap as `codegen.CODEGEN_SYSTEM`, everything else verbatim:
 # `.iloc` only, column names copied character for character, the "Năm của từng
@@ -278,7 +283,7 @@ async def agenerate_screening(
     shortlist: Sequence[str] = (),
     tool_turns: int = 0,
     show_grids: bool = True,
-) -> tuple[ScreeningSolution, str, list[dict]]:
+) -> tuple[PandasSolution, str, list[dict]]:
     """Generate a screening solution. Returns ``(solution, prompt, calls)``, with
     `pandas_query` already set to `compose(solution)` — mirrors `codegen.agenerate`'s
     contract exactly, so the caller's handling (repair, unit application, evidence
@@ -336,11 +341,10 @@ async def agenerate_screening(
             transcript.append(f"### {call['name']}({call.get('args')})\n{output}")
             messages.append(ToolMessage(content=output, tool_call_id=call["id"]))
 
-    return (
-        ScreeningSolution(reduce="first"),
-        "\n\n".join([prompt, *transcript]),
-        calls_made,
-    )
+    # Out of turns with no submit. `ScreeningSolution` cannot express "nothing" any
+    # more (every field is required and `selector` needs one entry), so the empty
+    # answer is the base `PandasSolution()` codegen returns in the same spot.
+    return PandasSolution(), "\n\n".join([prompt, *transcript]), calls_made
 
 
 __all__ = ["SCREENING_SYSTEM", "agenerate_screening", "compose"]

@@ -69,29 +69,44 @@ class ScreeningSolution(PandasSolution):
     `modules.solve.codegen.screening.compose` builds it from the fields below, so
     a filter predicate has somewhere to live instead of being folded into a single
     expression that adds or multiplies straight across every company.
-    `table_variable` / `target_row` / `target_column` / `source_unit` /
-    `target_unit` are still reported for the debug trace and for
-    `execute.apply_units`, same as on `PandasSolution`.
+
+    EVERY field except `pandas_query` is required, and that is not a style choice.
+    Inheriting `PandasSolution`'s defaults left all of them optional, so the
+    JSON schema's `required` list held `reduce` alone and the grammar let the
+    model stop as soon as it was written. Measured on q446 (6 tables, 6,479 input
+    tokens): the reply was `{"reduce": "mean"}` and nothing else, 31 output
+    tokens, `finish_reason` "stop" rather than a truncation. It was not a token
+    budget, 4096 produced the same empty answer, and a toy 3-table prompt filled
+    every field at 1024. The cheapest legal exit is the one a model takes on a
+    hard prompt, so the schema has to make the useful answer the only legal one.
+    Re-declaring the five inherited fields is what puts them in `required`;
+    `table_variable`, `target_column` and `target_row` are not decoration either,
+    `execute.apply_units` reads all three to detect the declared source unit.
     """
 
+    table_variable: str = Field(
+        description="Variable of the main table read, e.g. df1. With several tables in play, "
+        "name the one whose declared unit applies to the answer.",
+    )
+    target_row: str = Field(description="Label text of the main row read, copied from the grid.")
+    target_column: str = Field(description="Name of the main column read, copied from the grid.")
+    source_unit: Unit = Field(description="Unit the value is printed in.")
+    target_unit: Unit = Field(description="Unit the question asks for.")
     selector: list[SeriesPart] = Field(
-        default_factory=list,
+        min_length=1,
         description="One entry per company for the metric the condition tests. Must cover "
-        "EVERY company the question asks about, in full — a company whose table is not shown "
-        "must be looked up with find_rows, never guessed or skipped.",
+        "EVERY company the question asks about whose value you can read.",
     )
     condition: str = Field(
-        default="",
         description="Predicate over the per-company series, written as `s`, e.g. `s > 0` or "
         "`s > s.median()` or `s == s.max()`. Empty string means no filter: every company in "
         "`selector` is kept.",
     )
     answer: list[SeriesPart] = Field(
-        default_factory=list,
         description="One entry per company for the metric actually reported, when it differs "
         "from the metric `selector`/`condition` test (e.g. pick the company with the highest "
         "revenue, then report ITS profit margin). Must use the SAME set of labels as "
-        "`selector`. Leave empty when the reported metric is `selector`'s own.",
+        "`selector`. Empty list when the reported metric is `selector`'s own.",
     )
     reduce: Literal["mean", "sum", "count", "max", "min", "median", "first"] = Field(
         description="How the surviving companies collapse to one number. Use \"first\" only "
