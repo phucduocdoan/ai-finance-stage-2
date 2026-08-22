@@ -420,3 +420,17 @@ class FinanceAgentConfig:
     # so it is a flag: `SOLVE_VERIFY_ANSWER=0` turns the node into a pass-through
     # and gives the A/B its control arm without a second code path.
     verify_answer: bool = field(default_factory=lambda: _flag("SOLVE_VERIFY_ANSWER", True))
+
+    # Screening-shaped solution schema (`modules.solve.codegen.screening`): build one
+    # value per company, test a condition over the group, then reduce — composed
+    # into a single pandas expression instead of the model writing one expression
+    # that has nowhere to put a filter. Targets the screening class measured at
+    # 4/29 on the labelled clean-eval questions while the rest of a run scores
+    # 45/90 (`gate_screening_class.py`). Four other levers were measured dead on
+    # this exact class first: widening `codegen_max_tables_multi_company` alone
+    # (coverage 310/310, score 4/38, see that flag's comment above),
+    # `selection_decompose` fan-out (3/34), `selection_facts` (0/4),
+    # `structured_facts` (1/7).
+    #
+    # False. New behaviour, not yet measured against the 8/29 pre-registered bar.
+    screening_solver: bool = field(default_factory=lambda: _flag("SOLVE_SCREENING", False))

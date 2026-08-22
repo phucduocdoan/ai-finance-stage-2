@@ -145,4 +145,43 @@ check(
     set(tickers_of(ordered_narrow[:budget_narrow])) == {"MML", "MSN"},
 )
 
+# -- the screening override lifts the ceiling, and only when asked to ---------
+# `screening_solver` raises the ceiling to 12 for a screening-shaped question,
+# because the widening was measured flat on its own (coverage 310/310, score
+# 4/38) and only pairs with somewhere to put a filter. Both halves of that need a
+# check: the flag alone must change nothing, and the question shape alone must
+# change nothing either.
+
+SCREENING_ON = replace(NO_WIDEN, screening_solver=True)
+many = {"table_ids": crowded, "tickers": list("ABCDEFGHIJ"), "years": [2023]}
+screening_question = "So sánh HPG, HSG và NKG năm 2023"
+
+check(
+    "flag on plus a screening question loads a table per ticker (10 of them)",
+    codegen_budget({**many, "question": screening_question}, SCREENING_ON)[1] == 10,
+)
+check(
+    "the lifted ceiling still caps: 8 tickers x 2 years wants 16, gets 12",
+    codegen_budget(
+        {"table_ids": crowded, "tickers": list("ABCDEFGH"), "years": [2023, 2024],
+         "question": screening_question},
+        SCREENING_ON,
+    )[1] == 12,
+)
+check(
+    "flag on but a single-company question keeps the shipped ceiling",
+    codegen_budget(
+        {**many, "question": "Doanh thu của Vinamilk năm 2023 là bao nhiêu?"}, SCREENING_ON
+    )[1] == NO_WIDEN.codegen_max_tables,
+)
+check(
+    "a screening question with the flag off keeps the shipped ceiling",
+    codegen_budget({**many, "question": screening_question}, NO_WIDEN)[1]
+    == NO_WIDEN.codegen_max_tables,
+)
+check(
+    "no question text is not a crash, it is just not screening",
+    codegen_budget(many, SCREENING_ON)[1] == NO_WIDEN.codegen_max_tables,
+)
+
 print("tất cả PASS")

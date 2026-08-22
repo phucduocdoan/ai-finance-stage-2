@@ -58,7 +58,9 @@ from finance_qa.modules.data.service import ordered_table_names
 from finance_qa.modules.data.table_store import load_frame, submission_csv_name
 from finance_qa.modules.solve.codegen.codegen import agenerate, build_prompt
 from finance_qa.modules.solve.codegen.execute import aexecute
+from finance_qa.modules.solve.codegen.screening import agenerate_screening
 from finance_qa.modules.solve.codegen.verify import arevise, averify
+from finance_qa.modules.solve.common.screening import is_screening
 from finance_qa.modules.solve.common.solution import PandasSolution
 from finance_qa.modules.solve.common.units import unit_from_hint
 from finance_qa.modules.solve.facts.profile_validate import validate_profile_selection
@@ -152,12 +154,17 @@ def codegen_budget(
     years = list(state.get("years") or [])
     if len(tickers) >= 2:
         needed = len(tickers) * max(len(years), 1)
+        cap = config.codegen_max_tables_multi_company
+        # `config.py` (codegen_max_tables_multi_company) measured this widening
+        # alone as flat: coverage went 310/310 and score stayed 4/38, because a
+        # single pandas expression has nowhere to put a filter. That is what
+        # `screening_solver` (screening.py) adds, so once it is on this pairs the
+        # wider budget with something for the extra companies to be filtered by.
+        if config.screening_solver and is_screening(str(state.get("question") or "")):
+            cap = 12
         return (
             slot_round_robin(table_ids),
-            max(
-                config.codegen_max_tables,
-                min(needed, config.codegen_max_tables_multi_company),
-            ),
+            max(config.codegen_max_tables, min(needed, cap)),
         )
     if state.get("multi_year"):
         return year_round_robin(table_ids), config.codegen_max_tables_multi_year
@@ -185,19 +192,33 @@ def make_generate_pandas(config: FinanceAgentConfig):
                 "codegen_prompt": "",
                 "errors": errors + ["codegen: không có bảng nào để đọc"],
             }
+        # A screening question routes to the predicate-shaped schema instead of
+        # the plain one-expression codegen: see `screening_solver`'s comment in
+        # config.py for the class this targets and the baseline it must beat.
+        screening = config.screening_solver and is_screening(state["question"])
         try:
-            solution, prompt, tool_calls = await agenerate(
-                state["question"], frames, names,
-                thinking=config.codegen_thinking,
-                shortlist=list(state.get("shortlist") or []),
-                tool_turns=config.codegen_tool_turns,
-                show_grids=config.codegen_show_grids,
-                metric=state.get("metric") or "",
-                use_metric_hints=config.codegen_metric_hints,
-                metric_lookup=config.codegen_metric_lookup,
-                use_table_profiles=config.codegen_table_profiles,
-            )
-            # `agenerate` binds any table its lookups surfaced into `names`/`frames`.
+            if screening:
+                solution, prompt, tool_calls = await agenerate_screening(
+                    state["question"], frames, names,
+                    thinking=config.codegen_thinking,
+                    shortlist=list(state.get("shortlist") or []),
+                    tool_turns=config.codegen_tool_turns,
+                    show_grids=config.codegen_show_grids,
+                )
+            else:
+                solution, prompt, tool_calls = await agenerate(
+                    state["question"], frames, names,
+                    thinking=config.codegen_thinking,
+                    shortlist=list(state.get("shortlist") or []),
+                    tool_turns=config.codegen_tool_turns,
+                    show_grids=config.codegen_show_grids,
+                    metric=state.get("metric") or "",
+                    use_metric_hints=config.codegen_metric_hints,
+                    metric_lookup=config.codegen_metric_lookup,
+                    use_table_profiles=config.codegen_table_profiles,
+                )
+            # `agenerate`/`agenerate_screening` bind any table their lookups
+            # surfaced into `names`/`frames`.
             loaded = {**loaded, "names": names, "frames": frames,
                       "evidence_tables": list(names.values()),
                       "evidence": [
@@ -208,7 +229,9 @@ def make_generate_pandas(config: FinanceAgentConfig):
             # The prompt is handed on even though generation failed: the repair
             # call is the only remaining attempt, and a repair without the grids
             # answers `df1.iloc[0, 0]` — which is what the first measured run did
-            # on all 26 questions whose codegen call was truncated.
+            # on all 26 questions whose codegen call was truncated. A screening
+            # plan that fails `compose` (`ValueError`) lands here too, by the
+            # same "reported, not crashed" contract as any other codegen failure.
             return {
                 **loaded,
                 "solution": PandasSolution().model_dump(),
@@ -219,13 +242,18 @@ def make_generate_pandas(config: FinanceAgentConfig):
                     use_table_profiles=config.codegen_table_profiles,
                 ),
                 "errors": errors + [f"codegen: {exc}"],
+                "diag": {**(state.get("diag") or {}), "screening_solver": screening},
             }
         return {
             **loaded,
             "solution": solution.model_dump(),
             "codegen_prompt": prompt,
             "errors": errors,
-            "diag": {**(state.get("diag") or {}), "tool_calls": tool_calls},
+            "diag": {
+                **(state.get("diag") or {}),
+                "tool_calls": tool_calls,
+                "screening_solver": screening,
+            },
         }
 
     return generate_pandas

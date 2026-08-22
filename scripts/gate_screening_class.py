@@ -23,7 +23,6 @@ Dùng:
 from __future__ import annotations
 
 import json
-import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -33,18 +32,15 @@ from score_clean_eval import correct, load_labels, load_submission  # type: igno
 sys.path.insert(0, "scripts")
 from gate_unit_default import replay  # noqa: E402
 
+# `is_screening` (and the two regexes behind it) now live in
+# `finance_qa.modules.solve.common.screening`, so the solver and every gate
+# share one definition. Re-exported here, unchanged, because
+# `gate_screening_run.py`, `gate_screening_evidence.py` and
+# `gate_selection_reasons.py` all do `from gate_screening_class import is_screening`.
+from finance_qa.modules.solve.common.screening import PHRASE, TICKER, is_screening  # noqa: E402,F401
+
 SUBMISSION = "output/submission_v9_sign/submission.json"
 RUN = Path("artifacts/runs/full1012_v7.jsonl")
-TICKER = re.compile(r"\b[A-Z]{3}[A-Z0-9]?\b")
-PHRASE = re.compile(
-    r"trong nhóm|trong các doanh nghiệp|xét các|xét phân nhóm"
-    r"|phân khúc doanh nghiệp|trong số các",
-    re.I,
-)
-
-
-def is_screening(question: str) -> bool:
-    return len(set(TICKER.findall(question))) >= 3 or bool(PHRASE.search(question))
 
 
 def main() -> int:

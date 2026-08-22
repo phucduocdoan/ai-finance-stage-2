@@ -46,3 +46,54 @@ class PandasSolution(BaseModel):
     source_unit: Unit = Field(default="unknown", description="Unit the value is printed in.")
     target_unit: Unit = Field(default="unknown", description="Unit the question asks for.")
     pandas_query: str = Field(default="", description="Single pandas expression returning one number.")
+
+
+class SeriesPart(BaseModel):
+    """One company's cell for a screening question's per-company series."""
+
+    label: str = Field(
+        description="Company name or ticker, exactly as it should key the series. "
+        "The same label set is reused across `selector` and `answer`.",
+    )
+    expr: str = Field(
+        description="Pandas expression reading the ONE cell for this ONE company, e.g. "
+        "df3.iloc[12][\"2023\"]. Never a slice, never a whole row or column.",
+    )
+
+
+class ScreeningSolution(PandasSolution):
+    """Filter-then-aggregate over several companies: build a value per company,
+    test a condition, then reduce the survivors to one number.
+
+    Unlike `PandasSolution`, the model does not write `pandas_query` directly —
+    `modules.solve.codegen.screening.compose` builds it from the fields below, so
+    a filter predicate has somewhere to live instead of being folded into a single
+    expression that adds or multiplies straight across every company.
+    `table_variable` / `target_row` / `target_column` / `source_unit` /
+    `target_unit` are still reported for the debug trace and for
+    `execute.apply_units`, same as on `PandasSolution`.
+    """
+
+    selector: list[SeriesPart] = Field(
+        default_factory=list,
+        description="One entry per company for the metric the condition tests. Must cover "
+        "EVERY company the question asks about, in full — a company whose table is not shown "
+        "must be looked up with find_rows, never guessed or skipped.",
+    )
+    condition: str = Field(
+        default="",
+        description="Predicate over the per-company series, written as `s`, e.g. `s > 0` or "
+        "`s > s.median()` or `s == s.max()`. Empty string means no filter: every company in "
+        "`selector` is kept.",
+    )
+    answer: list[SeriesPart] = Field(
+        default_factory=list,
+        description="One entry per company for the metric actually reported, when it differs "
+        "from the metric `selector`/`condition` test (e.g. pick the company with the highest "
+        "revenue, then report ITS profit margin). Must use the SAME set of labels as "
+        "`selector`. Leave empty when the reported metric is `selector`'s own.",
+    )
+    reduce: Literal["mean", "sum", "count", "max", "min", "median", "first"] = Field(
+        description="How the surviving companies collapse to one number. Use \"first\" only "
+        "when `condition` already narrows the group to the single winner (e.g. `s == s.max()`).",
+    )

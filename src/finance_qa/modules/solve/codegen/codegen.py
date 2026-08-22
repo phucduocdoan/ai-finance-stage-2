@@ -191,7 +191,7 @@ Ngoài các bảng ở trên, bạn còn tra được MỌI bảng khác của c
 Chỉ tin những dòng bạn thực sự nhìn thấy; đừng đoán một dòng không có trong lưới hay
 trong kết quả find_rows.
 
-Khi đã đủ dữ kiện, gọi PandasSolution để nộp câu trả lời. Được tra tối đa {turns} lượt."""
+Khi đã đủ dữ kiện, gọi {submit} để nộp câu trả lời. Được tra tối đa {turns} lượt."""
 
 _SCOPE_WITH_GRIDS = """\
 Ba bảng hiện sẵn chỉ là phần đầu của danh sách xếp hạng, không phải toàn bộ báo cáo.
@@ -300,9 +300,15 @@ async def agenerate(
 
     model = get_chat_model(thinking=thinking, max_tokens=MAX_TOKENS)
     tools = [FindRows, ShowTable, PandasSolution]
+    # `submit` renders to "PandasSolution" here, so the prompt string is
+    # byte-identical to the pre-parameter version; it exists because
+    # `screening.agenerate_screening` reuses this block with a different submit
+    # tool, and a paragraph naming a tool that is not bound is a dead end for the
+    # model rather than a harmless mismatch.
     system = CODEGEN_SYSTEM + _TOOLS_SYSTEM.format(
         turns=tool_turns,
         scope=_SCOPE_WITH_GRIDS if grids else _SCOPE_HEADERS_ONLY,
+        submit=PandasSolution.__name__,
     )
     messages: list = [SystemMessage(content=system), HumanMessage(content=prompt)]
     transcript: list[str] = []
