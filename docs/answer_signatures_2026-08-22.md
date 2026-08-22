@@ -97,6 +97,31 @@ Nguyên bản 46/119. Mọi biến thể đạt 49/119 đều **mất 0 câu**, 
 Đọc `artifacts/runs/gate_sign_rule_flips.out`: cả 28 câu bị đổi dấu đều là dạng "chênh lệch
 giữa A và B", trừ q894.
 
+### Kiểm lại bằng code thật, không gọi LLM
+
+Bảng trên đo bằng cách lấy `abs()` con số đã nộp. Đúng phép về số học nhưng nó không chạy
+`as_magnitude`, nên không loại trừ khả năng luật bắn ở chỗ khác chỗ tôi nghĩ.
+`scripts/gate_sign_replay.py` chạy đuôi tất định thật: nạp lại bảng, gọi `apply_units` rồi
+`run_query`, một lượt với luật mới và một lượt vô hiệu hoá `between_two_companies` +
+`PAID_OUT`. Hai kết quả trùng nhau:
+
+```
+chạy lại được 838/1012 câu có solution, không gọi LLM
+submission gốc        46/119
+chạy lại, luật cũ     39/119   (lệch submission 2 câu)
+chạy lại, luật mới    42/119   được [774, 777, 894]
+```
+
+39 chứ không phải 46 vì 174 câu không chạy lại được (42 câu truy vấn rỗng, phần còn lại là
+solver dòng thô đánh số df khác); trong số chạy lại được thì chỉ 2 câu lệch submission.
+Delta +3 / −0 là *cùng ba câu* mà gate `abs()` chỉ ra. Hai câu bị đổi dấu mà vẫn sai (735,
+769) sai vì lý do khác: nhãn 14.11 so với 15.22, và 31.29 so với 2191.77.
+
+Một chi tiết đáng ghi cho lần sau: khoá đúng để dựng lại `df1..dfN` là
+`diag["evidence_tables"]`, không phải `record["table_ids"]`. `table_ids` là danh sách
+retrieval *trước* khi `codegen_budget` xoay vòng và cắt theo `max_tables`, nên dùng nó thì
+106/400 truy vấn KeyError chỉ vì số hiệu df lệch.
+
 ### Cài ở đâu
 
 Một chỗ duy nhất: `execute.as_magnitude`. `graph.py` chạy **mọi** solver qua `aexecute`, nên
