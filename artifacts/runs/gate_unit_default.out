@@ -1,0 +1,49 @@
+
+chạy lại được 838/1012 câu
+lớp 'mặc định vnd' bắn ở 396 câu (47%)
+trong 119 câu sạch: 57 câu, 20 đúng, 37 sai
+
+câu sai: đơn vị nào mới cho ra nhãn, và tín hiệu có đọc ra không
+  q87   thô               6.20 -> nhãn 1097.12          đích billion_vnd   thật None           báo cáo vnd            trang None
+  q109  thô      5576335963.00 -> nhãn 25.2             đích billion_vnd   thật None           báo cáo vnd            trang None
+  q139  thô      3176645956.00 -> nhãn 3176645956.0     đích thousand_vnd  thật thousand_vnd   báo cáo vnd            trang None
+  q284  thô        17469561.00 -> nhãn 17469561.0       đích million_vnd   thật million_vnd    báo cáo None           trang million_vnd
+  q308  thô    517950110299.00 -> nhãn 225.65           đích billion_vnd   thật None           báo cáo vnd            trang None
+  q336  thô    923510669027.00 -> nhãn 387.66           đích billion_vnd   thật None           báo cáo vnd            trang vnd
+  q376  thô              47.88 -> nhãn 61.66            đích percent       thật None           báo cáo None           trang None
+  q380  thô               5.22 -> nhãn 3.0              đích vnd           thật None           báo cáo vnd            trang None
+  q408  thô               0.27 -> nhãn 13.47            đích percent       thật None           báo cáo None           trang None
+  q432  thô  23030651999399.00 -> nhãn 88.05            đích percent       thật None           báo cáo None           trang None
+  q433  thô  -3672086428314.31 -> nhãn 26.44            đích percent       thật None           báo cáo None           trang None
+  q444  thô              13.40 -> nhãn 0.91             đích ratio         thật None           báo cáo None           trang None
+  q446  thô   9875062386739.50 -> nhãn 50.38            đích percent       thật None           báo cáo None           trang None
+  q452  thô             218.12 -> nhãn 35.22            đích percent       thật None           báo cáo None           trang None
+  q462  thô   8422540694317.50 -> nhãn -11.04           đích percent       thật None           báo cáo None           trang None
+  q478  thô 165722404382967.00 -> nhãn 150.6            đích trillion_vnd  thật None           báo cáo None           trang None
+  q483  thô             -71.28 -> nhãn 4.19             đích percent       thật None           báo cáo None           trang None
+  q496  thô               2.00 -> nhãn 154.89           đích percent       thật None           báo cáo None           trang None
+  q527  thô     11250000000.00 -> nhãn 55.37            đích percent       thật None           báo cáo None           trang None
+  q528  thô         1881705.00 -> nhãn 1.24             đích percent       thật None           báo cáo None           trang None
+  q544  thô               1.00 -> nhãn 0.81             đích percent       thật None           báo cáo None           trang None
+  q552  thô 141409274460632.00 -> nhãn 150.6            đích trillion_vnd  thật None           báo cáo None           trang None
+  q557  thô               0.14 -> nhãn 5.22             đích percent       thật None           báo cáo None           trang None
+  q572  thô               0.00 -> nhãn 12.88            đích percent       thật None           báo cáo None           trang None
+  q573  thô               0.66 -> nhãn 1.83             đích ratio         thật None           báo cáo None           trang None
+  q596  thô               0.00 -> nhãn 151.23           đích percent       thật None           báo cáo None           trang None
+  q641  thô     12598759729.00 -> nhãn 2.16             đích billion_vnd   thật None           báo cáo None           trang None
+  q649  thô    202064187492.00 -> nhãn -6497363756.0    đích vnd           thật None           báo cáo None           trang None
+  q727  thô        88615192.30 -> nhãn 8.56             đích percent       thật None           báo cáo None           trang None
+  q735  thô             -15.22 -> nhãn 14.11            đích percent       thật None           báo cáo None           trang None
+  q769  thô  -2191768460245.00 -> nhãn 31.29            đích billion_vnd   thật None           báo cáo None           trang None
+  q821  thô              36.91 -> nhãn 13.06            đích vnd           thật None           báo cáo None           trang None
+  q836  thô   1933064955444.00 -> nhãn 280.54           đích billion_vnd   thật None           báo cáo vnd            trang None
+  q919  thô     54263137103.67 -> nhãn 720218.69        đích million_vnd   thật None           báo cáo vnd            trang None
+  q928  thô   2379371286992.00 -> nhãn 2025.0           đích vnd           thật None           báo cáo vnd            trang None
+  q934  thô    421009624072.00 -> nhãn 678.25           đích billion_vnd   thật None           báo cáo vnd            trang vnd
+  q1009 thô              61.75 -> nhãn 54.16            đích percent       thật None           báo cáo vnd            trang None
+
+  thật = None                 35
+  sai vì mặc định vnd          2
+  thật = thousand_vnd          1
+  thật = million_vnd           1
+  cùng trang đọc đúng          1

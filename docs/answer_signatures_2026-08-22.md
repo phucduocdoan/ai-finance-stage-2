@@ -193,12 +193,56 @@ Bảng đầu file để lại hai lớp:
 
 - **58 câu "ô khác hẳn".** Không có luật hậu xử lý nào chạm được. Đây là bài toán chọn ô, và
   `docs/cell_ranking_2026-08-22.md` đang đo đúng nó.
-- **4 câu sai lũy thừa 10** (139, 267, 284, 748). Đo được: `source_unit_from` bằng "mặc định
-  vnd (bảng không khai đơn vị)" ở **427/1012** câu, và 230 câu trong đó bị nhân theo đúng
-  giả định ấy. Trên 119 câu là 31 câu, **16 đúng 15 sai**
-  [87, 109, 139, 284, 308, 336, 478, 523, 552, 641, 769, 777, 836, 919, 934]. q139 và q284
-  đúng là ca này: bảng ghi nghìn/triệu đồng, code mặc định vnd. q748 là lỗ khác, nó cần
-  `target_unit` kiểu "triệu cổ phiếu" mà `Unit` không có.
+- **4 câu sai lũy thừa 10** (139, 267, 284, 748). q139 và q284 đúng là ca này: bảng ghi
+  nghìn/triệu đồng, code mặc định vnd. q748 là lỗ khác, nó cần `target_unit` kiểu "triệu cổ
+  phiếu" mà `Unit` không có.
 
-Lớp đơn vị mặc định là hướng đo tiếp theo, và nó đắt hơn lớp dấu: 15 câu sai nghe to, nhưng
-đổi mặc định thì 16 câu đang đúng cũng bị đổi theo.
+## 5. Lớp "mặc định vnd": đã đo, manh mối chết
+
+`scripts/gate_unit_default.py` chạy `apply_units` thật trên bản ghi run (không LLM, dựng lại
+`df1..dfN` như `gate_sign_replay.py`), rồi ở mỗi câu sai thử lần lượt từng đơn vị trong
+`MONEY_SCALE` xem đơn vị nào cho ra nhãn:
+
+```
+lớp 'mặc định vnd' bắn ở 396/838 câu (47%)
+trong 119 câu sạch: 57 câu, 20 đúng, 37 sai
+  thật = None                 35
+  sai vì mặc định vnd          2      (q139 thousand_vnd, q284 million_vnd)
+  cùng trang đọc đúng          1
+```
+
+Chỉ **2 trong 37 câu sai** là do mặc định đơn vị. 35 câu còn lại không có đơn vị nguồn nào
+biến số thô thành nhãn, tức đọc sai ô chứ không sai đơn vị. Con số "15 câu sai" ở §4 đếm
+thành viên của lớp, không phải nguyên nhân, và đó là cách đọc sai. Tín hiệu mượn đơn vị từ
+bảng anh em cùng báo cáo (hoặc cùng trang) đọc đúng q284, đọc sai q139, tức thắng 1 trong 2.
+Không đáng làm.
+
+## 6. Lớp thật ra to: câu sàng lọc nhiều công ty
+
+Trong lúc đọc dump của §5, 232 trong 838 câu replay có `target_unit` là percent/ratio nhưng
+49 câu trả về `|giá trị| > 1000`, và 42 câu trả trên 1e6. Một câu hỏi tỉ lệ trả về nghìn tỉ
+thì sai chắc chắn, không cần nhãn. Tách theo số công ty trong câu hỏi:
+
+| lớp                         | số câu | có nhãn | trả > 1e6 |
+|-----------------------------|--------|---------|-----------|
+| đích tỉ lệ, một/hai công ty | 130    | 5/15    | 12        |
+| đích tỉ lệ, sàng lọc        | 102    | 1/16    | 30        |
+
+Câu tỉ lệ một công ty đúng 33%, bằng tỉ lệ chung. Nên lớp tỉ lệ không phải bug riêng, nó là
+lớp sàng lọc trá hình. Đo trực tiếp lớp sàng lọc (từ 3 mã trở lên, hoặc có cụm "trong nhóm",
+"xét các", "xét phân nhóm"), bằng `scripts/gate_screening_class.py`:
+
+```
+lớp sàng lọc trên 1012 câu: 210 câu (21%)
+  trong lớp   4/29     (14%)
+  ngoài lớp   45/90    (50%)
+```
+
+Nhận diện bằng văn bản nên đếm thiếu: câu gọi tên đầy đủ ("Tập đoàn Sao Mai") không có mã
+nào, chỉ vào lớp nhờ cụm từ. 210 là chặn dưới.
+
+Đây là khối headroom lớn nhất còn lại. Nguyên nhân đọc được ngay trong `pandas_query`: 31
+trong 42 câu trả > 1e6 không có phép chia nào, truy vấn chỉ là một ô đơn `df1.iloc[k][col]`.
+Router cho thấy mọi solver tất định đều từ chối và codegen chạy vì `fallback`. Codegen thấy
+bảng của nhiều công ty rồi trả về một ô của một công ty, việc mà không luật hậu xử lý nào
+sửa được.
