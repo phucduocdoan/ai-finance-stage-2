@@ -155,6 +155,22 @@ trùng v8 từng entry (10.922 file).
 Vá cả `pandas_query` chứ không chỉ `answer` vì EXECUTION_ACCURACY chạy lại chuỗi đã nộp:
 vá một bên thì hai chỉ số chỏi nhau.
 
+### Leaderboard đã trả lời: +8 câu
+
+```
+ANSWER_ACCURACY    0.3261 -> 0.334    (+0.0079, 330 -> 338/1012)
+EXECUTION_ACCURACY 0.3241 -> 0.332    (+0.0079, 328 -> 336/1012)
+DOCS/TABLES        không đổi
+```
+
+23 câu đổi dấu, ròng +8. Trên 119 câu sạch chỉ 5 câu bị đổi dấu (ròng +3), nên 18 câu
+không nhãn góp thêm ròng +5: luật tổng quát hoá ra ngoài tập nhãn. Nhưng +3/119 = +2.5pp
+mà leaderboard chỉ trả +0.79pp, vì luật được *chọn* trên chính 119 câu đó nên delta ở đó
+là cận trên. Chi tiết ở `docs/leaderboard_and_strategy_2026-08-21.md` §11.
+
+Khe ANSWER − EXECUTION vẫn đúng 2 câu như v8, tức vá truy vấn cùng đáp án chạy đúng: nếu
+chỉ vá con số thì khe phải rộng thêm 23 câu.
+
 ### Cài ở đâu
 
 Một chỗ duy nhất: `execute.as_magnitude`. `graph.py` chạy **mọi** solver qua `aexecute`, nên

@@ -579,3 +579,33 @@ không solver nào nhắm vào chúng. Đây là chỗ có dư địa lớn nh�
 - `scripts/audit_labels.py` — tra ngược nhãn về OCR, dùng lại được cho mọi đợt gán nhãn sau.
 - `scripts/score_clean_eval.py` — chấm một submission, hoặc so hai submission và liệt kê
   chính xác câu nào được thêm / mất đi.
+
+## 11. Kết quả v9: luật dấu, 23 câu đổi dấu ăn +8 câu
+
+Nộp `output/submission_v9_sign.zip` (v8_round2 vá tại chỗ, không chạy lại LLM):
+
+```
+ANSWER_ACCURACY    0.3261 -> 0.334    (+0.0079, 330 -> 338/1012)
+EXECUTION_ACCURACY 0.3241 -> 0.332    (+0.0079, 328 -> 336/1012)
+DOCS_F2MACRO       0.9488 -> 0.9488   không đổi
+TABLES_F2MACRO     0.0    -> 0.0      không đổi
+```
+
+23 câu bị đổi dấu, ròng +8 câu. Ba điều đọc được từ đây:
+
+1. **Luật tổng quát hoá ra ngoài tập nhãn.** Trên 119 câu sạch chỉ có 5 câu bị đổi dấu và
+   ròng +3 (774, 777, 894 được; 735, 769 đổi dấu nhưng sai vì đọc ô khác). 18 câu đổi dấu
+   còn lại không có nhãn, và chúng góp thêm ròng +5. Luật không chỉ vá đúng ba câu tôi
+   nhìn thấy.
+2. **Tập eval sạch phóng đại delta 3 lần.** +3/119 là +2.5pp, leaderboard trả +0.79pp.
+   Hợp lý: luật được *chọn* trên chính 119 câu đó, nên delta ở đó là cận trên. Lần sau,
+   ước lượng leaderboard nên chia cho khoảng 3, không phải nhân với 1012/119.
+3. **Vá `pandas_query` cùng `answer` hoạt động đúng.** Khe ANSWER − EXECUTION vẫn đúng
+   2 câu như v8 (338 vs 336), không hề rời ra. Nếu chỉ vá con số thì khe này phải rộng
+   thêm 23 câu.
+
+`TABLES_F2MACRO` vẫn 0.0, và đó **không** phải hồi quy: nó đã 0.0 từ v7, `docs/tables_metric_probes.md`
+ghi 12 lượt submit đã tiêu để dò lớp này với kỷ lục 0.0035. Hướng đó đóng từ trước.
+
+Lớp dấu giờ cạn: luật chỉ có tác dụng khi đáp án đang âm, và mọi câu âm mà luật bắn đều
+đã bị lấy `abs`. Không còn gì trong lớp này.
