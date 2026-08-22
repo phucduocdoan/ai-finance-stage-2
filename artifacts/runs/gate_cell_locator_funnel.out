@@ -1,0 +1,28 @@
+L1 trong tập eval sạch: 37 câu
+
+phễu (đúng thứ tự code, xem docstring cho các bước không đo được):
+  bắt đầu                                     37
+  sau P1 đúng 1 mã + 1 năm (proxy)           34   (loại 3)
+  sau P2 không multi-axis (proxy)            34   (loại 0)
+  sau P3 không có dấu hiệu derived/so sánh   34   (loại 0)
+  sau P4 lookup-shaped (ép qua, không đo được) 34   (loại 0)
+  sau P5 có cụm từ chỉ tiêu                  33   (loại 1)
+  sau S6 có bảng ứng viên                    33   (loại 0)
+  sau S7 tìm được cell số                    25   (loại 8)
+  sau S8 vượt ngưỡng tin cậy 0.78            20   (loại 5)
+  sau S9 không mơ hồ (ambiguous)             15   (loại 5)
+  claimed                                     15
+
+bước loại nhiều nhất: S7 tìm được cell số (8 câu)
+
+id bị loại theo từng bước:
+  P1: [4, 167, 506]
+  P5: [227]
+  S7: [266, 267, 51, 308, 185, 703, 347, 255]
+  S8: [164, 714, 87, 360, 109]
+  S9: [257, 9, 10, 142, 32]
+
+claimed: [7, 72, 78, 139, 169, 172, 180, 211, 238, 273, 284, 306, 310, 313, 332]
+
+L1 sai, gold report đã có trong relevant_tables đã nộp: 14 câu -> [32, 51, 87, 109, 139, 164, 169, 185, 255, 267, 284, 306, 308, 703]
+trong số đó, cổng cell_locator claim: 4 câu -> [139, 169, 284, 306]
