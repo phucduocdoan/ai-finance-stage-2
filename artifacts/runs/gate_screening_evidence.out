@@ -1,0 +1,59 @@
+
+210 câu sàng lọc trong 1012 câu
+
+  budget cắt mất công ty         124 câu   có nhãn 1/16
+  understand thu scope < 3 mã     32 câu   có nhãn 3/5
+  đủ cả ba khâu                   24 câu   có nhãn 0/2
+  codegen không chạy (selection_facts)  20 câu   có nhãn 0/4
+  sinh code chỉ dùng một phần     10 câu   có nhãn 0/2
+
+29 câu sàng lọc có nhãn, từng câu:
+  q82   đúng scope  1  evidence  1  used  1   understand thu scope < 3 mã
+  q214  sai  scope  1  evidence  1  used  1   understand thu scope < 3 mã
+  q375  sai  scope  4  evidence  3  used  1   budget cắt mất công ty
+        mất: ['DPM']
+  q376  sai  scope  7  evidence  3  used  1   budget cắt mất công ty
+        mất: ['KBC', 'VIC', 'VPI', 'VRE']
+  q380  sai  scope  8  evidence  2  used  1   budget cắt mất công ty
+        mất: ['KBC', 'NVL', 'SCR', 'VIC', 'VPI', 'VRE']
+  q408  sai  scope  3  evidence  3  used  3   đủ cả ba khâu
+  q410  sai  scope  3  evidence  0  used  0   codegen không chạy (selection_facts)
+        mất: ['HPG', 'HSG', 'NKG']
+  q432  sai  scope 10  evidence  2  used  1   budget cắt mất công ty
+        mất: ['ASM', 'DBC', 'MML', 'MPC', 'OGC', 'QNS', 'SAB', 'VNM']
+  q433  sai  scope 10  evidence  3  used  1   budget cắt mất công ty
+        mất: ['CRE', 'KBC', 'NVL', 'SNZ', 'SSH', 'VPI', 'VRE']
+  q444  sai  scope  7  evidence  3  used  1   budget cắt mất công ty
+        mất: ['DBC', 'MPC', 'MSN', 'QNS']
+  q446  sai  scope  6  evidence  3  used  3   budget cắt mất công ty
+        mất: ['DBC', 'MSN', 'OGC']
+  q452  sai  scope  4  evidence  2  used  1   budget cắt mất công ty
+        mất: ['HHV', 'VSC']
+  q462  sai  scope  3  evidence  2  used  1   budget cắt mất công ty
+        mất: ['VSC']
+  q467  sai  scope  8  evidence  0  used  0   codegen không chạy (selection_facts)
+        mất: ['CEO', 'DIG', 'IJC', 'KBC', 'NVL', 'SCR', 'VIC', 'VRE']
+  q478  sai  scope  4  evidence  2  used  2   budget cắt mất công ty
+        mất: ['HSG', 'MSR']
+  q483  sai  scope  3  evidence  3  used  2   sinh code chỉ dùng một phần
+  q492  sai  scope  3  evidence  0  used  0   codegen không chạy (selection_facts)
+        mất: ['BSR', 'PLX', 'PVT']
+  q552  sai  scope  4  evidence  2  used  1   budget cắt mất công ty
+        mất: ['HSG', 'NKG']
+  q557  sai  scope  4  evidence  4  used  2   sinh code chỉ dùng một phần
+  q559  sai  scope  3  evidence  2  used  1   budget cắt mất công ty
+        mất: ['DPM']
+  q571  đúng scope  3  evidence  2  used  1   budget cắt mất công ty
+        mất: ['BSR']
+  q572  sai  scope  3  evidence  3  used  3   đủ cả ba khâu
+  q573  sai  scope  4  evidence  3  used  3   budget cắt mất công ty
+        mất: ['HSG']
+  q596  sai  scope  1  evidence  1  used  1   understand thu scope < 3 mã
+  q798  đúng scope  2  evidence  2  used  2   understand thu scope < 3 mã
+  q842  sai  scope  1  evidence  0  used  0   codegen không chạy (selection_facts)
+        mất: ['PDR']
+  q853  sai  scope  4  evidence  2  used  2   budget cắt mất công ty
+        mất: ['GAS', 'GEG']
+  q894  đúng scope  1  evidence  1  used  1   understand thu scope < 3 mã
+  q1009 sai  scope  4  evidence  3  used  3   budget cắt mất công ty
+        mất: ['MSB']
