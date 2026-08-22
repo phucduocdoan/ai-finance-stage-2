@@ -1,0 +1,4552 @@
+{
+ "1": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"2018VND\"] * 1e-6",
+  "solver": "codegen"
+ },
+ "10": {
+  "group": "ok",
+  "query": "abs(df1.iloc[5]['Năm nay'])",
+  "solver": "raw_table_linker"
+ },
+ "100": {
+  "group": "cột lạ: mượn từ df khác",
+  "query": "df3.iloc[4][\"Ngày 31 tháng 12 năm 2018\"]",
+  "solver": "codegen"
+ },
+ "1000": {
+  "group": "ok",
+  "query": "(df2.iloc[13]['31/12/2021']) * 0 + 2021",
+  "solver": "raw_selection_linker"
+ },
+ "1001": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[15][\"Năm nay Triệu đồng\"], errors=\"coerce\").abs() / pd.to_numeric(df1.iloc[14][\"Năm nay Triệu đồng\"], errors=\"coerce\") * 100",
+  "solver": "codegen"
+ },
+ "1002": {
+  "group": "ok",
+  "query": "((df1.iloc[1][\"Năm nay\"] > 100e9) | (df2.iloc[1][\"Năm nay\"] > 100e9) | (df3.iloc[0][\"Năm nay\"] > 100e9)).sum()",
+  "solver": "codegen"
+ },
+ "1003": {
+  "group": "ok",
+  "query": "df1.iloc[18][\"Tập đoàn\"] / 1e6 + df2.iloc[17][\"2015 VND\"] / 1e6 + df3.iloc[17][\"Tập đoàn\"] / 1e6",
+  "solver": "codegen"
+ },
+ "1004": {
+  "group": "ok",
+  "query": "abs(df2.iloc[9]['Năm nay'])",
+  "solver": "raw_selection_linker"
+ },
+ "1005": {
+  "group": "ok",
+  "query": "pd.to_numeric((df1.iloc[3][\"2020\"] > 400000000) + (df2.iloc[3][\"31/12/2020Cổ phiếu\"] > 400000000) + (df3.iloc[3][\"Số cuối năm\"] > 400000000), errors=\"coerce\").sum()",
+  "solver": "codegen"
+ },
+ "1006": {
+  "group": "ok",
+  "query": "(df1.iloc[5][\"2025Triệu VND\"] + df2.iloc[6][\"Năm 2025Triệu VND\"] + df3.iloc[6][\"Năm nay\"]) / 3",
+  "solver": "codegen"
+ },
+ "1007": {
+  "group": "ok",
+  "query": "(df1.iloc[0][\"Dự án BOT\"] / df1.iloc[0][\"Tổng cộng\"] + df3.iloc[0][\"Dự án BOT VND\"] / df3.iloc[0][\"Tổng cộng VND\"] + df5.iloc[0][\"Thu phí trạm BOT VND\"] / df5.iloc[0][\"Tổng cộng VND\"] + df4.iloc[0][\"Thu phí trạm BOT VND\"] / df4.iloc[0][\"Tổng cộng VND\"]) / 4 * 100",
+  "solver": "codegen"
+ },
+ "1008": {
+  "group": "ok",
+  "query": "max(df1.iloc[7][\"Năm nay\"], df2.iloc[8][\"Năm nay\"], df3.iloc[8][\"Năm nay\"], df4.iloc[1][\"Năm nay\"] + df4.iloc[2][\"Năm nay\"] + df4.iloc[3][\"Năm nay\"] + df4.iloc[4][\"Năm nay\"] + df4.iloc[5][\"Năm nay\"] + df4.iloc[6][\"Năm nay\"])",
+  "solver": "codegen"
+ },
+ "1009": {
+  "group": "ok",
+  "query": "(df1.iloc[0][\"31/12/2018VND\"] / df1.iloc[2][\"31/12/2018VND\"] + df2.iloc[0][\"31/12/2018Triệu VND\"] / df2.iloc[2][\"31/12/2018Triệu VND\"] + df3.iloc[0][\"Ngày 31 tháng 12năm 2018Triệu đồng\"] / df3.iloc[2][\"Ngày 31 tháng 12năm 2018Triệu đồng\"]) / 3 * 100",
+  "solver": "codegen"
+ },
+ "101": {
+  "group": "ok",
+  "query": "abs(df1.iloc[32]['Tại ngày 31 tháng 12 năm'])",
+  "solver": "cell_locator"
+ },
+ "1010": {
+  "group": "ok",
+  "query": "(df1.iloc[22][\"Tổng cộng\"] > 0) + (df2.iloc[22][\"Tổng cộng\"] > 0) + (df3.iloc[22][\"Tổng cộng Triệu đồng\"] > 0)",
+  "solver": "codegen"
+ },
+ "1011": {
+  "group": "ok",
+  "query": "df4.iloc[6][\"Unnamed: 2\"] + df5.iloc[6][\"31/12/2023Triệu VND\"] + df1.iloc[0][\"Năm 2024\"]",
+  "solver": "codegen"
+ },
+ "1012": {
+  "group": "ok",
+  "query": "(df1.iloc[10][\"Số cuối nămVND\"] + df2.iloc[3][\"Số cuối nămVND\"] + df3.iloc[9][\"Số cuối nămVND\"]) / 3 / 1e9",
+  "solver": "codegen"
+ },
+ "102": {
+  "group": "ok",
+  "query": "df3.iloc[12][\"Quyền sử dụngđất có thời hạntriệu đồng\"]",
+  "solver": "codegen"
+ },
+ "103": {
+  "group": "ok",
+  "query": "abs(df1.iloc[2]['Số cuối năm'])",
+  "solver": "raw_table_linker"
+ },
+ "105": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm nay Triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "106": {
+  "group": "ok",
+  "query": "((df1.iloc[13]['31/12/2016']) / (df2.iloc[2]['2016VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "107": {
+  "group": "ok",
+  "query": "abs(df1.iloc[15]['Số cuối năm'])",
+  "solver": "raw_table_linker"
+ },
+ "108": {
+  "group": "ok",
+  "query": "df2.iloc[8][\"Unnamed: 1\"]",
+  "solver": "codegen"
+ },
+ "109": {
+  "group": "ok",
+  "query": "df1.iloc[3]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "11": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "110": {
+  "group": "ok",
+  "query": "df1.iloc[6]['31/12/2022Triệu VND']",
+  "solver": "cell_locator"
+ },
+ "111": {
+  "group": "ok",
+  "query": "df1.iloc[3]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "112": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "pd.to_numeric(df3.iloc[2][\"2022\"], errors=\"coerce\") + pd.to_numeric(df3.iloc[4][\"2022\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "113": {
+  "group": "ok",
+  "query": "df1.iloc[1]['31/12/2015Triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "114": {
+  "group": "ok",
+  "query": "df1.iloc[21]['01/01/2015']",
+  "solver": "cell_locator"
+ },
+ "115": {
+  "group": "ok",
+  "query": "abs(df1.iloc[13]['2019 triệu đồng'])",
+  "solver": "cell_locator"
+ },
+ "116": {
+  "group": "ok",
+  "query": "df2.iloc[1][\"Thù lao\"]",
+  "solver": "codegen"
+ },
+ "117": {
+  "group": "ok",
+  "query": "df1.iloc[1]['2024VND']",
+  "solver": "cell_locator"
+ },
+ "118": {
+  "group": "ok",
+  "query": "df3.iloc[5][\"Nămkết thúc31/12/2015Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "119": {
+  "group": "ok",
+  "query": "df2.iloc[15][\"31.12.2021VND\"]",
+  "solver": "codegen"
+ },
+ "12": {
+  "group": "ok",
+  "query": "df1.iloc[2]['31/12/2024 và 1/1/2024']",
+  "solver": "cell_locator"
+ },
+ "120": {
+  "group": "ok",
+  "query": "df1.iloc[13][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "121": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Số đầu năm']",
+  "solver": "raw_table_linker"
+ },
+ "122": {
+  "group": "ok",
+  "query": "df1.iloc[8][\"Tại ngày\"] / 1e10",
+  "solver": "codegen"
+ },
+ "124": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số đầu năm']",
+  "solver": "cell_locator"
+ },
+ "125": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "127": {
+  "group": "ok",
+  "query": "df1.iloc[21][\"31/12/2024Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "128": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "129": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Năm 2022 triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "13": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "131": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "133": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "134": {
+  "group": "ok",
+  "query": "df1.iloc[12]['31/12/2025 VND']",
+  "solver": "cell_locator"
+ },
+ "135": {
+  "group": "ok",
+  "query": "df1.iloc[7]['Tại ngày 31 tháng 12 năm']",
+  "solver": "raw_table_linker"
+ },
+ "136": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"Năm 2023\"]",
+  "solver": "codegen"
+ },
+ "137": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"Unnamed: 2\"]",
+  "solver": "codegen"
+ },
+ "138": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"Năm nay VND\"] / 1e10",
+  "solver": "codegen"
+ },
+ "139": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "14": {
+  "group": "ok",
+  "query": "abs(df1.iloc[9]['Năm nay'])",
+  "solver": "cell_locator"
+ },
+ "140": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "pd.to_numeric(df3.iloc[3][\"31/12/2019\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "141": {
+  "group": "ok",
+  "query": "df2.iloc[6][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "142": {
+  "group": "ok",
+  "query": "df1.iloc[3]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "144": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Ngày 31 tháng 12năm 2025VND']",
+  "solver": "cell_locator"
+ },
+ "145": {
+  "group": "ok",
+  "query": "df1.iloc[0]['2018 VND']",
+  "solver": "cell_locator"
+ },
+ "146": {
+  "group": "ok",
+  "query": "df2.iloc[23][\"Số đầu năm\"]",
+  "solver": "codegen"
+ },
+ "147": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "148": {
+  "group": "ok",
+  "query": "df1.iloc[2]['31/12/2019 VND']",
+  "solver": "cell_locator"
+ },
+ "149": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"Phần mềm máy tính VND\"]",
+  "solver": "codegen"
+ },
+ "15": {
+  "group": "ok",
+  "query": "df3.iloc[13][\"Unnamed: 2\"]",
+  "solver": "codegen"
+ },
+ "150": {
+  "group": "ok",
+  "query": "abs(df1.iloc[1]['VND Số đầu năm'])",
+  "solver": "cell_locator"
+ },
+ "151": {
+  "group": "ok",
+  "query": "df1.iloc[7]['31/12/2015Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "152": {
+  "group": "ok",
+  "query": "df1.iloc[20]['31/12/2023']",
+  "solver": "cell_locator"
+ },
+ "153": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "154": {
+  "group": "ok",
+  "query": "df1.iloc[8]['Năm trước']",
+  "solver": "raw_table_linker"
+ },
+ "156": {
+  "group": "ok",
+  "query": "df2.iloc[12][\"Tổng cộng\"]",
+  "solver": "codegen"
+ },
+ "157": {
+  "group": "ok",
+  "query": "df1.iloc[2]['1/1/2021 VND']",
+  "solver": "raw_table_linker"
+ },
+ "158": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df2.iloc[11][\"Vốn đầu tư của chủ sở hữu\"] / df2.iloc[14][\"Vốn đầu tư của chủ sở hữu\"] * 100",
+  "solver": "codegen"
+ },
+ "159": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"Tỷ lệ lợi ích\"]",
+  "solver": "codegen"
+ },
+ "16": {
+  "group": "ok",
+  "query": "df2.iloc[9][\"01/01/2025\"]",
+  "solver": "codegen"
+ },
+ "160": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm 2025']",
+  "solver": "cell_locator"
+ },
+ "161": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[1]['Ngày 31 tháng 12năm 2020']",
+  "solver": "raw_table_linker"
+ },
+ "162": {
+  "group": "ok",
+  "query": "df1.iloc[0]['2020VND']",
+  "solver": "cell_locator"
+ },
+ "163": {
+  "group": "ok",
+  "query": "df1.iloc[10][\"31/12/2018\"]",
+  "solver": "codegen"
+ },
+ "164": {
+  "group": "ok",
+  "query": "abs(df1.iloc[3]['Năm nay'])",
+  "solver": "raw_table_linker"
+ },
+ "166": {
+  "group": "ok",
+  "query": "df2.iloc[0][\"Số cuối năm\"] / 1e10",
+  "solver": "codegen"
+ },
+ "167": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"2025 Nghìn VND\"]",
+  "solver": "codegen"
+ },
+ "168": {
+  "group": "ok",
+  "query": "df1.iloc[7]['31/12/2025']",
+  "solver": "cell_locator"
+ },
+ "169": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số đầu nămTriệu đồng']",
+  "solver": "cell_locator"
+ },
+ "17": {
+  "group": "ok",
+  "query": "df1.iloc[5]['2018Triệu VND']",
+  "solver": "cell_locator"
+ },
+ "170": {
+  "group": "ok",
+  "query": "df2.iloc[1][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "171": {
+  "group": "ok",
+  "query": "df1.iloc[14]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "172": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Tại ngày 31 tháng 12 năm']",
+  "solver": "cell_locator"
+ },
+ "173": {
+  "group": "ok",
+  "query": "df1.iloc[15][\"31/12/2020 Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "174": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31/12/2024']",
+  "solver": "cell_locator"
+ },
+ "175": {
+  "group": "ok",
+  "query": "pd.to_numeric(df3.iloc[4][\"Khác VND\"], errors=\"coerce\") / 1e9",
+  "solver": "codegen"
+ },
+ "176": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "178": {
+  "group": "ok",
+  "query": "df1.iloc[6]['Tại ngày 31 tháng 12 năm']",
+  "solver": "raw_table_linker"
+ },
+ "179": {
+  "group": "ok",
+  "query": "df1.iloc[8]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "180": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31/12/2019VND']",
+  "solver": "cell_locator"
+ },
+ "181": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "182": {
+  "group": "ok",
+  "query": "df2.iloc[18][\"Năm 2022\"]",
+  "solver": "codegen"
+ },
+ "183": {
+  "group": "ok",
+  "query": "df1.iloc[11][\"31/12/2016\"]",
+  "solver": "codegen"
+ },
+ "185": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "186": {
+  "group": "ok",
+  "query": "df1.iloc[13]['31/12/2023Nghìn VND']",
+  "solver": "cell_locator"
+ },
+ "187": {
+  "group": "ok",
+  "query": "df1.iloc[30]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "188": {
+  "group": "ok",
+  "query": "df1.iloc[8][\"Số cuối năm\"] + df1.iloc[10][\"Số cuối năm\"] + df2.iloc[1][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "189": {
+  "group": "ok",
+  "query": "abs(df1.iloc[28]['Số cuối năm'])",
+  "solver": "raw_table_linker"
+ },
+ "19": {
+  "group": "ok",
+  "query": "df2.iloc[1][\"Quyền biểu quyết\"]",
+  "solver": "codegen"
+ },
+ "190": {
+  "group": "ok",
+  "query": "abs(df1.iloc[1]['31/12/2019Triệu VND'])",
+  "solver": "raw_table_linker"
+ },
+ "191": {
+  "group": "ok",
+  "query": "df1.iloc[1][\"Số cuối năm\"] * 1e-09",
+  "solver": "codegen"
+ },
+ "192": {
+  "group": "ok",
+  "query": "df1.iloc[7][\"2017 VND\"] / 1e10",
+  "solver": "codegen"
+ },
+ "193": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"31/12/2022%/năm\"]",
+  "solver": "codegen"
+ },
+ "194": {
+  "group": "ok",
+  "query": "df2.iloc[16][\"2019Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "195": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"5.884.776\"]",
+  "solver": "codegen"
+ },
+ "196": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "197": {
+  "group": "ok",
+  "query": "df1.iloc[9][\"31/12/2018VND million\"]",
+  "solver": "codegen"
+ },
+ "198": {
+  "group": "ok",
+  "query": "abs(df1.iloc[19]['Cho năm tài chính kết thúc ngày 31 tháng 12 năm'])",
+  "solver": "raw_table_linker"
+ },
+ "199": {
+  "group": "ok",
+  "query": "df1.iloc[2]['31/12/2016 VND']",
+  "solver": "cell_locator"
+ },
+ "2": {
+  "group": "ok",
+  "query": "df2.iloc[0][\"31.12.2022Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "20": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"Tỷ lệ biểu quyết\"]",
+  "solver": "codegen"
+ },
+ "200": {
+  "group": "ok",
+  "query": "df2.iloc[3][\"Giá gốc\"] / 1e6",
+  "solver": "codegen"
+ },
+ "201": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "202": {
+  "group": "ok",
+  "query": "df1.iloc[2]['31/12/2025']",
+  "solver": "raw_table_linker"
+ },
+ "204": {
+  "group": "ok",
+  "query": "df3.iloc[3][\"2020Số cổ phiếu\"]",
+  "solver": "codegen"
+ },
+ "205": {
+  "group": "ok",
+  "query": "df1.iloc[0]['2023Triệu VND']",
+  "solver": "cell_locator"
+ },
+ "207": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Ngày 31 tháng 12năm 2024triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "208": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"Số cuối năm Triệu đồng\"]",
+  "solver": "codegen"
+ },
+ "209": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"31/12/2021 VND\"] / 1e11",
+  "solver": "codegen"
+ },
+ "21": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df2.iloc[2][\"31/12/2020\"]",
+  "solver": "codegen"
+ },
+ "210": {
+  "group": "ok",
+  "query": "df3.iloc[3][\"2018Số cổ phiếu\"]",
+  "solver": "codegen"
+ },
+ "211": {
+  "group": "ok",
+  "query": "df1.iloc[15]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "212": {
+  "group": "ok",
+  "query": "df3.iloc[16][\"Ngàn VNDTổng cộng\"]",
+  "solver": "codegen"
+ },
+ "213": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "214": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"Số năm nay\"]",
+  "solver": "codegen"
+ },
+ "215": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "216": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['Năm nay VND'])",
+  "solver": "raw_table_linker"
+ },
+ "217": {
+  "group": "ok",
+  "query": "df3.iloc[7][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "218": {
+  "group": "ok",
+  "query": "df1.iloc[28][\"Ngày 31 tháng 12 năm 2021\"]",
+  "solver": "codegen"
+ },
+ "219": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['2018Triệu đồng'])",
+  "solver": "cell_locator"
+ },
+ "22": {
+  "group": "ok",
+  "query": "abs(df1.iloc[1]['Năm nay'])",
+  "solver": "raw_table_linker"
+ },
+ "220": {
+  "group": "ok",
+  "query": "df3.iloc[4][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "221": {
+  "group": "ok",
+  "query": "df1.iloc[31][\"01/01/2017\"]",
+  "solver": "codegen"
+ },
+ "222": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"Đơn vị tính: triệu VND\"]",
+  "solver": "codegen"
+ },
+ "223": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['2018VND'])",
+  "solver": "cell_locator"
+ },
+ "224": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[1]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "225": {
+  "group": "ok",
+  "query": "df1.iloc[9]['Số dư đầu năm(cổ phiếu)']",
+  "solver": "raw_table_linker"
+ },
+ "226": {
+  "group": "ok",
+  "query": "df1.iloc[1]['VND Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "227": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "228": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "229": {
+  "group": "ok",
+  "query": "df1.iloc[27][\"Số đầu năm\"]",
+  "solver": "codegen"
+ },
+ "23": {
+  "group": "ok",
+  "query": "df1.iloc[10]['31/12/2020']",
+  "solver": "cell_locator"
+ },
+ "230": {
+  "group": "ok",
+  "query": "df1.iloc[0]['2015Triệu VND']",
+  "solver": "cell_locator"
+ },
+ "231": {
+  "group": "ok",
+  "query": "df1.iloc[14]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "232": {
+  "group": "ok",
+  "query": "df3.iloc[6][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "233": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "234": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[6]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "235": {
+  "group": "ok",
+  "query": "abs(df1.iloc[12]['Số cuối năm Triệu đồng'])",
+  "solver": "cell_locator"
+ },
+ "236": {
+  "group": "ok",
+  "query": "df1.iloc[28]['31/12/2025']",
+  "solver": "cell_locator"
+ },
+ "237": {
+  "group": "ok",
+  "query": "df3.iloc[10][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "238": {
+  "group": "ok",
+  "query": "df1.iloc[18]['Số cuối năm Triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "239": {
+  "group": "ok",
+  "query": "df1.iloc[23][\"Tại ngày\"]",
+  "solver": "codegen"
+ },
+ "24": {
+  "group": "ok",
+  "query": "df1.iloc[7][\"Số cuối năm\"] + df1.iloc[8][\"Số cuối năm\"] + df1.iloc[9][\"Số cuối năm\"] + df1.iloc[10][\"Số cuối năm\"] + df1.iloc[11][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "240": {
+  "group": "ok",
+  "query": "df1.iloc[7][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "241": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31/12/2022Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "242": {
+  "group": "ok",
+  "query": "df3.iloc[14][\"Tổng cộng triệu đồng\"]",
+  "solver": "codegen"
+ },
+ "243": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "244": {
+  "group": "ok",
+  "query": "abs(df1.iloc[15]['Số cuối năm'])",
+  "solver": "raw_table_linker"
+ },
+ "245": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "246": {
+  "group": "ok",
+  "query": "df1.iloc[1]['2020Triệu VND']",
+  "solver": "cell_locator"
+ },
+ "247": {
+  "group": "ok",
+  "query": "df1.iloc[8][\"Tại ngày 31/12/2020\"] / 1e10",
+  "solver": "codegen"
+ },
+ "248": {
+  "group": "ok",
+  "query": "abs(df1.iloc[16]['2021 VND'])",
+  "solver": "cell_locator"
+ },
+ "249": {
+  "group": "ok",
+  "query": "df1.iloc[18][\"31/12/2016 VND\"] / 1e10",
+  "solver": "codegen"
+ },
+ "25": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm nayVND']",
+  "solver": "cell_locator"
+ },
+ "250": {
+  "group": "ok",
+  "query": "pd.to_numeric(df3.iloc[3][\"Giá trị giao dịch\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "252": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "253": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31/12/2016Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "254": {
+  "group": "ok",
+  "query": "df1.iloc[16][\"2015 VND\"] / 1e9",
+  "solver": "codegen"
+ },
+ "255": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "259": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Đơn vị tính: triệu VND']",
+  "solver": "cell_locator"
+ },
+ "26": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['Năm nay'])",
+  "solver": "raw_table_linker"
+ },
+ "260": {
+  "group": "ok",
+  "query": "((df1.iloc[18]['Unnamed: 5']) / (df2.iloc[13]['Số cuối năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "261": {
+  "group": "ok",
+  "query": "df3.iloc[8][\"Giá trị ghi số VND\"]",
+  "solver": "codegen"
+ },
+ "262": {
+  "group": "ok",
+  "query": "df2.iloc[3][\"Số đầu năm\"]",
+  "solver": "codegen"
+ },
+ "263": {
+  "group": "ok",
+  "query": "df1.iloc[22]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "264": {
+  "group": "ok",
+  "query": "df1.iloc[1]['31.12.2025Triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "265": {
+  "group": "ok",
+  "query": "df1.iloc[3]['Số dư cuối năm VND']",
+  "solver": "cell_locator"
+ },
+ "266": {
+  "group": "ok",
+  "query": "df3.iloc[1][\"2023Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "267": {
+  "group": "ok",
+  "query": "df3.iloc[7][\"31.12.2020Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "268": {
+  "group": "ok",
+  "query": "df1.iloc[16]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "269": {
+  "group": "ok",
+  "query": "df1.iloc[7]['Số cuối nămVND']",
+  "solver": "cell_locator"
+ },
+ "27": {
+  "group": "ok",
+  "query": "df1.iloc[16]['Năm 2024 VND']",
+  "solver": "cell_locator"
+ },
+ "270": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"31/12/2017 VND\"] / 1e6",
+  "solver": "codegen"
+ },
+ "273": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "274": {
+  "group": "ok",
+  "query": "df1.iloc[3]['Năm nay Triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "275": {
+  "group": "ok",
+  "query": "df1.iloc[3][\"Tổng giá trị hợp đồng (theo tỷ giá hối đoái tại ngày hiệu lực hợp đồng)\"] / 1e6",
+  "solver": "codegen"
+ },
+ "276": {
+  "group": "ok",
+  "query": "df1.iloc[9]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "277": {
+  "group": "ok",
+  "query": "df1.iloc[0]['2022VND']",
+  "solver": "raw_table_linker"
+ },
+ "279": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"30/9/2020VND\"] / 1e9",
+  "solver": "codegen"
+ },
+ "28": {
+  "group": "ok",
+  "query": "df1.iloc[11]['Tại ngày 31 tháng 12 năm']",
+  "solver": "raw_table_linker"
+ },
+ "280": {
+  "group": "ok",
+  "query": "df1.iloc[6][\"Tại ngày 31 tháng 12 năm\"]",
+  "solver": "codegen"
+ },
+ "281": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số cuối nămVND']",
+  "solver": "cell_locator"
+ },
+ "282": {
+  "group": "ok",
+  "query": "df1.iloc[9]['Tại ngày 31 tháng 12 năm']",
+  "solver": "raw_table_linker"
+ },
+ "283": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "pd.to_numeric(df3.iloc[1][\"Số phải nộpcuối năm\"], errors=\"coerce\") / 1e6",
+  "solver": "codegen"
+ },
+ "284": {
+  "group": "ok",
+  "query": "df1.iloc[16]['Unnamed: 3']",
+  "solver": "cell_locator"
+ },
+ "285": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df3.iloc[1][\"31/12/2025\"]",
+  "solver": "codegen"
+ },
+ "286": {
+  "group": "ok",
+  "query": "df1.iloc[20]['31/12/2015']",
+  "solver": "cell_locator"
+ },
+ "287": {
+  "group": "ok",
+  "query": "df1.iloc[16]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "288": {
+  "group": "ok",
+  "query": "abs(df1.iloc[9]['Năm nayVND'])",
+  "solver": "raw_table_linker"
+ },
+ "289": {
+  "group": "ok",
+  "query": "df3.iloc[8][\"Tổng cộngVND\"]",
+  "solver": "codegen"
+ },
+ "29": {
+  "group": "ok",
+  "query": "df1.iloc[10]['01/01/2019 Đã điều chỉnh VND']",
+  "solver": "raw_table_linker"
+ },
+ "290": {
+  "group": "ok",
+  "query": "df1.iloc[6]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "291": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "292": {
+  "group": "ok",
+  "query": "df2.iloc[0][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "293": {
+  "group": "ok",
+  "query": "df1.iloc[1]['31/12/2015 VND']",
+  "solver": "cell_locator"
+ },
+ "294": {
+  "group": "ok",
+  "query": "df3.iloc[3][\"31/12/2015VND\"]",
+  "solver": "codegen"
+ },
+ "295": {
+  "group": "ok",
+  "query": "df1.iloc[15]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "296": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm 2015']",
+  "solver": "raw_table_linker"
+ },
+ "298": {
+  "group": "ok",
+  "query": "abs(df1.iloc[16]['Số cuối năm'])",
+  "solver": "raw_table_linker"
+ },
+ "299": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Năm 2015']",
+  "solver": "cell_locator"
+ },
+ "3": {
+  "group": "ok",
+  "query": "abs(df1.iloc[17]['Năm nay Triệu đồng'])",
+  "solver": "raw_table_linker"
+ },
+ "30": {
+  "group": "ok",
+  "query": "df3.iloc[19][\"Ngày 31 tháng 12 năm 2021 VND\"]",
+  "solver": "codegen"
+ },
+ "300": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "301": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[4]['2021']",
+  "solver": "cell_locator"
+ },
+ "302": {
+  "group": "ok",
+  "query": "df3.iloc[5][\"Năm tài chínhkết thúc ngày 31 tháng 12 năm\"] / 1e10",
+  "solver": "codegen"
+ },
+ "303": {
+  "group": "ok",
+  "query": "df1.iloc[3]['Năm nay Triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "304": {
+  "group": "ok",
+  "query": "df1.iloc[11]['31/12/2016']",
+  "solver": "cell_locator"
+ },
+ "305": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Ngày 31 tháng 12năm 2020Triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "306": {
+  "group": "ok",
+  "query": "df1.iloc[27]['Ngày 31 tháng 12 năm 2020Triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "307": {
+  "group": "ok",
+  "query": "abs(df1.iloc[15]['Số cuối năm'])",
+  "solver": "raw_table_linker"
+ },
+ "308": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối kỳ']",
+  "solver": "raw_table_linker"
+ },
+ "309": {
+  "group": "ok",
+  "query": "abs(df1.iloc[18]['Năm nay VND'])",
+  "solver": "cell_locator"
+ },
+ "31": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm 2025VND']",
+  "solver": "cell_locator"
+ },
+ "310": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "311": {
+  "group": "ok",
+  "query": "df3.iloc[3][\"Unnamed: 2\"] / 1e6",
+  "solver": "codegen"
+ },
+ "312": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "pd.to_numeric(df3.iloc[1][\"31/12/2022\"], errors=\"coerce\") + pd.to_numeric(df3.iloc[2][\"31/12/2022\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "313": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['Số cuối năm'])",
+  "solver": "cell_locator"
+ },
+ "314": {
+  "group": "ok",
+  "query": "df3.iloc[1][\"Năm 2023VND\"]",
+  "solver": "codegen"
+ },
+ "315": {
+  "group": "ok",
+  "query": "df1.iloc[24]['31/12/2023 VND']",
+  "solver": "raw_table_linker"
+ },
+ "317": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"Trong nướcTriệu đồng\"]",
+  "solver": "codegen"
+ },
+ "318": {
+  "group": "ok",
+  "query": "df1.iloc[3]['Tại ngày']",
+  "solver": "cell_locator"
+ },
+ "319": {
+  "group": "ok",
+  "query": "pd.to_numeric(df3.iloc[10][\"Unnamed: 8\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "32": {
+  "group": "ok",
+  "query": "df1.iloc[3]['Tại ngày 31 tháng 12 năm']",
+  "solver": "raw_table_linker"
+ },
+ "320": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "321": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[9]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "322": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối nămTriệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "323": {
+  "group": "ok",
+  "query": "df2.iloc[10][\"Số cuối năm VND\"]",
+  "solver": "codegen"
+ },
+ "324": {
+  "group": "ok",
+  "query": "abs(df1.iloc[26]['31/12/2024VND'])",
+  "solver": "cell_locator"
+ },
+ "325": {
+  "group": "ok",
+  "query": "df1.iloc[16]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "326": {
+  "group": "ok",
+  "query": "df1.iloc[8][\"Tại ngày 31 tháng 12 năm\"] / 1e9",
+  "solver": "codegen"
+ },
+ "327": {
+  "group": "ok",
+  "query": "df1.iloc[4]['31/12/2021VND']",
+  "solver": "cell_locator"
+ },
+ "328": {
+  "group": "ok",
+  "query": "df1.iloc[17]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "329": {
+  "group": "ok",
+  "query": "df1.iloc[20]['Năm 2024 Triệu VND']",
+  "solver": "cell_locator"
+ },
+ "33": {
+  "group": "ok",
+  "query": "abs(df1.iloc[13]['31/12/2020 triệu đồng'])",
+  "solver": "cell_locator"
+ },
+ "330": {
+  "group": "ok",
+  "query": "df3.iloc[3][\"Số dư\"]",
+  "solver": "codegen"
+ },
+ "331": {
+  "group": "ok",
+  "query": "df3.iloc[1][\"Phải thu\"]",
+  "solver": "codegen"
+ },
+ "332": {
+  "group": "ok",
+  "query": "df1.iloc[17]['Năm 2024']",
+  "solver": "cell_locator"
+ },
+ "333": {
+  "group": "ok",
+  "query": "((df1.iloc[19]['Số cuối năm VND']) / (df1.iloc[17]['Số cuối năm VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "334": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "335": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số cuối nămVND']",
+  "solver": "cell_locator"
+ },
+ "336": {
+  "group": "ok",
+  "query": "df2.iloc[2][\"34\"]",
+  "solver": "codegen"
+ },
+ "338": {
+  "group": "ok",
+  "query": "pd.to_numeric(df3.iloc[2][\"31/12/2018\"], errors=\"coerce\") / 1e9",
+  "solver": "codegen"
+ },
+ "339": {
+  "group": "ok",
+  "query": "df1.iloc[0]['2018']",
+  "solver": "raw_table_linker"
+ },
+ "34": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "342": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "343": {
+  "group": "ok",
+  "query": "abs(df1.iloc[3]['Năm nay'])",
+  "solver": "raw_table_linker"
+ },
+ "344": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Ngày 31 tháng 12năm 2022triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "346": {
+  "group": "ok",
+  "query": "df3.iloc[22][\"31/12/2020Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "347": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm 2017VND']",
+  "solver": "cell_locator"
+ },
+ "348": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['31.12.2025VND'])",
+  "solver": "raw_table_linker"
+ },
+ "349": {
+  "group": "ok",
+  "query": "df1.iloc[8]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "35": {
+  "group": "ok",
+  "query": "df3.iloc[1][\"Ngày 31 tháng 12năm 2015VND\"] / 1e6",
+  "solver": "codegen"
+ },
+ "351": {
+  "group": "ok",
+  "query": "abs(df1.iloc[6]['31/12/2016Triệu VND'])",
+  "solver": "cell_locator"
+ },
+ "352": {
+  "group": "ok",
+  "query": "abs(df1.iloc[16]['Năm nay'])",
+  "solver": "cell_locator"
+ },
+ "353": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31/12/2019VND']",
+  "solver": "raw_table_linker"
+ },
+ "354": {
+  "group": "ok",
+  "query": "df1.iloc[8]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "355": {
+  "group": "ok",
+  "query": "((df1.iloc[9]['2022 VND']) / (df1.iloc[4]['2022 VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "356": {
+  "group": "ok",
+  "query": "abs(df1.iloc[11]['Ngày 31 tháng 12 năm 2019 triệu đồng'])",
+  "solver": "cell_locator"
+ },
+ "357": {
+  "group": "ok",
+  "query": "df1.iloc[19]['Unnamed: 3']",
+  "solver": "cell_locator"
+ },
+ "358": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['Năm nay'])",
+  "solver": "cell_locator"
+ },
+ "359": {
+  "group": "ok",
+  "query": "df1.iloc[7]['2024 Triệu VND']",
+  "solver": "cell_locator"
+ },
+ "36": {
+  "group": "ok",
+  "query": "pd.to_numeric(df3.iloc[11][\"Lợi thế thương mại từ hợp nhất\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "360": {
+  "group": "ok",
+  "query": "df2.iloc[15][\"Vốn góp của chủ sở hữu\"]",
+  "solver": "codegen"
+ },
+ "361": {
+  "group": "ok",
+  "query": "df1.iloc[14]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "362": {
+  "group": "ok",
+  "query": "(df1.iloc[13][\"Số cuối năm\"] + df1.iloc[14][\"Số cuối năm\"] + df1.iloc[15][\"Số cuối năm\"] + df2.iloc[14][\"Số cuối năm\"] + df2.iloc[15][\"Số cuối năm\"] + df3.iloc[12][\"Tại ngày 31/12/2022\"] + df3.iloc[13][\"Tại ngày 31/12/2022\"] + df3.iloc[14][\"Tại ngày 31/12/2022\"]) / (df1.iloc[13][\"Số cuối năm\"] + df1.iloc[14][\"Số cuối năm\"] + df1.iloc[15][\"Số cuối năm\"] + df2.iloc[14][\"Số cuối năm\"] + df2.iloc[15][\"Số cuối năm\"] + df3.iloc[12][\"Tại ngày 31/12/2022\"] + df3.iloc[13][\"Tại ngày 31/12/2022\"] + df3.iloc[14][\"Tại ngày 31/12/2022\"]) * 100",
+  "solver": "codegen"
+ },
+ "364": {
+  "group": "ok",
+  "query": "df4.iloc[2][\"Năm 2021\"] / df4.iloc[2][\"Năm 2020\"] - 1",
+  "solver": "codegen"
+ },
+ "365": {
+  "group": "ok",
+  "query": "pd.to_numeric(df3.iloc[4][\"Năm nay\"], errors=\"coerce\") / pd.to_numeric(df3.iloc[2][\"Năm nay\"], errors=\"coerce\") * 100",
+  "solver": "codegen"
+ },
+ "366": {
+  "group": "ok",
+  "query": "(df1.iloc[15][\"Năm 2024VND\"] < 0) & (df1.iloc[28][\"Năm 2024VND\"] > 0)",
+  "solver": "codegen"
+ },
+ "367": {
+  "group": "ok",
+  "query": "(df1.iloc[4][\"2025Triệu VND\"] / df1.iloc[2][\"2025Triệu VND\"] - df1.iloc[18][\"2025Triệu VND\"] / df1.iloc[2][\"2025Triệu VND\"]) + (df4.iloc[4][\"2025 VND\"] / df4.iloc[2][\"2025 VND\"] - df4.iloc[18][\"2025 VND\"] / df4.iloc[2][\"2025 VND\"])",
+  "solver": "codegen"
+ },
+ "368": {
+  "group": "ok",
+  "query": "(\n    (df1.iloc[18][\"2022 Nghìn VND\"] / df1.iloc[2][\"2022 Nghìn VND\"] +\n     df2.iloc[18][\"Unnamed: 4\"] / df2.iloc[3][\"Unnamed: 4\"] +\n     df3.iloc[0][\"2022 VND\"] / df3.iloc[0][\"2021 VND\"]) / 3\n)",
+  "solver": "codegen"
+ },
+ "369": {
+  "group": "ok",
+  "query": "df1.iloc[7][\"2022 Nghìn VND\"]",
+  "solver": "codegen"
+ },
+ "37": {
+  "group": "ok",
+  "query": "df2.iloc[4][\"Số cuối năm\"] / 1e9",
+  "solver": "codegen"
+ },
+ "370": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[18][\"Năm 2024\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "373": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "pd.to_numeric(df2.iloc[8][\"31/12/2022\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "374": {
+  "group": "ok",
+  "query": "(df2.iloc[4][\"2022 VND\"] / df2.iloc[2][\"2022 VND\"] - df2.iloc[4][\"2021 VND\"] / df2.iloc[2][\"2021 VND\"]) * 100",
+  "solver": "codegen"
+ },
+ "375": {
+  "group": "ok",
+  "query": "df1.iloc[3][\"Số liệu năm 2021\"]",
+  "solver": "codegen"
+ },
+ "376": {
+  "group": "ok",
+  "query": "df1.iloc[13][\"31/12/2024\"] / df1.iloc[0][\"31/12/2024\"] * 100",
+  "solver": "codegen"
+ },
+ "377": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"2024 VND\"] / df1.iloc[2][\"2023 VND\"]",
+  "solver": "codegen"
+ },
+ "379": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[4][\"2025 VND\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "38": {
+  "group": "ok",
+  "query": "df2.iloc[1][\"31/12/2018Phải trảTriệu VND\"]",
+  "solver": "codegen"
+ },
+ "380": {
+  "group": "ok",
+  "query": "df1.iloc[16][\"31/12/2024VND\"]",
+  "solver": "codegen"
+ },
+ "382": {
+  "group": "ok",
+  "query": "(df1.iloc[4][\"Năm nay\"] / df1.iloc[2][\"Năm nay\"] - df1.iloc[4][\"Năm trước\"] / df1.iloc[2][\"Năm trước\"]) - (df2.iloc[4][\"Năm nay\"] / df2.iloc[2][\"Năm nay\"] - df2.iloc[4][\"Năm trước\"] / df2.iloc[2][\"Năm trước\"])",
+  "solver": "codegen"
+ },
+ "383": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm nay'] - df2.iloc[4]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "385": {
+  "group": "ok",
+  "query": "(df1.iloc[2][\"2024 VND\"] / df1.iloc[2][\"2023 VND\"] - 1) * 100",
+  "solver": "codegen"
+ },
+ "388": {
+  "group": "ok",
+  "query": "((df1.iloc[4][\"Năm nay\"] + df2.iloc[5][\"Năm 2024\"] + df3.iloc[4][\"Năm 2024\"]) / (df1.iloc[2][\"Năm nay\"] + df2.iloc[1][\"Năm 2024\"] + df3.iloc[2][\"Năm 2024\"])) * 100",
+  "solver": "codegen"
+ },
+ "389": {
+  "group": "ok",
+  "query": "df1.iloc[1][\"Số cuối năm\"] + df1.iloc[12][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "39": {
+  "group": "ok",
+  "query": "df1.iloc[1]['31/12/2020']",
+  "solver": "cell_locator"
+ },
+ "391": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"2024 VND\"] - df3.iloc[2][\"2023 VND\"]",
+  "solver": "codegen"
+ },
+ "392": {
+  "group": "ok",
+  "query": "df3.iloc[19][\"2024 VND\"] / df1.iloc[18][\"2024 VND\"]",
+  "solver": "codegen"
+ },
+ "393": {
+  "group": "ok",
+  "query": "df1.iloc[3][\"Unnamed: 4\"] - df1.iloc[3][\"Năm tài chính kết thúc ngày\"]",
+  "solver": "codegen"
+ },
+ "394": {
+  "group": "ok",
+  "query": "df1.iloc[15][\"Năm 2024\"] * 1e-12",
+  "solver": "codegen"
+ },
+ "395": {
+  "group": "ok",
+  "query": "df3.iloc[14][\"Năm kết thúc ngày31 tháng 12 năm 2025VND\"] / df5.iloc[8][\"Năm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "396": {
+  "group": "ok",
+  "query": "df1.iloc[18][\"Năm 2024VND\"] / df1.iloc[11][\"Năm 2024VND\"]",
+  "solver": "codegen"
+ },
+ "397": {
+  "group": "ok",
+  "query": "df1.iloc[1][\"Số cuối năm\"] - df1.iloc[13][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "399": {
+  "group": "ok",
+  "query": "((df1.iloc[9][\"2024 VND\"] - df1.iloc[9][\"2023 VND\"]) / df1.iloc[9][\"2023 VND\"] - ((df1.iloc[10][\"2024 VND\"] - df1.iloc[10][\"2023 VND\"]) / df1.iloc[10][\"2023 VND\"]) > 0) + ((df3.iloc[8][\"Năm 2024 VND\"] - df3.iloc[8][\"Năm 2023 VND\"]) / df3.iloc[8][\"Năm 2023 VND\"] - ((df3.iloc[9][\"Năm 2024 VND\"] - df3.iloc[9][\"Năm 2023 VND\"]) / df3.iloc[9][\"Năm 2023 VND\"]) > 0) + ((df4.iloc[9][\"Năm 2024\"] - df4.iloc[9][\"Năm 2023\"]) / df4.iloc[9][\"Năm 2023\"] - ((df4.iloc[10][\"Năm 2024\"] - df4.iloc[10][\"Năm 2023\"]) / df4.iloc[10][\"Năm 2023\"]) > 0)",
+  "solver": "codegen"
+ },
+ "4": {
+  "group": "ok",
+  "query": "df1.iloc[10][\"Năm 2023\"] / 1000",
+  "solver": "codegen"
+ },
+ "40": {
+  "group": "ok",
+  "query": "df1.iloc[4]['2020 Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "400": {
+  "group": "ok",
+  "query": "(df3.iloc[1][\"Hợp nhất VND\"] - df5.iloc[1][\"Hợp nhất VND\"]) / df5.iloc[1][\"Hợp nhất VND\"]",
+  "solver": "codegen"
+ },
+ "401": {
+  "group": "ok",
+  "query": "(df1.iloc[2][\"2024Triệu VND\"] - df1.iloc[2][\"2023Triệu VND\"]) / df1.iloc[2][\"2023Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "402": {
+  "group": "ok",
+  "query": "df1.iloc[12][\"31/12/2024VND\"]",
+  "solver": "codegen"
+ },
+ "403": {
+  "group": "ok",
+  "query": "df2.iloc[1][\"31/12/2024\"]",
+  "solver": "codegen"
+ },
+ "404": {
+  "group": "ok",
+  "query": "((df1.iloc[8][\"Số cuối năm\"] + df1.iloc[14][\"Số cuối năm\"]) / df1.iloc[14][\"Số cuối năm\"] - 1) * 100",
+  "solver": "codegen"
+ },
+ "406": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df5.iloc[12][\"Kinh doanh thức ăn chăn nuôi và nguyên vật liệu sản xuất thức ăn chăn nuôi\"] - df5.iloc[13][\"Tổng tài sản\"]) / df5.iloc[13][\"Tổng tài sản\"] * 100",
+  "solver": "codegen"
+ },
+ "408": {
+  "group": "ok",
+  "query": "((df5.iloc[2][\"2024 VND\"] - df5.iloc[2][\"2023 VND\"]) / df5.iloc[2][\"2023 VND\"] > 0.05) * (df5.iloc[4][\"2024 VND\"] / df5.iloc[2][\"2024 VND\"]) + ((df4.iloc[2][\"Năm nay\"] - df4.iloc[2][\"Năm trước (Trình bày lại)\"]) / df4.iloc[2][\"Năm trước (Trình bày lại)\"] > 0.05) * (df4.iloc[4][\"Năm nay\"] / df4.iloc[2][\"Năm nay\"]) + ((df2.iloc[2][\"Năm nay\"] - df2.iloc[2][\"Năm trước\"]) / df2.iloc[2][\"Năm trước\"] > 0.05) * (df2.iloc[4][\"Năm nay\"] / df2.iloc[2][\"Năm nay\"])",
+  "solver": "codegen"
+ },
+ "409": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[8][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "41": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[1]['31/12/2016']",
+  "solver": "cell_locator"
+ },
+ "411": {
+  "group": "ok",
+  "query": "(df2.iloc[2][\"Năm 2025 VND\"] > df2.iloc[2][\"Năm 2024 VND\"]) & (df4.iloc[2][\"Năm 2025 VND\"] > df4.iloc[2][\"Năm 2024 VND\"]) & (df5.iloc[2][\"Năm 2025\"] > df5.iloc[2][\"Năm 2024\"])",
+  "solver": "codegen"
+ },
+ "412": {
+  "group": "ok",
+  "query": "df2.iloc[17][\"Tập đoàn\"] / df1.iloc[18][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "413": {
+  "group": "ok",
+  "query": "(df2.iloc[18][\"31/12/2024VND\"] / df2.iloc[19][\"31/12/2024VND\"]) > 1 and (df2.iloc[18][\"31/12/2024VND\"] / df2.iloc[19][\"31/12/2024VND\"]) < 1",
+  "solver": "codegen"
+ },
+ "414": {
+  "group": "ok",
+  "query": "df2.iloc[10][\"2024 VND\"] / df2.iloc[2][\"2024 VND\"] * 100",
+  "solver": "codegen"
+ },
+ "417": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[18][\"2024 VND\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "419": {
+  "group": "ok",
+  "query": "(df1.iloc[2][\"2024 VND\"] - df1.iloc[7][\"2024 VND\"] * 1.2) / df1.iloc[2][\"2024 VND\"] * 100",
+  "solver": "codegen"
+ },
+ "42": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Năm nayTriệu đồng']",
+  "solver": "cell_locator"
+ },
+ "420": {
+  "group": "ok",
+  "query": "df2.iloc[23][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "421": {
+  "group": "ok",
+  "query": "(df1.iloc[18][\"Năm trước\"] / df1.iloc[2][\"Năm trước\"] - df1.iloc[18][\"Năm nay\"] / df1.iloc[2][\"Năm nay\"]) * 100",
+  "solver": "codegen"
+ },
+ "422": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"2024 VND\"]",
+  "solver": "codegen"
+ },
+ "425": {
+  "group": "ok",
+  "query": "(df4.iloc[2][\"2024\"] + df4.iloc[2][\"2023(Điều chỉnh lại (*)( ))\"] + df3.iloc[3][\"Năm tài chính kết thúc ngày 31 tháng 12 năm 2022\"] + df5.iloc[3][\"2022\"] + df1.iloc[2][\"2021\"]) / (df4.iloc[3][\"2024\"] * 1.1 + df4.iloc[3][\"2023(Điều chỉnh lại (*)( ))\"] + df3.iloc[4][\"Năm tài chính kết thúc ngày 31 tháng 12 năm 2022\"] + df5.iloc[3][\"2022\"] + df1.iloc[3][\"2021\"])",
+  "solver": "codegen"
+ },
+ "426": {
+  "group": "ok",
+  "query": "df1.iloc[19][\"Năm tài chính kết thúcngày 31 tháng 12 năm\"] / df1.iloc[19][\"Unnamed: 4\"]",
+  "solver": "codegen"
+ },
+ "427": {
+  "group": "ok",
+  "query": "df3.iloc[10][\"Dưới 1 nămVND\"] * 1e-9",
+  "solver": "codegen"
+ },
+ "428": {
+  "group": "ok",
+  "query": "(df2.iloc[16][\"USD\"] * -0.05) / df2.iloc[18][\"USD\"] * 100",
+  "solver": "codegen"
+ },
+ "429": {
+  "group": "ok",
+  "query": "df1.iloc[22][\"31/12/2024 VND\"]",
+  "solver": "codegen"
+ },
+ "43": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối năm VND']",
+  "solver": "cell_locator"
+ },
+ "430": {
+  "group": "ok",
+  "query": "(df1.iloc[0][\"Năm nay\"] - df1.iloc[0][\"Năm trước\"]) / df1.iloc[0][\"Năm trước\"] - (df1.iloc[11][\"Năm nay\"] - df1.iloc[11][\"Năm trước\"]) / df1.iloc[11][\"Năm trước\"]",
+  "solver": "codegen"
+ },
+ "431": {
+  "group": "ok",
+  "query": "df1.iloc[4][\"Năm nay\"] / df1.iloc[2][\"Năm nay\"] - df1.iloc[4][\"Năm trước\"] / df1.iloc[2][\"Năm trước\"]",
+  "solver": "codegen"
+ },
+ "432": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"Năm 2023\"]",
+  "solver": "codegen"
+ },
+ "433": {
+  "group": "ok",
+  "query": "(df1.iloc[31][\"31/12/2023\"] - df1.iloc[6][\"31/12/2023\"] - df1.iloc[10][\"31/12/2023\"] - df1.iloc[16][\"31/12/2023\"] - df1.iloc[18][\"31/12/2023\"] - df1.iloc[26][\"31/12/2023\"]) - (df1.iloc[1][\"31/12/2023\"] + df1.iloc[6][\"31/12/2023\"] + df1.iloc[10][\"31/12/2023\"] + df1.iloc[16][\"31/12/2023\"] + df1.iloc[18][\"31/12/2023\"] + df1.iloc[26][\"31/12/2023\"]) / (df1.iloc[31][\"31/12/2023\"] - df1.iloc[1][\"31/12/2023\"] - df1.iloc[6][\"31/12/2023\"] - df1.iloc[10][\"31/12/2023\"] - df1.iloc[16][\"31/12/2023\"] - df1.iloc[18][\"31/12/2023\"] - df1.iloc[26][\"31/12/2023\"]) * 100",
+  "solver": "codegen"
+ },
+ "434": {
+  "group": "ok",
+  "query": "(df1.iloc[7][\"Năm nay\"] + df1.iloc[11][\"Năm nay\"] - df1.iloc[6][\"Năm nay\"]) / df1.iloc[7][\"Năm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "435": {
+  "group": "ok",
+  "query": "len([df1.iloc[3][\"Năm 2023\"], df2.iloc[2][\"Năm 2023\"], df3.iloc[2][\"Năm 2023\"]])",
+  "solver": "codegen"
+ },
+ "436": {
+  "group": "ok",
+  "query": "(df2.iloc[1][\"Năm 2023 VND\"] - df2.iloc[4][\"Năm 2023 VND\"]) / df2.iloc[1][\"Năm 2023 VND\"] - (df2.iloc[4][\"Năm 2023 VND\"] * 1.05) / df2.iloc[1][\"Năm 2023 VND\"]",
+  "solver": "codegen"
+ },
+ "437": {
+  "group": "ok",
+  "query": "(df1.iloc[18][\"Năm nay\"] > 0) + (df2.iloc[16][\"Năm nay\"] > 0) + (df3.iloc[18][\"Năm nay\"] > 0)",
+  "solver": "codegen"
+ },
+ "438": {
+  "group": "ok",
+  "query": "(df1.iloc[2][\"Năm nay\"] - df1.iloc[2][\"Năm trước\"]) / df1.iloc[2][\"Năm trước\"] * 100",
+  "solver": "codegen"
+ },
+ "44": {
+  "group": "ok",
+  "query": "df1.iloc[40]['Số cuối năm Triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "441": {
+  "group": "ok",
+  "query": "df4.iloc[5][\"Năm tài chính kết thúc ngày31 tháng 12 năm\"] / df4.iloc[3][\"Năm tài chính kết thúc ngày31 tháng 12 năm\"] * 100",
+  "solver": "codegen"
+ },
+ "442": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[11][\"Số cuối năm\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "443": {
+  "group": "ok",
+  "query": "df1.iloc[1][\"31/12/2025 Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "444": {
+  "group": "ok",
+  "query": "df1.iloc[9][\"Năm 2024VND\"] + df1.iloc[10][\"Năm 2024VND\"]",
+  "solver": "codegen"
+ },
+ "445": {
+  "group": "ok",
+  "query": "df1.iloc[9][\"Năm nay\"] + df1.iloc[10][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "446": {
+  "group": "ok",
+  "query": "(df1.iloc[0][\"2024 VND\"] + df2.iloc[0][\"2024 VND\"] + df3.iloc[1][\"Năm 2024\"]) * 0.5",
+  "solver": "codegen"
+ },
+ "447": {
+  "group": "ok",
+  "query": "df2.iloc[2][\"2025 VND\"]",
+  "solver": "codegen"
+ },
+ "448": {
+  "group": "ok",
+  "query": "df1.iloc[1][\"Năm nay\"] / df1.iloc[1][\"Năm trước\"] - 1",
+  "solver": "codegen"
+ },
+ "449": {
+  "group": "ok",
+  "query": "df1.iloc[17][\"2025Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "450": {
+  "group": "ok",
+  "query": "df2.iloc[4][\"2024 VND\"] / df2.iloc[2][\"2024 VND\"] * 100",
+  "solver": "codegen"
+ },
+ "451": {
+  "group": "ok",
+  "query": "df1.iloc[5][\"Unnamed: 1\"] / df1.iloc[4][\"Unnamed: 1\"] * 365",
+  "solver": "codegen"
+ },
+ "452": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"Năm 2024 VND\"] / df1.iloc[1][\"Năm 2024 VND\"]",
+  "solver": "codegen"
+ },
+ "453": {
+  "group": "ok",
+  "query": "(df3.iloc[10][\"Sản xuất và kinh doanh thép VND\"] / df3.iloc[1][\"Sản xuất và kinh doanh thép VND\"]) * 100",
+  "solver": "codegen"
+ },
+ "454": {
+  "group": "ok",
+  "query": "df5.iloc[15][\"Năm tài chính kết thúc ngày 31 tháng 12 năm\"] / df5.iloc[8][\"Năm tài chính kết thúc ngày 31 tháng 12 năm\"]",
+  "solver": "codegen"
+ },
+ "455": {
+  "group": "ok",
+  "query": "df4.iloc[4][\"2024Nghìn VND\"] / df4.iloc[2][\"2024Nghìn VND\"] * 100",
+  "solver": "codegen"
+ },
+ "456": {
+  "group": "ok",
+  "query": "df3.iloc[15][\"Năm nay\"] / df4.iloc[2][\"Năm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "457": {
+  "group": "ok",
+  "query": "((df1.iloc[0][\"Số cuối năm\"] < df1.iloc[21][\"Số cuối năm\"]) & (df2.iloc[15][\"Năm 2024VND\"] > 0)).sum()",
+  "solver": "codegen"
+ },
+ "458": {
+  "group": "biến lạ",
+  "query": "(df1.iloc[13][\"Số cuối năm\"] + df2.iloc[14][\"Số cuối năm\"] + df3.iloc[12][\"Tại ngày 31/12/2022\"] + df4.iloc[13][\"Tại ngày 31/12/2022\"] + df5.iloc[13][\"Tại ngày 31/12/2022\"] + df6.iloc[13][\"Tại ngày 31/12/2022\"] + df7.iloc[13][\"Tại ngày 31/12/2022\"]).mean()",
+  "solver": "codegen"
+ },
+ "459": {
+  "group": "ok",
+  "query": "df1.iloc[12][\"Số cuối năm\"] / df1.iloc[1][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "46": {
+  "group": "ok",
+  "query": "df2.iloc[8][\"Năm 2024\"]",
+  "solver": "codegen"
+ },
+ "460": {
+  "group": "ok",
+  "query": "(df1.iloc[11][\"2016 VND\"] + df2.iloc[7][\"Năm nay\"] + df3.iloc[0][\"2016VND\"]) / (df1.iloc[11][\"2016 VND\"] + df2.iloc[7][\"Năm nay\"] + df3.iloc[0][\"2016VND\"])",
+  "solver": "codegen"
+ },
+ "461": {
+  "group": "ok",
+  "query": "df1.iloc[18][\"Năm nay\"] / df1.iloc[15][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "462": {
+  "group": "ok",
+  "query": "(df1.iloc[45][\"31/12/2020 VND\"] + df1.iloc[45][\"01/01/2020 VND\"]) / 2",
+  "solver": "codegen"
+ },
+ "463": {
+  "group": "ok",
+  "query": "((df2.iloc[2][\"2022 VND\"] - df2.iloc[2][\"2021 VND\"]) / df2.iloc[2][\"2021 VND\"] - (df2.iloc[9][\"2022 VND\"] - df2.iloc[9][\"2021 VND\"]) / df2.iloc[9][\"2021 VND\"] > 0) + ((df3.iloc[2][\"Năm nay\"] - df3.iloc[2][\"Năm trước\"]) / df3.iloc[2][\"Năm trước\"] - (df3.iloc[8][\"Năm nay\"] + df3.iloc[9][\"Năm nay\"] - (df3.iloc[8][\"Năm trước\"] + df3.iloc[9][\"Năm trước\"])) / (df3.iloc[8][\"Năm trước\"] + df3.iloc[9][\"Năm trước\"]) > 0) + ((df5.iloc[2][\"Năm nay\"] - df5.iloc[2][\"Năm trước(trình bày lại)\"]) / df5.iloc[2][\"Năm trước(trình bày lại)\"] - (df5.iloc[8][\"Năm nay\"] + df5.iloc[9][\"Năm nay\"] - (df5.iloc[8][\"Năm trước(trình bày lại)\"] + df5.iloc[9][\"Năm trước(trình bày lại)\"])) / (df5.iloc[8][\"Năm trước(trình bày lại)\"] + df5.iloc[9][\"Năm trước(trình bày lại)\"]) > 0)",
+  "solver": "codegen"
+ },
+ "464": {
+  "group": "ok",
+  "query": "df2.iloc[4][\"Ngày 31 tháng 12năm 2015VND\"] / df2.iloc[4][\"Ngày 31 tháng 12năm 2014VND\"] * 100",
+  "solver": "codegen"
+ },
+ "466": {
+  "group": "ok",
+  "query": "(\n    (\n        (df1.iloc[1][\"31/12/2022 VND\"] / df1.iloc[18][\"31/12/2022 VND\"]) < 1.0 and df1.iloc[26][\"31/12/2022 VND\"] > 0\n    ).astype(float) +\n    (\n        (df2.iloc[1][\"Số cuối năm\"] / df2.iloc[0][\"Số cuối năm\"]) < 1.0 and df2.iloc[14][\"Số cuối năm\"] > 0\n    ).astype(float) +\n    (\n        (df3.iloc[0][\"2022 VND\"] / df3.iloc[0][\"2022 VND\"]) < 1.0 and df3.iloc[0][\"2022 VND\"] > 0\n    ).astype(float)\n)",
+  "solver": "codegen"
+ },
+ "468": {
+  "group": "ok",
+  "query": "((df1.iloc[18][\"Năm 2020 VND\"] - df1.iloc[18][\"Năm 2019 VND\"]) / ((df1.iloc[18][\"Năm 2020 VND\"] + df1.iloc[18][\"Năm 2019 VND\"]) / 2) + (df2.iloc[16][\"2020 VND\"] - df3.iloc[18][\"2019 VND\"]) / ((df2.iloc[16][\"2020 VND\"] + df3.iloc[18][\"2019 VND\"]) / 2) + (df5.iloc[20][\"Năm 2020\"] - df5.iloc[20][\"Năm 2019\"]) / ((df5.iloc[20][\"Năm 2020\"] + df5.iloc[20][\"Năm 2019\"]) / 2)) / 3",
+  "solver": "codegen"
+ },
+ "469": {
+  "group": "ok",
+  "query": "(df1.iloc[0][\"Số cuối năm\"] + df1.iloc[17][\"Số cuối năm\"] + df1.iloc[18][\"Số cuối năm\"] + df1.iloc[20][\"Số cuối năm\"] + df1.iloc[21][\"Số cuối năm\"] + df1.iloc[22][\"Số cuối năm\"] + df1.iloc[23][\"Số cuối năm\"] + df1.iloc[24][\"Số cuối năm\"] + df1.iloc[25][\"Số cuối năm\"] + df1.iloc[26][\"Số cuối năm\"] + df1.iloc[27][\"Số cuối năm\"] + df1.iloc[28][\"Số cuối năm\"] + df1.iloc[29][\"Số cuối năm\"] + df1.iloc[30][\"Số cuối năm\"] + df1.iloc[31][\"Số cuối năm\"] + df1.iloc[32][\"Số cuối năm\"] + df1.iloc[33][\"Số cuối năm\"]) / (df3.iloc[1][\"Số cuối năm\"] + df3.iloc[2][\"Số cuối năm\"] + df3.iloc[6][\"Số cuối năm\"] + df3.iloc[7][\"Số cuối năm\"] + df3.iloc[10][\"Số cuối năm\"] + df3.iloc[11][\"Số cuối năm\"] + df3.iloc[14][\"Số cuối năm\"])",
+  "solver": "codegen"
+ },
+ "47": {
+  "group": "ok",
+  "query": "abs(df1.iloc[9]['2017 VND'])",
+  "solver": "raw_table_linker"
+ },
+ "470": {
+  "group": "ok",
+  "query": "(df1.iloc[1][\"31/12/2017\"] - df1.iloc[13][\"31/12/2017\"]) / df1.iloc[1][\"31/12/2017\"] + (df2.iloc[0][\"Số cuối năm\"] - df2.iloc[17][\"Số cuối năm\"]) / df2.iloc[0][\"Số cuối năm\"] + (df3.iloc[0][\"31/12/2017\"] - df3.iloc[12][\"31/12/2017\"]) / df3.iloc[0][\"31/12/2017\"]",
+  "solver": "codegen"
+ },
+ "471": {
+  "group": "ok",
+  "query": "(df1.iloc[2][\"Năm 2016\"] / df1.iloc[18][\"Năm 2016\"]) > 0.1",
+  "solver": "codegen"
+ },
+ "472": {
+  "group": "ok",
+  "query": "df1.iloc[17][\"Năm 2022\"]",
+  "solver": "codegen"
+ },
+ "473": {
+  "group": "ok",
+  "query": "df2.iloc[2][\"2022 VND\"] + df4.iloc[3][\"Unnamed: 4\"]",
+  "solver": "codegen"
+ },
+ "475": {
+  "group": "ok",
+  "query": "df4.iloc[14][\"Tại ngày 31 tháng 12 năm\"] / df4.iloc[14][\"Unnamed: 4\"]",
+  "solver": "codegen"
+ },
+ "476": {
+  "group": "ok",
+  "query": "(df2.iloc[2][\"Năm nay\"] - df1.iloc[2][\"Năm nay\"]) / df1.iloc[2][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "478": {
+  "group": "ok",
+  "query": "(df1.iloc[2][\"2023 VND\"] + df3.iloc[3][\"Năm tài chính kết thúc ngày 31 tháng 12 năm\"] + df4.iloc[3][\"Unnamed: 4\"])",
+  "solver": "codegen"
+ },
+ "479": {
+  "group": "ok",
+  "query": "df1.iloc[12][\"2022 VND\"] / df1.iloc[2][\"2022 VND\"] - df1.iloc[12][\"2021 VND\"] / df1.iloc[2][\"2021 VND\"]",
+  "solver": "codegen"
+ },
+ "48": {
+  "group": "ok",
+  "query": "df1.iloc[0]['2015VND']",
+  "solver": "cell_locator"
+ },
+ "480": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[2][\"Năm nay\"], errors=\"coerce\") / pd.to_numeric(df1.iloc[0][\"Năm nay\"], errors=\"coerce\") - pd.to_numeric(df1.iloc[2][\"Năm trước\"], errors=\"coerce\") / pd.to_numeric(df1.iloc[0][\"Năm trước\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "481": {
+  "group": "ok",
+  "query": "(df1.iloc[2][\"Năm 2022\"] / df1.iloc[18][\"Năm 2022\"] * 100 > 10) & (df2.iloc[2][\"Năm 2023\"] / df2.iloc[18][\"Năm 2023\"] * 100 > 10) & (df4.iloc[2][\"Năm 2024\"] / df4.iloc[18][\"Năm 2024\"] * 100 > 10)",
+  "solver": "codegen"
+ },
+ "482": {
+  "group": "ok",
+  "query": "((df1.iloc[5][\"Năm 2022\"] / df1.iloc[3][\"Năm 2022\"] - df1.iloc[5][\"Năm 2021\"] / df1.iloc[3][\"Năm 2021\"]) + (df2.iloc[5][\"Năm 2021\"] / df2.iloc[3][\"Năm 2021\"] - df2.iloc[5][\"Năm 2020\"] / df2.iloc[3][\"Năm 2020\"]) + (df3.iloc[5][\"Năm 2021\"] / df3.iloc[3][\"Năm 2021\"] - df3.iloc[5][\"Năm 2020\"] / df3.iloc[3][\"Năm 2020\"]) + (df4.iloc[5][\"Năm 2022\"] / df4.iloc[3][\"Năm 2022\"] - df4.iloc[5][\"Năm 2021\"] / df4.iloc[3][\"Năm 2021\"])) / 4 * 100",
+  "solver": "codegen"
+ },
+ "483": {
+  "group": "ok",
+  "query": "((df1.iloc[2][\"Năm nay\"] - df1.iloc[2][\"Unnamed: 5\"]) / df1.iloc[2][\"Unnamed: 5\"] + (df3.iloc[3][\"Năm 2020\"] - df3.iloc[3][\"Năm 2019\"]) / df3.iloc[3][\"Năm 2019\"]) / 2 * 100",
+  "solver": "codegen"
+ },
+ "484": {
+  "group": "ok",
+  "query": "(df1.iloc[3][\"Unnamed: 4\"] - df1.iloc[3][\"Năm tài chính kết thúcngày 31 tháng 12 năm\"]) / df1.iloc[3][\"Năm tài chính kết thúcngày 31 tháng 12 năm\"] * 100",
+  "solver": "codegen"
+ },
+ "485": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "486": {
+  "group": "ok",
+  "query": "(df1.iloc[18][\"Năm 2020 VND\"] + df2.iloc[20][\"Năm 2020\"] + df3.iloc[1][\"31/12/2020\"]) / 3",
+  "solver": "codegen"
+ },
+ "487": {
+  "group": "ok",
+  "query": "(\n    (\n        (df1.iloc[17][\"2020 VND\"] - df1.iloc[1][\"2020 VND\"]) / ((df1.iloc[1][\"2020 VND\"] + df1.iloc[1][\"2019 VND\"]) / 2) * 100\n    ) +\n    (\n        (df2.iloc[20][\"Năm 2020\"] - df2.iloc[1][\"Năm 2020\"]) / ((df2.iloc[1][\"Năm 2020\"] + df2.iloc[1][\"Năm 2019\"]) / 2) * 100\n    ) +\n    (\n        (df3.iloc[2][\"Năm 2020\"] - df3.iloc[1][\"Năm 2020\"]) / ((df3.iloc[1][\"Năm 2020\"] + df3.iloc[1][\"Năm 2019\"]) / 2) * 100\n    )\n) / 3",
+  "solver": "codegen"
+ },
+ "488": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[2][\"Năm 2016\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "49": {
+  "group": "ok",
+  "query": "abs(df1.iloc[3]['Năm 2018'])",
+  "solver": "cell_locator"
+ },
+ "490": {
+  "group": "ok",
+  "query": "df1.iloc[3][\"Năm kết thúc ngày\"] + df2.iloc[12][\"2022VND\"]",
+  "solver": "codegen"
+ },
+ "491": {
+  "group": "ok",
+  "query": "max((df1.iloc[2][\"Năm nay\"] - df1.iloc[2][\"Năm trước\"]) / df1.iloc[2][\"Năm trước\"] * 100, (df3.iloc[2][\"2022 VND\"] - df3.iloc[2][\"2021 VND\"]) / df3.iloc[2][\"2021 VND\"] * 100, (df5.iloc[1][\"Năm nay\"] - df5.iloc[1][\"Năm trước\"]) / df5.iloc[1][\"Năm trước\"] * 100)",
+  "solver": "codegen"
+ },
+ "493": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"2023 VND\"] + df2.iloc[2][\"2021 VND\"] + df3.iloc[3][\"Unnamed: 4\"]",
+  "solver": "codegen"
+ },
+ "494": {
+  "group": "ok",
+  "query": "df1.iloc[18][\"2019 VND\"] / df1.iloc[2][\"2019 VND\"] * 100",
+  "solver": "codegen"
+ },
+ "495": {
+  "group": "ok",
+  "query": "df1.iloc[11][\"31/12/2021 VND\"]",
+  "solver": "codegen"
+ },
+ "496": {
+  "group": "ok",
+  "query": "(df2.iloc[11][\"Số cuối năm\"] + df2.iloc[12][\"Số cuối năm\"] + df2.iloc[13][\"Số cuối năm\"]) / df2.iloc[11][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "497": {
+  "group": "ok",
+  "query": "pd.to_numeric(df3.iloc[5][\"2017VND\"], errors=\"coerce\") / pd.to_numeric(df1.iloc[3][\"31/12/2017VND\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "498": {
+  "group": "ok",
+  "query": "df5.iloc[7][\"31.12.2022Triệu VND\"] + df5.iloc[4][\"31.12.2022Triệu VND\"] + df5.iloc[1][\"31.12.2022Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "499": {
+  "group": "ok",
+  "query": "df5.iloc[1][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "5": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['2017VND'])",
+  "solver": "cell_locator"
+ },
+ "50": {
+  "group": "ok",
+  "query": "df1.iloc[15]['Năm nayTriệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "500": {
+  "group": "ok",
+  "query": "max([df1.iloc[27][\"Unnamed: 4\"] - df2.iloc[27][\"Unnamed: 4\"], df2.iloc[27][\"Unnamed: 4\"] - df5.iloc[12][\"Tổng cộngVND\"], df3.iloc[12][\"Unnamed: 4\"] - df3.iloc[12][\"Tại ngày 31 tháng 12 năm\"], df3.iloc[12][\"Unnamed: 4\"] - df1.iloc[27][\"Unnamed: 4\"]])",
+  "solver": "codegen"
+ },
+ "501": {
+  "group": "ok",
+  "query": "df5.iloc[6][\"31/12/2015\"]",
+  "solver": "codegen"
+ },
+ "502": {
+  "group": "ok",
+  "query": "df3.iloc[6][\"2016VND\"]",
+  "solver": "codegen"
+ },
+ "504": {
+  "group": "ok",
+  "query": "(df2.iloc[19][\"Năm 2025\"] / df2.iloc[19][\"Năm 2025\"]) * 100",
+  "solver": "codegen"
+ },
+ "505": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "507": {
+  "group": "ok",
+  "query": "(df1.iloc[2][\"Số cuối năm\"] / df1.iloc[3][\"Số cuối năm\"]) * 100",
+  "solver": "codegen"
+ },
+ "508": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[12][\"Cho năm tài chính kết thúc ngày 31 tháng 12 năm\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "509": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"Unnamed: 5\"]",
+  "solver": "codegen"
+ },
+ "51": {
+  "group": "ok",
+  "query": "df1.iloc[4]['31/12/2020Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "510": {
+  "group": "ok",
+  "query": "df1.iloc[1][\"Ngày 31 tháng 12năm 2024%/năm\"]",
+  "solver": "codegen"
+ },
+ "511": {
+  "group": "ok",
+  "query": "df1.iloc[9][\"Hợp nhất VND\"] / df2.iloc[2][\"VNDNăm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "514": {
+  "group": "ok",
+  "query": "min([df1.iloc[8][\"2015 VND\"], df2.iloc[9][\"2016 VND\"], df3.iloc[9][\"2018VND\"], df4.iloc[9][\"2019 VND\"], df5.iloc[0][\"31/12/2017VND\"]])",
+  "solver": "codegen"
+ },
+ "516": {
+  "group": "ok",
+  "query": "(df3.iloc[12][\"Tổng cộngTriệu VND\"] - df3.iloc[6][\"Tổng cộngTriệu VND\"]) / df3.iloc[6][\"Tổng cộngTriệu VND\"] * 100",
+  "solver": "codegen"
+ },
+ "517": {
+  "group": "ok",
+  "query": "(df1.iloc[16][\"2017 VND\"] - df1.iloc[16][\"2016 VND\"]) / df1.iloc[16][\"2016 VND\"] * 100",
+  "solver": "codegen"
+ },
+ "518": {
+  "group": "ok",
+  "query": "min(df1.iloc[1][\"Năm nay\"], df2.iloc[0][\"Năm nayTriệu đồng\"], df3.iloc[0][\"Năm nayTriệu đồng\"])",
+  "solver": "codegen"
+ },
+ "519": {
+  "group": "ok",
+  "query": "df5.iloc[1][\"2022VND\"]",
+  "solver": "codegen"
+ },
+ "52": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối nămTriệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "520": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "max(df1.iloc[1][\"Thực phẩm\"], df2.iloc[1][\"Số cuối năm\"], df3.iloc[1][\"1/1/2022Giá trị ghi sổ/Số có khả năng trả nợ VND\"])",
+  "solver": "codegen"
+ },
+ "521": {
+  "group": "ok",
+  "query": "df2.iloc[9][\"Năm nay\"] * 1e-12",
+  "solver": "codegen"
+ },
+ "523": {
+  "group": "cột lạ: mượn từ df khác",
+  "query": "max([df1.iloc[1][\"Số cuối năm\"], df2.iloc[1][\"Số cuối năm\"], df3.iloc[2][\"Số cuối nămVND\"], df4.iloc[4][\"Số cuối năm\"], df5.iloc[1][\"Số cuối năm\"]]) / 1e9",
+  "solver": "codegen"
+ },
+ "524": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"31/12/2017VND\"]",
+  "solver": "codegen"
+ },
+ "525": {
+  "group": "ok",
+  "query": "df1.iloc[11][\"Số dư cuối năm VND\"]",
+  "solver": "codegen"
+ },
+ "526": {
+  "group": "ok",
+  "query": "max(df1.iloc[13][\"Năm nay\"], df2.iloc[13][\"Năm nay\"], df3.iloc[13][\"Năm nay\"])",
+  "solver": "codegen"
+ },
+ "527": {
+  "group": "ok",
+  "query": "df4.iloc[8][\"Số cuối nămVND\"]",
+  "solver": "codegen"
+ },
+ "528": {
+  "group": "ok",
+  "query": "df1.iloc[18][\"Năm nay Triệu đồng\"]",
+  "solver": "codegen"
+ },
+ "529": {
+  "group": "ok",
+  "query": "df3.iloc[8][\"Năm 2024\"]",
+  "solver": "codegen"
+ },
+ "53": {
+  "group": "ok",
+  "query": "df1.iloc[3][\"Giá trị còn lại\"]",
+  "solver": "codegen"
+ },
+ "530": {
+  "group": "ok",
+  "query": "df5.iloc[0][\"Số cuối nămTriệu đồng\"]",
+  "solver": "codegen"
+ },
+ "531": {
+  "group": "ok",
+  "query": "df5.iloc[0][\"2023VND\"]",
+  "solver": "codegen"
+ },
+ "533": {
+  "group": "ok",
+  "query": "max(df5.iloc[2][\"31/12/2020VND\"], df5.iloc[2][\"1/1/2020VND\"]) * 1e-09",
+  "solver": "codegen"
+ },
+ "534": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"2024 VND\"] + df2.iloc[5][\"31/12/2024VND\"] + df3.iloc[6][\"Số cuối nămVND\"]",
+  "solver": "codegen"
+ },
+ "535": {
+  "group": "ok",
+  "query": "df3.iloc[3][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "536": {
+  "group": "ok",
+  "query": "df3.iloc[13][\"Số dư tại31/12/2022VND\"]",
+  "solver": "codegen"
+ },
+ "537": {
+  "group": "ok",
+  "query": "df2.iloc[1][\"31/12/2019\"]",
+  "solver": "codegen"
+ },
+ "538": {
+  "group": "ok",
+  "query": "df1.iloc[8][\"Unnamed: 4\"] if df1.iloc[8][\"Unnamed: 4\"] > 0 else 0",
+  "solver": "codegen"
+ },
+ "54": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31/12/2017Triệu VND']",
+  "solver": "cell_locator"
+ },
+ "540": {
+  "group": "ok",
+  "query": "(df3.iloc[4][\"Năm nay\"] / df3.iloc[2][\"Năm nay\"] - df3.iloc[4][\"Năm trước\"] / df3.iloc[2][\"Năm trước\"]) * 100",
+  "solver": "codegen"
+ },
+ "541": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[2][\"Năm 2023\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "542": {
+  "group": "ok",
+  "query": "(df1.iloc[4][\"Năm nay\"] / df1.iloc[2][\"Năm nay\"] - df1.iloc[4][\"Năm trước\"] / df1.iloc[2][\"Năm trước\"])",
+  "solver": "codegen"
+ },
+ "543": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"2024 VND\"] / df1.iloc[3][\"2024 VND\"]",
+  "solver": "codegen"
+ },
+ "544": {
+  "group": "ok",
+  "query": "df4.iloc[7][\"Số cuối năm\"] / df4.iloc[1][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "546": {
+  "group": "ok",
+  "query": "(df1.iloc[18][\"Năm 2020 VND\"] + df2.iloc[20][\"Năm 2020\"] + df3.iloc[10][\"31/12/2020\"]) / (df1.iloc[18][\"Năm 2020 VND\"] / df3.iloc[10][\"31/12/2020\"] + df2.iloc[20][\"Năm 2020\"] / df3.iloc[10][\"31/12/2020\"] + df3.iloc[10][\"31/12/2020\"] / df3.iloc[10][\"31/12/2020\"])",
+  "solver": "codegen"
+ },
+ "549": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"2021 Nghìn VND\"]",
+  "solver": "codegen"
+ },
+ "55": {
+  "group": "ok",
+  "query": "df1.iloc[21][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "550": {
+  "group": "ok",
+  "query": "(df1.iloc[1][\"Tại ngày\"] / df3.iloc[2][\"Tại ngày\"] + df2.iloc[15][\"Năm 2024 VND\"] / df2.iloc[2][\"Năm 2024 VND\"] + df2.iloc[15][\"Năm 2023 VND\"] / df2.iloc[2][\"Năm 2023 VND\"]) / 3",
+  "solver": "codegen"
+ },
+ "551": {
+  "group": "ok",
+  "query": "df1.iloc[18][\"Năm 2024\"]",
+  "solver": "codegen"
+ },
+ "552": {
+  "group": "ok",
+  "query": "df3.iloc[1][\"Sản xuất và kinh doanh thép VND\"] + df3.iloc[1][\"Nông nghiệp VND\"] + df3.iloc[1][\"Bất động sản VND\"]",
+  "solver": "codegen"
+ },
+ "554": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"Năm trước\"]",
+  "solver": "codegen"
+ },
+ "555": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"Năm 2022\"] / df1.iloc[18][\"Năm 2022\"] * 100",
+  "solver": "codegen"
+ },
+ "556": {
+  "group": "ok",
+  "query": "(df1.iloc[5][\"Năm tài chính kết thúc ngày\"] / df1.iloc[3][\"Năm tài chính kết thúc ngày\"] - df1.iloc[4][\"Năm tài chính kết thúc ngày\"] / df1.iloc[3][\"Unnamed: 4\"]) - (df1.iloc[5][\"Unnamed: 4\"] / df1.iloc[3][\"Unnamed: 4\"] - df1.iloc[4][\"Unnamed: 4\"] / df1.iloc[3][\"Unnamed: 4\"])",
+  "solver": "codegen"
+ },
+ "557": {
+  "group": "ok",
+  "query": "((df2.iloc[2][\"Năm nay\"] - df2.iloc[2][\"Năm trước\"]) / df2.iloc[2][\"Năm nay\"] - (df2.iloc[4][\"Năm nay\"] - df2.iloc[4][\"Năm trước\"]) / df2.iloc[4][\"Năm nay\"] + (df4.iloc[2][\"Năm 2021\"] - df4.iloc[4][\"Năm 2021\"]) / df4.iloc[2][\"Năm 2021\"] - (df4.iloc[4][\"Năm 2021\"] - df4.iloc[4][\"Năm 2021\"]) / df4.iloc[4][\"Năm 2021\"]) / 4",
+  "solver": "codegen"
+ },
+ "558": {
+  "group": "ok",
+  "query": "(\n    (df1.iloc[4][\"2024 VND\"] / df1.iloc[2][\"2024 VND\"] - df1.iloc[4][\"2023 VND\"] / df1.iloc[2][\"2023 VND\"]) +\n    (df4.iloc[1][\"Unnamed: 2\"] / df4.iloc[1][\"Unnamed: 2\"] - df5.iloc[1][\"Unnamed: 2\"] / df5.iloc[1][\"Unnamed: 2\"]) +\n    (df2.iloc[4][\"2024Nghìn VND\"] / df2.iloc[2][\"2024Nghìn VND\"] - df2.iloc[4][\"2023Nghìn VND\"] / df2.iloc[2][\"2023Nghìn VND\"]) +\n    (df3.iloc[1][\"2025VND\"] / df3.iloc[1][\"2025VND\"] - df3.iloc[1][\"2024VND\"] / df3.iloc[1][\"2024VND\"])\n)",
+  "solver": "codegen"
+ },
+ "559": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[3][\"Năm 2019\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "56": {
+  "group": "ok",
+  "query": "abs(df1.iloc[1]['2020VND'])",
+  "solver": "raw_table_linker"
+ },
+ "560": {
+  "group": "ok",
+  "query": "((df2.iloc[17][\"Năm 2021\"] > 0) and (df2.iloc[17][\"Năm 2020\"] > 0)) and ((df4.iloc[18][\"Năm 2021\"] > 0) and (df4.iloc[18][\"Năm 2020\"] > 0)) and ((df1.iloc[3][\"Số liệu năm 2021\"] > 0) and (df1.iloc[3][\"Số liệu năm 2020\"] > 0)) and ((df1.iloc[7][\"Số liệu năm 2021\"] > 0) and (df1.iloc[7][\"Số liệu năm 2020\"] > 0))",
+  "solver": "codegen"
+ },
+ "561": {
+  "group": "ok",
+  "query": "df2.iloc[2][\"Năm nay\"] / df2.iloc[17][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "562": {
+  "group": "ok",
+  "query": "df2.iloc[2][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "563": {
+  "group": "ok",
+  "query": "((df1.iloc[1][\"Năm 2020\"] > df1.iloc[1][\"Năm 2019\"]) & (df3.iloc[4][\"Năm nay\"] < df3.iloc[4][\"Năm trước (Trình bày lại)\"])) + ((df2.iloc[1][\"Báo cáo hợp nhất\"] > df1.iloc[1][\"Năm 2020\"]) & (df3.iloc[4][\"Năm nay\"] < df3.iloc[4][\"Năm trước (Trình bày lại)\"])) + ((df2.iloc[1][\"Báo cáo hợp nhất\"] > df1.iloc[1][\"Năm 2020\"]) & (df3.iloc[4][\"Năm nay\"] < df3.iloc[4][\"Năm trước (Trình bày lại)\"]))",
+  "solver": "codegen"
+ },
+ "564": {
+  "group": "ok",
+  "query": "(df1.iloc[18][\"Năm 2020 VND\"] / df3.iloc[10][\"31/12/2020\"] + df2.iloc[20][\"Năm 2020\"] / df3.iloc[10][\"31/12/2020\"]) / 2",
+  "solver": "codegen"
+ },
+ "565": {
+  "group": "ok",
+  "query": "((df1.iloc[18][\"Năm 2020 VND\"] - df1.iloc[18][\"Năm 2019 VND\"]) / ((df1.iloc[18][\"Năm 2020 VND\"] + df1.iloc[18][\"Năm 2019 VND\"]) / 2)) + ((df2.iloc[16][\"2020 VND\"] - df2.iloc[16][\"2019 VND\"]) / ((df2.iloc[16][\"2020 VND\"] + df2.iloc[16][\"2019 VND\"]) / 2)) + ((df4.iloc[19][\"Năm nay\"] - df4.iloc[19][\"Năm trước\"]) / ((df4.iloc[19][\"Năm nay\"] + df4.iloc[19][\"Năm trước\"]) / 2))",
+  "solver": "codegen"
+ },
+ "566": {
+  "group": "ok",
+  "query": "((df1.iloc[13]['31/12/2017']) / (df2.iloc[1]['31/12/2017']) + (df3.iloc[12]['Số cuối năm']) / (df4.iloc[1]['Số cuối năm']) + (df5.iloc[18]['Số cuối năm']) / (df6.iloc[1]['Số cuối năm']) + (df7.iloc[14]['31/12/2017']) / (df8.iloc[2]['31/12/2017'])) / 4",
+  "solver": "raw_table_linker"
+ },
+ "567": {
+  "group": "ok",
+  "query": "(df1.iloc[2][\"Năm 2016\"] * df1.iloc[18][\"Năm 2016\"] / df1.iloc[2][\"Năm 2016\"] > 0.1) * df1.iloc[2][\"Năm 2016\"] + (df2.iloc[2][\"Năm nay\"] * df2.iloc[18][\"Năm nay\"] / df2.iloc[2][\"Năm nay\"] > 0.1) * df2.iloc[2][\"Năm nay\"] + (df3.iloc[2][\"Năm nay\"] * df3.iloc[16][\"Năm nay\"] / df3.iloc[2][\"Năm nay\"] > 0.1) * df3.iloc[2][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "568": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"2022 VND\"] + df2.iloc[1][\"Unnamed: 4\"] + df3.iloc[1][\"Hợp nhất VND\"] + df4.iloc[1][\"Hợp nhất VND\"]",
+  "solver": "codegen"
+ },
+ "569": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[5][\"Unnamed: 4\"], errors=\"coerce\") / pd.to_numeric(df1.iloc[3][\"Unnamed: 4\"], errors=\"coerce\") - pd.to_numeric(df1.iloc[18][\"Unnamed: 4\"], errors=\"coerce\") / pd.to_numeric(df1.iloc[3][\"Unnamed: 4\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "57": {
+  "group": "ok",
+  "query": "df1.iloc[3]['1/1/2021']",
+  "solver": "raw_table_linker"
+ },
+ "570": {
+  "group": "ok",
+  "query": "(df1.iloc[4][\"2022 Nghìn VND\"] / df1.iloc[2][\"2022 Nghìn VND\"] - df1.iloc[4][\"2021 Nghìn VND\"] / df1.iloc[2][\"2021 Nghìn VND\"]) * 100",
+  "solver": "codegen"
+ },
+ "571": {
+  "group": "ok",
+  "query": "(df2.iloc[9][\"2022 VND\"] + df2.iloc[10][\"2022 VND\"] - (df1.iloc[9][\"2021 VND\"] + df1.iloc[10][\"2021 VND\"])) / (df1.iloc[9][\"2021 VND\"] + df1.iloc[10][\"2021 VND\"]) * 100",
+  "solver": "codegen"
+ },
+ "572": {
+  "group": "ok",
+  "query": "(df3.iloc[6][\"Năm nay\"] > 0) and (df4.iloc[7][\"Năm nay\"] > 0) and (df1.iloc[18][\"Năm 2024\"] > 0)",
+  "solver": "codegen"
+ },
+ "573": {
+  "group": "ok",
+  "query": "max(\n    (df1.iloc[2][\"2021 VND\"] / df1.iloc[2][\"2020 VND\"] - 1),\n    (df2.iloc[2][\"2023 Nghìn VND\"] / df2.iloc[2][\"2022 Nghìn VND\"] - 1),\n    (df3.iloc[3][\"Unnamed: 4\"] / df3.iloc[3][\"Năm tài chính kết thúcngày 31 tháng 12 năm\"] - 1),\n    (df4.iloc[1][\"Sản xuất và kinh doanh thép VND\"] / df5.iloc[1][\"Sản xuất và kinh doanh thép VND\"] - 1)\n)",
+  "solver": "codegen"
+ },
+ "574": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"Báo cáo hợp nhất Consolidated financial statements\"] / df1.iloc[0][\"Báo cáo hợp nhất Consolidated financial statements\"] * 100",
+  "solver": "codegen"
+ },
+ "575": {
+  "group": "ok",
+  "query": "(df2.iloc[2][\"2023 VND\"] * 365 * (df2.iloc[2][\"2023 VND\"] - df2.iloc[3][\"2023 VND\"]) / df2.iloc[3][\"2023 VND\"] - df2.iloc[2][\"2022 VND\"] * 365 * (df2.iloc[2][\"2022 VND\"] - df2.iloc[3][\"2022 VND\"]) / df2.iloc[3][\"2022 VND\"]) / (df2.iloc[2][\"2022 VND\"] * 365 * (df2.iloc[2][\"2022 VND\"] - df2.iloc[3][\"2022 VND\"]) / df2.iloc[3][\"2022 VND\"]) * 100",
+  "solver": "codegen"
+ },
+ "576": {
+  "group": "ok",
+  "query": "(df3.iloc[2][\"Năm nay\"] - df3.iloc[2][\"Năm trước\"]) / df3.iloc[2][\"Năm trước\"]",
+  "solver": "codegen"
+ },
+ "577": {
+  "group": "ok",
+  "query": "df1.iloc[2][\"Năm 2022\"]",
+  "solver": "codegen"
+ },
+ "578": {
+  "group": "ok",
+  "query": "df2.iloc[7][\"Số cuối năm\"] - df3.iloc[8][\"Số đầu năm\"]",
+  "solver": "codegen"
+ },
+ "579": {
+  "group": "ok",
+  "query": "(df3.iloc[0][\"Năm nay\"] - df2.iloc[0][\"Năm nay\"]) / df2.iloc[0][\"Năm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "58": {
+  "group": "ok",
+  "query": "df1.iloc[9][\"31/12/2023 VND\"] / 1e6",
+  "solver": "codegen"
+ },
+ "580": {
+  "group": "ok",
+  "query": "abs(df1.iloc[17]['Năm nay']) - abs(df2.iloc[17]['Năm nay'])",
+  "solver": "raw_table_linker"
+ },
+ "581": {
+  "group": "ok",
+  "query": "df4.iloc[19][\"Đơn vị tính: VND Tổng cộng\"] - df5.iloc[9][\"Đơn vị tính: VND Tổng cộng\"]",
+  "solver": "codegen"
+ },
+ "582": {
+  "group": "ok",
+  "query": "(df3.iloc[1][\"31/12/2023Giá trị ghi sổ/Số có khả năngtrả nợVND\"] - df5.iloc[1][\"31/12/2021Giá trị ghi sổ/Số có khả năngtrả nợVND\"]) / df5.iloc[1][\"31/12/2021Giá trị ghi sổ/Số có khả năngtrả nợVND\"] * 100",
+  "solver": "codegen"
+ },
+ "583": {
+  "group": "ok",
+  "query": "(df4.iloc[13][\"Tổng cộng VND\"] - df3.iloc[11][\"Tổng cộng VND\"]) / df3.iloc[11][\"Tổng cộng VND\"] * 100",
+  "solver": "codegen"
+ },
+ "585": {
+  "group": "ok",
+  "query": "(df4.iloc[4][\"Quỹdự phòngtài chínhTriệu đồng\"] - df3.iloc[1][\"Số cuối nămTriệu đồng\"]) / df3.iloc[1][\"Số cuối nămTriệu đồng\"] * 100",
+  "solver": "codegen"
+ },
+ "587": {
+  "group": "ok",
+  "query": "(df4.iloc[1][\"Số cuối nămTriệu đồng\"] - df2.iloc[1][\"Số cuối nămTriệu đồng\"]) / df2.iloc[1][\"Số cuối nămTriệu đồng\"] * 100",
+  "solver": "codegen"
+ },
+ "588": {
+  "group": "ok",
+  "query": "df1.iloc[11][\"31/12/2023 VND\"] - df5.iloc[10][\"31/12/2019 VND\"]",
+  "solver": "codegen"
+ },
+ "589": {
+  "group": "ok",
+  "query": "df4.iloc[7][\"Năm nay\"] - df5.iloc[10][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "59": {
+  "group": "ok",
+  "query": "df1.iloc[13]['31/12/2017 Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "590": {
+  "group": "ok",
+  "query": "df5.iloc[1][\"31/12/2021\"] - df5.iloc[1][\"01/01/2021\"]",
+  "solver": "codegen"
+ },
+ "591": {
+  "group": "ok",
+  "query": "df4.iloc[2][\"Chưa quá hạn và chưa phải lập dự phòng\"] - df5.iloc[2][\"Chưa quá hạn và chưa phải lập dự phòng\"]",
+  "solver": "codegen"
+ },
+ "592": {
+  "group": "ok",
+  "query": "df1.iloc[13][\"31/12/2024 Triệu VND\"] - df2.iloc[13][\"Số đầu năm (Trình bày lại)\"]",
+  "solver": "codegen"
+ },
+ "593": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm nay'] - df2.iloc[4]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "594": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df5.iloc[2][\"Số cuối năm\"] - df4.iloc[2][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "595": {
+  "group": "ok",
+  "query": "df1.iloc[10]['Số cuối năm'] - df2.iloc[17]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "596": {
+  "group": "ok",
+  "query": "(df4.iloc[3][\"31/12/2024\"] - df4.iloc[3][\"Unnamed: 6\"]) / df4.iloc[3][\"Unnamed: 6\"] * 100",
+  "solver": "codegen"
+ },
+ "597": {
+  "group": "ok",
+  "query": "(df2.iloc[10][\"31/12/2021\"] - df1.iloc[12][\"31/12/2022\"]) / df2.iloc[10][\"31/12/2021\"] * 100",
+  "solver": "codegen"
+ },
+ "598": {
+  "group": "ok",
+  "query": "(df3.iloc[14][\"Số cuối năm\"] - df5.iloc[12][\"Số cuối năm\"]) / df5.iloc[12][\"Số cuối năm\"] * 100",
+  "solver": "codegen"
+ },
+ "599": {
+  "group": "ok",
+  "query": "abs(df1.iloc[3]['Năm nay']) - abs(df2.iloc[3]['Năm nay'])",
+  "solver": "raw_table_linker"
+ },
+ "6": {
+  "group": "ok",
+  "query": "df1.iloc[18]['2017 VND']",
+  "solver": "cell_locator"
+ },
+ "60": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"Năm 2022VND\"]",
+  "solver": "codegen"
+ },
+ "600": {
+  "group": "ok",
+  "query": "df2.iloc[3][\"Unnamed: 4\"] - df3.iloc[3][\"Unnamed: 4\"]",
+  "solver": "codegen"
+ },
+ "601": {
+  "group": "ok",
+  "query": "df2.iloc[5][\"Số cuối năm\"] - df4.iloc[5][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "602": {
+  "group": "ok",
+  "query": "df5.iloc[0][\"Số cuối nămTriệu đồng\"] - df4.iloc[0][\"Số cuối nămTriệu đồng\"]",
+  "solver": "codegen"
+ },
+ "603": {
+  "group": "ok",
+  "query": "abs(df1.iloc[5]['31/12/2025VND']) - abs(df2.iloc[5]['31/12/2024VND'])",
+  "solver": "raw_table_linker"
+ },
+ "605": {
+  "group": "ok",
+  "query": "(df5.iloc[3][\"Số cuối năm\"] - df5.iloc[3][\"VND Số đầu năm\"]) / df5.iloc[3][\"VND Số đầu năm\"] * 100",
+  "solver": "codegen"
+ },
+ "606": {
+  "group": "ok",
+  "query": "(df2.iloc[1][\"31/12/2023Giá trị ghi sổ/Số có khả năngtrả nợVND\"] - df3.iloc[1][\"31/12/2020Giá trị ghi sổ/Số có khả năng trả nợ VND\"] / df3.iloc[1][\"31/12/2020Giá trị ghi sổ/Số có khả năng trả nợ VND\"]) * 100",
+  "solver": "codegen"
+ },
+ "607": {
+  "group": "ok",
+  "query": "abs(df1.iloc[16]['Năm nay']) - abs(df2.iloc[0]['Năm nay'])",
+  "solver": "raw_table_linker"
+ },
+ "608": {
+  "group": "ok",
+  "query": "(df3.iloc[16][\"Tổng VND\"] - df2.iloc[19][\"Tổng VND\"]) * 1e-6",
+  "solver": "codegen"
+ },
+ "609": {
+  "group": "ok",
+  "query": "(df5.iloc[14][\"31.12.2025Triệu VND\"] - df2.iloc[14][\"31.12.2022Triệu VND\"]) / df2.iloc[14][\"31.12.2022Triệu VND\"] * 100",
+  "solver": "codegen"
+ },
+ "61": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "610": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['2020VND']) - abs(df2.iloc[0]['2021VND'])",
+  "solver": "raw_table_linker"
+ },
+ "611": {
+  "group": "ok",
+  "query": "df1.iloc[18]['Trong hạn'] - df2.iloc[18]['Trong hạn']",
+  "solver": "raw_table_linker"
+ },
+ "612": {
+  "group": "ok",
+  "query": "(df1.iloc[9][\"Tại ngày 31 tháng 12 năm\"] - df1.iloc[9][\"Unnamed: 4\"]) / df1.iloc[9][\"Unnamed: 4\"] * 100",
+  "solver": "codegen"
+ },
+ "613": {
+  "group": "ok",
+  "query": "df5.iloc[7][\"Năm nay\"] - df1.iloc[7][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "614": {
+  "group": "ok",
+  "query": "(df4.iloc[3][\"Năm nay\"] - df3.iloc[3][\"Năm nay\"]) / df3.iloc[3][\"Năm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "615": {
+  "group": "ok",
+  "query": "(df5.iloc[0][\"Số cuối năm\"] - df4.iloc[0][\"Số cuối năm\"]) / df4.iloc[0][\"Số cuối năm\"] * 100",
+  "solver": "codegen"
+ },
+ "616": {
+  "group": "ok",
+  "query": "df5.iloc[15][\"TổngVND\"] - df4.iloc[14][\"Tổng VND\"]",
+  "solver": "codegen"
+ },
+ "617": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df3.iloc[13][\"Tổng cộng\"] - df5.iloc[13][\"Tổng cộng\"]) / df5.iloc[13][\"Tổng cộng\"] * 100",
+  "solver": "codegen"
+ },
+ "618": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối nămTriệu đồng'] - df2.iloc[0]['31/12/2018Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "619": {
+  "group": "ok",
+  "query": "df1.iloc[19]['Số cuối năm'] - df2.iloc[19]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "62": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31/12/2022triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "620": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df2.iloc[2][\"2025 Nghìn VND\"] - df5.iloc[1][\"Tổng\"]) / df5.iloc[1][\"Tổng\"] * 100",
+  "solver": "codegen"
+ },
+ "621": {
+  "group": "ok",
+  "query": "df5.iloc[0][\"Năm 2024VND\"] - df4.iloc[1][\"2021VND\"]",
+  "solver": "codegen"
+ },
+ "622": {
+  "group": "ok",
+  "query": "df5.iloc[12][\"Số đầu năm\"] - df4.iloc[12][\"Số đầu năm\"]",
+  "solver": "codegen"
+ },
+ "623": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[2]['31/12/2023'] - df2.iloc[3]['31/12/2022']",
+  "solver": "raw_table_linker"
+ },
+ "624": {
+  "group": "ok",
+  "query": "df5.iloc[1][\"Số đầu nămTriệu đồng\"] - df5.iloc[1][\"Số cuối nămTriệu đồng\"]",
+  "solver": "codegen"
+ },
+ "625": {
+  "group": "ok",
+  "query": "df2.iloc[9][\"Số cuối năm\"] - df2.iloc[9][\"Số đầu năm\"]",
+  "solver": "codegen"
+ },
+ "626": {
+  "group": "ok",
+  "query": "(df4.iloc[1][\"Ngày 31 tháng 12 năm 2020 VND\"] - df5.iloc[1][\"Ngày 31 tháng 12 năm 2018 VND\"]) / df5.iloc[1][\"Ngày 31 tháng 12 năm 2018 VND\"] * 100",
+  "solver": "codegen"
+ },
+ "627": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Số cuối nămVND'] - df2.iloc[2]['Số cuối nămVND']",
+  "solver": "raw_table_linker"
+ },
+ "628": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số cuối năm'] - df2.iloc[0]['Số cuối nămVND']",
+  "solver": "raw_table_linker"
+ },
+ "629": {
+  "group": "ok",
+  "query": "(df4.iloc[3][\"Số cuối năm\"] - df5.iloc[3][\"Số cuối năm\"]) / df5.iloc[3][\"Số cuối năm\"] * 100",
+  "solver": "codegen"
+ },
+ "63": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "630": {
+  "group": "ok",
+  "query": "df1.iloc[11]['Năm nay'] - df2.iloc[11]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "631": {
+  "group": "ok",
+  "query": "(df3.iloc[8][\"Năm nay\"] - df2.iloc[8][\"Năm nay\"]) / df2.iloc[8][\"Năm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "632": {
+  "group": "ok",
+  "query": "(df1.iloc[1][\"Tập đoàn\"] - df1.iloc[1][\"Công tv\"]) / df1.iloc[1][\"Công tv\"] * 100",
+  "solver": "codegen"
+ },
+ "633": {
+  "group": "ok",
+  "query": "((df1.iloc[8]['31/12/2015']) / (df2.iloc[32]['31/12/2015'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "634": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Số cuối nămTriệu đồng'] - df2.iloc[1]['31/12/2018Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "635": {
+  "group": "ok",
+  "query": "(df2.iloc[8][\"Số cuối năm Triệu đồng\"] + df2.iloc[28][\"Số cuối năm Triệu đồng\"] + df2.iloc[29][\"Số cuối năm Triệu đồng\"]) - (df1.iloc[10][\"Số cuối năm Triệu đồng\"] + df1.iloc[32][\"Số cuối năm Triệu đồng\"] + df1.iloc[33][\"Số cuối năm Triệu đồng\"])",
+  "solver": "codegen"
+ },
+ "636": {
+  "group": "ok",
+  "query": "df1.iloc[12][\"Số cuối năm\"] - df2.iloc[12][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "637": {
+  "group": "ok",
+  "query": "((df1.iloc[4]['Năm nay']) / (df1.iloc[2]['Năm nay'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "638": {
+  "group": "ok",
+  "query": "(df5.iloc[1][\"Số cuối năm\"] - df3.iloc[1][\"Số đầu năm\"]) / df3.iloc[1][\"Số đầu năm\"] * 100",
+  "solver": "codegen"
+ },
+ "639": {
+  "group": "ok",
+  "query": "(df5.iloc[6][\"31/12/2020\"] - df5.iloc[6][\"01/01/2020\"]) / df5.iloc[6][\"01/01/2020\"] * 100",
+  "solver": "codegen"
+ },
+ "64": {
+  "group": "ok",
+  "query": "df1.iloc[33]['Số cuối năm Triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "640": {
+  "group": "ok",
+  "query": "(df4.iloc[0][\"Năm 2021\"] - df5.iloc[0][\"Năm 2020\"]) / df5.iloc[0][\"Năm 2020\"] * 100",
+  "solver": "codegen"
+ },
+ "641": {
+  "group": "ok",
+  "query": "df2.iloc[2][\"Số phải nộp trong kỳ\"] - df3.iloc[2][\"Số phải nộp trong kỳ\"]",
+  "solver": "codegen"
+ },
+ "642": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"Số đầu nămTriệu đồng\"] - df3.iloc[0][\"Số cuối nămTriệu đồng\"]",
+  "solver": "codegen"
+ },
+ "643": {
+  "group": "ok",
+  "query": "df2.iloc[7][\"Số cuối năm\"] - df4.iloc[7][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "644": {
+  "group": "ok",
+  "query": "(df3.iloc[1][\"Năm nayVND\"] - df3.iloc[1][\"Năm trướcVND\"]) / df3.iloc[1][\"Năm trướcVND\"] * 100",
+  "solver": "codegen"
+ },
+ "645": {
+  "group": "ok",
+  "query": "(df1.iloc[8][\"Giá trị ghi sổ\"] - df4.iloc[8][\"Giá trị ghi số VND\"]) / df4.iloc[8][\"Giá trị ghi số VND\"] * 100",
+  "solver": "codegen"
+ },
+ "646": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Năm 2021'] - df2.iloc[1]['Năm 2020']",
+  "solver": "raw_table_linker"
+ },
+ "647": {
+  "group": "ok",
+  "query": "(df3.iloc[6][\"Tổng cộngTriệu VND\"] - df4.iloc[6][\"Tổng cộngTriệu VND\"]) / df4.iloc[6][\"Tổng cộngTriệu VND\"] * 100",
+  "solver": "codegen"
+ },
+ "648": {
+  "group": "ok",
+  "query": "(df4.iloc[4][\"Năm 2023\"] - df4.iloc[4][\"Năm 2022\"]) / df4.iloc[4][\"Năm 2022\"] * 100",
+  "solver": "codegen"
+ },
+ "649": {
+  "group": "ok",
+  "query": "df1.iloc[35][\"Tại ngày\"] - df5.iloc[0][\"30/9/2021VND\"]",
+  "solver": "codegen"
+ },
+ "65": {
+  "group": "ok",
+  "query": "df3.iloc[6][\"31/12/2016Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "650": {
+  "group": "ok",
+  "query": "(df2.iloc[5][\"Năm nay\"] - df3.iloc[5][\"Năm nay\"]) / df3.iloc[5][\"Năm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "651": {
+  "group": "ok",
+  "query": "(df1.iloc[7][\"2017 VND\"] - df4.iloc[7][\"2017 VND\"]) / df4.iloc[7][\"2017 VND\"] * 100",
+  "solver": "codegen"
+ },
+ "652": {
+  "group": "ok",
+  "query": "df1.iloc[0]['VND Số cuối năm'] - df2.iloc[1]['VND Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "653": {
+  "group": "ok",
+  "query": "df1.iloc[18]['Số cuối năm'] - df2.iloc[18]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "654": {
+  "group": "ok",
+  "query": "df5.iloc[0][\"2017VND\"] - df5.iloc[0][\"2016VND\"]",
+  "solver": "codegen"
+ },
+ "655": {
+  "group": "ok",
+  "query": "(df2.iloc[10][\"Năm nay\"] - df2.iloc[10][\"Năm trước\"]) / df2.iloc[10][\"Năm trước\"] * 100",
+  "solver": "codegen"
+ },
+ "656": {
+  "group": "ok",
+  "query": "((df1.iloc[4]['Tại ngày']) / (df1.iloc[38]['Tại ngày'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "657": {
+  "group": "ok",
+  "query": "df1.iloc[17][\"Năm nay\"] / df3.iloc[4][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "658": {
+  "group": "ok",
+  "query": "((df1.iloc[8]['2024 VND']) / (df2.iloc[1]['2024'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "659": {
+  "group": "ok",
+  "query": "df2.iloc[2][\"2024 VND\"] / df2.iloc[0][\"2024 VND\"] * 100",
+  "solver": "codegen"
+ },
+ "660": {
+  "group": "ok",
+  "query": "(df2.iloc[0][\"Số cuối năm\"] + df2.iloc[1][\"Số cuối năm\"] + df2.iloc[2][\"Số cuối năm\"] + df2.iloc[3][\"Số cuối năm\"] + df2.iloc[4][\"Số cuối năm\"] + df2.iloc[5][\"Số cuối năm\"] + df2.iloc[6][\"Số cuối năm\"] + df2.iloc[7][\"Số cuối năm\"]) / df1.iloc[33][\"Số cuối năm\"] * 100",
+  "solver": "codegen"
+ },
+ "661": {
+  "group": "ok",
+  "query": "((df1.iloc[1]['2021 VND']) / (df2.iloc[5]['31/12/2021 VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "663": {
+  "group": "ok",
+  "query": "(((df1.iloc[9]['Số cuối năm'] + df1.iloc[14]['Số cuối năm'])) / (df2.iloc[41]['Số cuối năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "664": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[14]['Cộng'])) / (abs(df2.iloc[24]['31/12/2024 VND']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "665": {
+  "group": "ok",
+  "query": "((df1.iloc[9]['Tại ngày 31 tháng 12 năm']) / (df1.iloc[25]['Tại ngày 31 tháng 12 năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "666": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "667": {
+  "group": "ok",
+  "query": "((df1.iloc[4]['TổngcộngTriệu đồng']) / (df2.iloc[10]['Đơn vị: Triệu đồng Tổng cộng'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "668": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df3.iloc[5][\"Năm 2023\"] / df2.iloc[5][\"Lợi nhuận chưa phân phối\"] * 100",
+  "solver": "codegen"
+ },
+ "669": {
+  "group": "ok",
+  "query": "(((df1.iloc[0]['31/12/2019'] + df1.iloc[1]['31/12/2019'] + df1.iloc[2]['31/12/2019'] + df1.iloc[3]['31/12/2019'] + df1.iloc[4]['31/12/2019'] + df1.iloc[5]['31/12/2019'])) / (df2.iloc[2]['Đơn vị tính: VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "670": {
+  "group": "ok",
+  "query": "((df1.iloc[1]['Số đầu năm']) / (df2.iloc[17]['Cộng'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "671": {
+  "group": "ok",
+  "query": "(((abs(df1.iloc[0]['Năm 2020triệu đồng']) + abs(df2.iloc[2]['Năm 2020triệu đồng']) + abs(df1.iloc[1]['Năm 2020triệu đồng']))) / (abs(df3.iloc[17]['Năm 2020 triệu đồng']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "672": {
+  "group": "ok",
+  "query": "(abs(df1.iloc[22]['31/12/2022 VND'])) / (abs(df2.iloc[13]['31/12/2022 VND']))",
+  "solver": "raw_table_linker"
+ },
+ "673": {
+  "group": "ok",
+  "query": "((df1.iloc[0]['31/12/2025']) / (df2.iloc[10]['31/12/2025'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "675": {
+  "group": "ok",
+  "query": "((df1.iloc[10]['31/12/2021 VND']) / (df2.iloc[15]['31/12/2021 VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "676": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[1]['2017Triệu VND'])) / (abs(df2.iloc[15]['2017Triệu VND']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "677": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm 2017']",
+  "solver": "cell_locator"
+ },
+ "679": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "68": {
+  "group": "ok",
+  "query": "df1.iloc[16]['Năm 2023 triệu đồng']",
+  "solver": "cell_locator"
+ },
+ "680": {
+  "group": "ok",
+  "query": "((df1.iloc[0]['Năm 2024']) / (df2.iloc[5]['Năm 2024 VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "681": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "682": {
+  "group": "ok",
+  "query": "df1.iloc[14][\"Năm kết thúc ngày\"] / 1e6",
+  "solver": "codegen"
+ },
+ "683": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm 2015']",
+  "solver": "cell_locator"
+ },
+ "684": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[0]['31/12/2016Triệu VND'])) / (abs(df2.iloc[10]['31/12/2016Triệu VND']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "685": {
+  "group": "ok",
+  "query": "(((df1.iloc[1]['31/12/2025Triệu VND'] + df1.iloc[3]['31/12/2025Triệu VND'])) / (df2.iloc[13]['31/12/2025Triệu VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "687": {
+  "group": "ok",
+  "query": "((df1.iloc[22]['Tại ngày 31 tháng 12 năm']) / (df1.iloc[36]['Tại ngày 31 tháng 12 năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "688": {
+  "group": "ok",
+  "query": "((df1.iloc[11]['Số cuối năm']) / (df2.iloc[29]['Số cuối năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "689": {
+  "group": "ok",
+  "query": "(df4.iloc[1][\"Tài sản\"] + df4.iloc[2][\"Tài sản\"] + df4.iloc[3][\"Tài sản\"] + df4.iloc[4][\"Tài sản\"] + df4.iloc[5][\"Tài sản\"] - (df5.iloc[1][\"Tài sản\"] + df5.iloc[2][\"Tài sản\"] + df5.iloc[3][\"Tài sản\"] + df5.iloc[4][\"Tài sản\"] + df5.iloc[5][\"Tài sản\"])) / (df5.iloc[1][\"Tài sản\"] + df5.iloc[2][\"Tài sản\"] + df5.iloc[3][\"Tài sản\"] + df5.iloc[4][\"Tài sản\"] + df5.iloc[5][\"Tài sản\"]) * 100",
+  "solver": "codegen"
+ },
+ "69": {
+  "group": "ok",
+  "query": "df1.iloc[5]['31/12/2019Triệu VND']",
+  "solver": "cell_locator"
+ },
+ "690": {
+  "group": "ok",
+  "query": "(df1.iloc[8][\"Số cuối năm\"] + df1.iloc[12][\"Số cuối năm\"]) / (df2.iloc[0][\"Số cuối năm\"] + df2.iloc[1][\"Số cuối năm\"])",
+  "solver": "codegen"
+ },
+ "691": {
+  "group": "ok",
+  "query": "df3.iloc[1][\"Năm nay\"] / df2.iloc[1][\"Kinh doanh hàng hóa sản xuất trong nước VND\"] * 100",
+  "solver": "codegen"
+ },
+ "692": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[12]['31/12/2018 triệu đồng'])) / (abs(df1.iloc[10]['31/12/2018 triệu đồng']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "693": {
+  "group": "ok",
+  "query": "((df1.iloc[27]['31/12/2025Triệu VND']) / (df1.iloc[23]['31/12/2025Triệu VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "695": {
+  "group": "ok",
+  "query": "df2.iloc[17][\"Năm nay\"] / df1.iloc[14][\"Số cuối năm\"] * 100",
+  "solver": "codegen"
+ },
+ "696": {
+  "group": "ok",
+  "query": "df2.iloc[19][\"Unnamed: 4\"] / df1.iloc[16][\"30/9/2019 VND\"]",
+  "solver": "codegen"
+ },
+ "697": {
+  "group": "ok",
+  "query": "((df1.iloc[4]['31/12/2016VND']) / (df2.iloc[29]['31/12/2016 VND'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "698": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[6]['Năm nay'])) / (abs(df2.iloc[2]['Năm nay']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "699": {
+  "group": "ok",
+  "query": "((df1.iloc[18]['Số cuối năm']) / (df1.iloc[33]['Số cuối năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "7": {
+  "group": "ok",
+  "query": "df1.iloc[10]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "70": {
+  "group": "ok",
+  "query": "df2.iloc[0][\"Số cuối nămVND\"]",
+  "solver": "codegen"
+ },
+ "700": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[0]['31/12/2015VND'])) / (abs(df2.iloc[14]['31/12/2015 VND']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "701": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[8]['Năm nay'])) / (abs(df1.iloc[2]['Năm nay']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "702": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Năm 2018VND']",
+  "solver": "raw_table_linker"
+ },
+ "703": {
+  "group": "ok",
+  "query": "df1.iloc[6]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "704": {
+  "group": "ok",
+  "query": "df1.iloc[10]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "705": {
+  "group": "ok",
+  "query": "((df1.iloc[9]['Số cuối năm']) / (df2.iloc[1]['Số cuối năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "706": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[16]['Tại 31/12/2025'])) / (abs(df1.iloc[15]['Tại 31/12/2025']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "707": {
+  "group": "ok",
+  "query": "(df1.iloc[12][\"31/12/2024 VND\"] / (df1.iloc[8][\"31/12/2024 VND\"] + df1.iloc[11][\"31/12/2024 VND\"])) * 100",
+  "solver": "codegen"
+ },
+ "708": {
+  "group": "ok",
+  "query": "df3.iloc[18][\"2017 VND\"] / df3.iloc[2][\"2017 VND\"] * 100",
+  "solver": "codegen"
+ },
+ "709": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[0]['2022Nghìn VND'])) / (abs(df2.iloc[2]['31/12/2022']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "71": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay']",
+  "solver": "cell_locator"
+ },
+ "711": {
+  "group": "ok",
+  "query": "((df1.iloc[11]['Năm nay']) / (df1.iloc[6]['Năm nay'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "712": {
+  "group": "ok",
+  "query": "pd.to_numeric(df2.iloc[4][\"Năm nay\"], errors=\"coerce\") / pd.to_numeric(df2.iloc[0][\"Năm nay\"], errors=\"coerce\") * 100",
+  "solver": "codegen"
+ },
+ "713": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[5]['Năm nay'])) / (abs(df2.iloc[0]['Năm nay']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "714": {
+  "group": "ok",
+  "query": "df1.iloc[10]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "715": {
+  "group": "ok",
+  "query": "((df1.iloc[4]['Số cuối năm']) / (df1.iloc[1]['Số cuối năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "716": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[1]['Năm nay'])) / (abs(df2.iloc[14]['Số cuối năm']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "717": {
+  "group": "ok",
+  "query": "((df1.iloc[13]['31/12/2019']) / (df2.iloc[10]['Tổng'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "72": {
+  "group": "ok",
+  "query": "df1.iloc[7]['Số cuối năm']",
+  "solver": "cell_locator"
+ },
+ "720": {
+  "group": "ok",
+  "query": "(df4.iloc[11][\"Tổng cộng\"] - df5.iloc[13][\"Tổng cộng\"]) / df5.iloc[13][\"Tổng cộng\"] * 100",
+  "solver": "codegen"
+ },
+ "721": {
+  "group": "ok",
+  "query": "((df1.iloc[1]['Số cuối năm']) / (df2.iloc[17]['Số cuối năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "722": {
+  "group": "ok",
+  "query": "df2.iloc[14][\"Năm 2022 VND\"]",
+  "solver": "codegen"
+ },
+ "723": {
+  "group": "ok",
+  "query": "(((df1.iloc[5]['Số cuối năm'] + df1.iloc[6]['Số cuối năm'] + df1.iloc[7]['Số cuối năm'])) / ((df2.iloc[17]['Số cuối năm'] + df3.iloc[17]['Số cuối năm']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "724": {
+  "group": "ok",
+  "query": "((abs(df1.iloc[6]['Năm 2015 VND'])) / (abs(df1.iloc[2]['Năm 2015 VND']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "725": {
+  "group": "ok",
+  "query": "df1.iloc[15]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "726": {
+  "group": "ok",
+  "query": "df1.iloc[11]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "727": {
+  "group": "ok",
+  "query": "df3.iloc[1][\"Ảnh hưởng lên lợi nhuận trước thuế của danh mục cổ phiếu niêm yết (*) (VND)\"] / 100",
+  "solver": "codegen"
+ },
+ "728": {
+  "group": "ok",
+  "query": "(((abs(df1.iloc[8]['Năm nay']) + abs(df1.iloc[9]['Năm nay']))) / (abs(df1.iloc[2]['Năm nay']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "729": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df2.iloc[2][\"Unnamed: 4\"]",
+  "solver": "codegen"
+ },
+ "73": {
+  "group": "ok",
+  "query": "df1.iloc[7][\"31/12/2024 VND\"]",
+  "solver": "codegen"
+ },
+ "730": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm 2017']",
+  "solver": "cell_locator"
+ },
+ "731": {
+  "group": "ok",
+  "query": "((df1.iloc[9]['Số cuối năm']) / (df2.iloc[6]['Số cuối năm'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "732": {
+  "group": "ok",
+  "query": "df2.iloc[6][\"Số cuối năm\"] / df1.iloc[2][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "733": {
+  "group": "ok",
+  "query": "df2.iloc[5][\"2020\"] - df3.iloc[6][\"2020Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "735": {
+  "group": "ok",
+  "query": "(df1.iloc[10][\"31/12/2017\"] + df1.iloc[18][\"31/12/2017\"]) / (df1.iloc[10][\"31/12/2017\"] + df1.iloc[18][\"31/12/2017\"] + df1.iloc[12][\"31/12/2017\"] + df1.iloc[18][\"31/12/2017\"]) * 100 - (df2.iloc[11][\"31/12/2017\"] + df2.iloc[24][\"31/12/2017\"]) / (df2.iloc[11][\"31/12/2017\"] + df2.iloc[24][\"31/12/2017\"] + df2.iloc[16][\"31/12/2017\"] + df2.iloc[24][\"31/12/2017\"]) * 100",
+  "solver": "codegen"
+ },
+ "736": {
+  "group": "ok",
+  "query": "df1.iloc[32][\"Đơn vị tính: VND01/01/2024\"] - df2.iloc[16][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "738": {
+  "group": "ok",
+  "query": "df1.iloc[20]['Số cuối năm'] - df2.iloc[24]['31/12/2024 triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "739": {
+  "group": "ok",
+  "query": "df2.iloc[2][\"Tổng nợ\"] - df1.iloc[6][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "74": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"31/12/2016\"]",
+  "solver": "codegen"
+ },
+ "740": {
+  "group": "ok",
+  "query": "df1.iloc[30]['Số cuối năm VND'] - df2.iloc[31]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "741": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm kết thúcngày 31/12/2019VND'] - df2.iloc[4]['2019 VND']",
+  "solver": "raw_table_linker"
+ },
+ "742": {
+  "group": "ok",
+  "query": "df2.iloc[1][\"31/12/2019Triệu VND\"] - df3.iloc[1][\"31/12/2019Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "743": {
+  "group": "ok",
+  "query": "df1.iloc[6]['Số cuối năm'] - df2.iloc[2]['31/12/2023']",
+  "solver": "raw_table_linker"
+ },
+ "744": {
+  "group": "ok",
+  "query": "df1.iloc[2]['31/12/2024'] - df2.iloc[1]['31.12.2024Triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "745": {
+  "group": "ok",
+  "query": "df1.iloc[0]['109.323'] - df2.iloc[2]['31/12/2016triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "746": {
+  "group": "ok",
+  "query": "df1.iloc[15][\"Năm 2024\"] - df2.iloc[8][\"Năm 2024\"]",
+  "solver": "codegen"
+ },
+ "747": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Đơn vị tính: VND'] - df2.iloc[0]['2023Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "748": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[4]['31/12/2018'] - df2.iloc[3]['31.12.2018']",
+  "solver": "raw_table_linker"
+ },
+ "749": {
+  "group": "ok",
+  "query": "df1.iloc[8][\"Năm 2025 Triệu VND\"] - df3.iloc[1][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "75": {
+  "group": "ok",
+  "query": "df3.iloc[16][\"Ngày 31 tháng 12 năm 2019 VND\"] * 1e-6",
+  "solver": "codegen"
+ },
+ "751": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[9]['Số cuối năm VND'] - df2.iloc[8]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "752": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm nay Triệu đồng'] - df2.iloc[5]['Năm 2022 triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "753": {
+  "group": "ok",
+  "query": "df1.iloc[17]['Năm 2017 triệu đồng'] - df2.iloc[14]['2017 Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "754": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối nămTriệu đồng'] - df2.iloc[0]['Số cuối nămTriệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "755": {
+  "group": "ok",
+  "query": "df1.iloc[21][\"Tổng\"] - df2.iloc[20][\"Tại ngày 31 tháng 12 năm 2025\"]",
+  "solver": "codegen"
+ },
+ "756": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31.12.2022Triệu VND'] - df2.iloc[0]['31.12.2022Triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "757": {
+  "group": "ok",
+  "query": "df1.iloc[21]['31/12/2020Triệu VND'] - df2.iloc[20]['31/12/2020Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "758": {
+  "group": "ok",
+  "query": "df1.iloc[6][\"31 tháng 12 năm 2025\"] - df2.iloc[7][\"Đơn vị tính: triệu VND\"]",
+  "solver": "codegen"
+ },
+ "759": {
+  "group": "ok",
+  "query": "df1.iloc[8][\"31/12/2025\"] - df2.iloc[7][\"31/12/2025\"]",
+  "solver": "codegen"
+ },
+ "76": {
+  "group": "ok",
+  "query": "df1.iloc[19]['Tại ngày']",
+  "solver": "cell_locator"
+ },
+ "760": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Năm 2024'] - df2.iloc[1]['Năm 2024']",
+  "solver": "raw_table_linker"
+ },
+ "761": {
+  "group": "ok",
+  "query": "df1.iloc[7][\"Năm 2024\"] * 1e-6 - df2.iloc[7][\"Thù lao\"] * 1e-6",
+  "solver": "codegen"
+ },
+ "762": {
+  "group": "cột lạ: mượn từ df khác",
+  "query": "df1.iloc[19][\"Số cuối năm\"] - df3.iloc[4][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "763": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"2019 triệu đồng\"] - df2.iloc[0][\"2019 triệu đồng\"]",
+  "solver": "codegen"
+ },
+ "764": {
+  "group": "ok",
+  "query": "df1.iloc[10]['Số cuối năm'] - df2.iloc[23]['31/12/2015']",
+  "solver": "raw_table_linker"
+ },
+ "765": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Hoạt động ngân hàng Triệu VND'] - df2.iloc[1]['Ngân hàng Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "766": {
+  "group": "ok",
+  "query": "df1.iloc[7][\"Số cuối nămVND\"] - df2.iloc[5][\"Số cuối nămVND\"]",
+  "solver": "codegen"
+ },
+ "768": {
+  "group": "ok",
+  "query": "df1.iloc[7]['Năm 2025 triệu đồng'] - df2.iloc[9]['Năm 2025 triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "769": {
+  "group": "ok",
+  "query": "df3.iloc[8][\"31/12/2015VND\"] - df2.iloc[18][\"31/12/2015 VND\"]",
+  "solver": "codegen"
+ },
+ "77": {
+  "group": "ok",
+  "query": "df1.iloc[16][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "771": {
+  "group": "ok",
+  "query": "df1.iloc[13]['Năm 2023 triệu đồng'] - df2.iloc[15]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "772": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Số cuối năm'] - df2.iloc[0]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "773": {
+  "group": "ok",
+  "query": "df1.iloc[3]['2020Triệu VND'] - df2.iloc[9]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "774": {
+  "group": "ok",
+  "query": "df1.iloc[1]['31/12/2022 Triệu VND'] - df2.iloc[0]['31/12/2022Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "775": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm 2022VND'] - df2.iloc[11]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "777": {
+  "group": "ok",
+  "query": "df2.iloc[15][\"2018 VND\"] - df3.iloc[15][\"2018 VND\"]",
+  "solver": "codegen"
+ },
+ "779": {
+  "group": "ok",
+  "query": "df3.iloc[6][\"2018 VND\"] - df1.iloc[5][\"2018 VND\"]",
+  "solver": "codegen"
+ },
+ "78": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['31/12/2022Triệu VND'])",
+  "solver": "cell_locator"
+ },
+ "780": {
+  "group": "ok",
+  "query": "df1.iloc[12]['31/12/2024'] - df2.iloc[13]['31/12/2024']",
+  "solver": "raw_table_linker"
+ },
+ "781": {
+  "group": "ok",
+  "query": "df2.iloc[10][\"31/12/2018\"]",
+  "solver": "codegen"
+ },
+ "782": {
+  "group": "ok",
+  "query": "df3.iloc[18][\"Vốn cổ phần VND\"] - df3.iloc[9][\"Vốn cổ phần VND\"]",
+  "solver": "codegen"
+ },
+ "783": {
+  "group": "ok",
+  "query": "df1.iloc[37]['31/12/2023 triệu đồng'] - df2.iloc[29]['Tại ngày 31 tháng 12 năm']",
+  "solver": "raw_table_linker"
+ },
+ "784": {
+  "group": "ok",
+  "query": "(df1.iloc[14][\"2023 VND\"] - df3.iloc[2][\"Số cuối năm\"]) * 1e-09",
+  "solver": "codegen"
+ },
+ "785": {
+  "group": "ok",
+  "query": "df1.iloc[3]['31/12/2020Cổ phiếu']",
+  "solver": "cell_locator"
+ },
+ "786": {
+  "group": "ok",
+  "query": "df2.iloc[12][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "787": {
+  "group": "ok",
+  "query": "df1.iloc[14]['Tổng'] - df2.iloc[13]['Tổng']",
+  "solver": "raw_table_linker"
+ },
+ "788": {
+  "group": "ok",
+  "query": "df1.iloc[0]['Năm nay'] - df2.iloc[0]['Năm 2020']",
+  "solver": "raw_table_linker"
+ },
+ "789": {
+  "group": "ok",
+  "query": "df1.iloc[4]['Năm nay'] - df2.iloc[4]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "79": {
+  "group": "ok",
+  "query": "df1.iloc[8]['Số cuối năm Triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "790": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"%\"]",
+  "solver": "codegen"
+ },
+ "791": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df1.iloc[3]['Số cuối năm'] - df2.iloc[2]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "792": {
+  "group": "ok",
+  "query": "df1.iloc[40][\"31/12/2022 triệu đồng\"] - df2.iloc[25][\"Ngày 31 tháng 12 năm 2022 Triệu đồng\"]",
+  "solver": "codegen"
+ },
+ "793": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Số cuối năm'] - df2.iloc[2]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "794": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm nay'] - df2.iloc[4]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "795": {
+  "group": "ok",
+  "query": "abs(df1.iloc[16]['Số cuối năm']) - abs(df2.iloc[4]['Số cuối nămVND'])",
+  "solver": "raw_table_linker"
+ },
+ "796": {
+  "group": "ok",
+  "query": "((df1.iloc[0]['Năm 2021']) / (df2.iloc[5]['31/12/2021'])) * 100",
+  "solver": "raw_table_linker"
+ },
+ "797": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"Năm nayVND\"] / 1e9",
+  "solver": "codegen"
+ },
+ "798": {
+  "group": "ok",
+  "query": "df3.iloc[18][\"Tổng cộngVND\"] - df1.iloc[22][\"Tại ngày 31 tháng 12 năm\"]",
+  "solver": "codegen"
+ },
+ "8": {
+  "group": "ok",
+  "query": "pd.to_numeric(df2.iloc[0][\"2021VND\"], errors=\"coerce\") * 1e-09",
+  "solver": "codegen"
+ },
+ "80": {
+  "group": "ok",
+  "query": "df1.iloc[11][\"Tại ngày 31 tháng 12 năm\"]",
+  "solver": "codegen"
+ },
+ "800": {
+  "group": "ok",
+  "query": "df1.iloc[3][\"Ngày 31 tháng 12 năm 2022 triệu đồng\"] + df1.iloc[5][\"Ngày 31 tháng 12 năm 2022 triệu đồng\"]",
+  "solver": "codegen"
+ },
+ "801": {
+  "group": "ok",
+  "query": "df1.iloc[3]['31/12/2016 VND'] - df2.iloc[3]['31/12/2016 VND']",
+  "solver": "raw_table_linker"
+ },
+ "802": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31.12.2024Triệu đồng'] - df2.iloc[0]['31.12.2024Triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "803": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31/12/2015Triệu VND'] - df2.iloc[0]['31/12/2015triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "804": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "pd.to_numeric(df3.iloc[2][\"31/12/2023\"], errors=\"coerce\") - pd.to_numeric(df2.iloc[2][\"Số cuối năm\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "805": {
+  "group": "ok",
+  "query": "df1.iloc[24][\"Số cuối năm\"] - df2.iloc[15][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "806": {
+  "group": "ok",
+  "query": "(df1.iloc[1][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[2][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[3][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[4][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[5][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[6][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[7][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[8][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[9][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[10][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[11][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[12][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[13][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[14][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[15][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[16][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[17][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[18][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[19][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[21][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[22][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[24][\"Tỷ lệ sở hữu và biểu quyết (%)\"] + df1.iloc[25][\"Tỷ lệ sở hữu và biểu quyết (%)\"]) / 23 - (df2.iloc[1][\"Tỷ lệ biểu quyết %\"] + df2.iloc[2][\"Tỷ lệ biểu quyết %\"] + df2.iloc[3][\"Tỷ lệ biểu quyết %\"] + df2.iloc[4][\"Tỷ lệ biểu quyết %\"] + df2.iloc[5][\"Tỷ lệ biểu quyết %\"] + df2.iloc[6][\"Tỷ lệ biểu quyết %\"] + df2.iloc[7][\"Tỷ lệ biểu quyết %\"] + df2.iloc[8][\"Tỷ lệ biểu quyết %\"] + df2.iloc[9][\"Tỷ lệ biểu quyết %\"] + df2.iloc[10][\"Tỷ lệ biểu quyết %\"] + df2.iloc[11][\"Tỷ lệ biểu quyết %\"] + df2.iloc[12][\"Tỷ lệ biểu quyết %\"]) / 12",
+  "solver": "codegen"
+ },
+ "807": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"31/12/2021Triệu VND\"] - df2.iloc[2][\"TổngTriệu VND\"]",
+  "solver": "codegen"
+ },
+ "809": {
+  "group": "ok",
+  "query": "df3.iloc[5][\"Năm nay\"] - df2.iloc[9][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "81": {
+  "group": "ok",
+  "query": "df1.iloc[0]['31/12/2023triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "810": {
+  "group": "ok",
+  "query": "df1.iloc[0]['2025Triệu VND'] - df2.iloc[0]['Năm 2025Triệu đồng']",
+  "solver": "raw_table_linker"
+ },
+ "811": {
+  "group": "ok",
+  "query": "df1.iloc[18][\"Năm nay\"] - df2.iloc[17][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "812": {
+  "group": "ok",
+  "query": "df1.iloc[19]['Tổng cộng VND'] - df2.iloc[18]['Nhà cửa,vật kiến trúc']",
+  "solver": "raw_table_linker"
+ },
+ "813": {
+  "group": "ok",
+  "query": "max(df1.iloc[2][\"Năm 2015 VND\"], df2.iloc[2][\"Năm nay\"], df4.iloc[3][\"Unnamed: 4\"], df5.iloc[2][\"Số đã báo cáo VND\"])",
+  "solver": "codegen"
+ },
+ "814": {
+  "group": "ok",
+  "query": "(abs(df1.iloc[0]['2020VND']) + abs(df2.iloc[1]['2022VND']) + abs(df3.iloc[1]['2024VND'])) / 3",
+  "solver": "raw_table_linker"
+ },
+ "815": {
+  "group": "ok",
+  "query": "max(df1.iloc[6][\"2017 VND\"], df2.iloc[6][\"Năm nay VND\"], df4.iloc[8][\"Năm nayVND\"], df5.iloc[8][\"Năm nay VND\"])",
+  "solver": "codegen"
+ },
+ "816": {
+  "group": "ok",
+  "query": "(df1.iloc[1]['31/12/2017Triệu VND'] + df2.iloc[1]['31/12/2020'] + df3.iloc[1]['31/12/2022Triệu VND']) / 3",
+  "solver": "raw_table_linker"
+ },
+ "817": {
+  "group": "ok",
+  "query": "df1.iloc[4][\"Nhà cửa VND\"] + df2.iloc[4][\"Nhà cửa VND\"] + df3.iloc[6][\"Nhà cửa VND\"] + df4.iloc[7][\"Nhà cửa VND\"] + df5.iloc[4][\"Nhà cửa VND\"]",
+  "solver": "codegen"
+ },
+ "818": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(abs(df1.iloc[6]['Số cuối kỳ']) + abs(df2.iloc[9]['Số cuối năm | Số cuối năm']) + abs(df3.iloc[10]['Số cuối năm | Số cuối năm']) + abs(df4.iloc[13]['Số cuối năm | Số cuối năm']) + abs(df5.iloc[14]['Số cuối năm | Số cuối năm'])) / 5",
+  "solver": "raw_table_linker"
+ },
+ "819": {
+  "group": "ok",
+  "query": "(df1.iloc[0][\"2024Triệu VND\"] + df2.iloc[0][\"Năm 2024 triệu đồng\"] + df3.iloc[1][\"2024Triệu VND\"]) / 3 / 1000",
+  "solver": "codegen"
+ },
+ "82": {
+  "group": "ok",
+  "query": "df1.iloc[4]['31/12/2022']",
+  "solver": "cell_locator"
+ },
+ "821": {
+  "group": "ok",
+  "query": "(df3.iloc[4][\"31/12/2017VND\"] / df3.iloc[13][\"31/12/2017VND\"] + df1.iloc[10][\"Số dư cuối năm VND\"] / df1.iloc[34][\"Số dư cuối năm VND\"] + df4.iloc[0][\"31/12/2025VND\"] / df4.iloc[15][\"31/12/2025VND\"] + df5.iloc[8][\"Ending balance VND\"] / df5.iloc[30][\"Ending balance VND\"]) / 4 * 100",
+  "solver": "codegen"
+ },
+ "822": {
+  "group": "ok",
+  "query": "max(df1.iloc[11][\"Năm 2021\"], df2.iloc[11][\"Năm nay\"], df3.iloc[11][\"Năm nay\"], df4.iloc[11][\"Năm nay\"])",
+  "solver": "codegen"
+ },
+ "823": {
+  "group": "ok",
+  "query": "(df4.iloc[2][\"Unnamed: 2\"] + df5.iloc[2][\"Unnamed: 2\"] + df2.iloc[2][\"Unnamed: 2\"] + df3.iloc[9][\"LNST chưa phân phối VND\"]) > 40e9",
+  "solver": "codegen"
+ },
+ "824": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df1.iloc[1]['31/12/2016'] + df2.iloc[4]['31/12/2019'] + df3.iloc[4]['2021']) / 3",
+  "solver": "raw_table_linker"
+ },
+ "825": {
+  "group": "ok",
+  "query": "max(df1.iloc[2][\"Số cuối năm\"], df3.iloc[2][\"Số cuối năm\"], df5.iloc[26][\"31/12/2018\"])",
+  "solver": "codegen"
+ },
+ "827": {
+  "group": "ok",
+  "query": "(df1.iloc[4]['Tại ngày 31/12/2019'] + df2.iloc[4]['Số cuối năm'] + df3.iloc[4]['Số cuối năm'] + df4.iloc[4]['Số cuối năm']) / 4",
+  "solver": "raw_table_linker"
+ },
+ "828": {
+  "group": "ok",
+  "query": "(abs(df5.iloc[2]['31.12.2024Triệu VND']) + abs(df5.iloc[3]['31.12.2024Triệu VND']) + abs(df5.iloc[5]['31.12.2024Triệu VND']) + abs(df5.iloc[6]['31.12.2024Triệu VND']) + abs(df5.iloc[9]['31.12.2024Triệu VND']) + abs(df5.iloc[10]['31.12.2024Triệu VND']) + abs(df5.iloc[11]['31.12.2024Triệu VND']) + abs(df5.iloc[12]['31.12.2024Triệu VND']))",
+  "solver": "raw_selection_linker"
+ },
+ "829": {
+  "group": "ok",
+  "query": "max(df1.iloc[0][\"Năm nay\"], df2.iloc[0][\"Năm nay\"], df3.iloc[0][\"Năm nay\"], df4.iloc[0][\"Năm nay\"])",
+  "solver": "codegen"
+ },
+ "83": {
+  "group": "ok",
+  "query": "df1.iloc[0][\"Unnamed: 3\"]",
+  "solver": "codegen"
+ },
+ "830": {
+  "group": "ok",
+  "query": "(df1.iloc[0]['Số cuối nămTriệu đồng'] + df2.iloc[0]['Số cuối nămTriệu đồng'] + df3.iloc[0]['Số cuối nămTriệu đồng']) / 3",
+  "solver": "raw_table_linker"
+ },
+ "831": {
+  "group": "ok",
+  "query": "(df1.iloc[5]['Năm 2015 VND'] + df2.iloc[3]['2015 VND'] + df3.iloc[5]['Năm 2015 VND'] + df4.iloc[3]['2015 VND']) / 4",
+  "solver": "raw_table_linker"
+ },
+ "832": {
+  "group": "ok",
+  "query": "max(df1.iloc[2][\"31/12/2025 VND\"], df2.iloc[2][\"31/12/2022 VND\"], df3.iloc[2][\"31/12/2019VND\"], df4.iloc[2][\"31/12/2017VND\"], df5.iloc[2][\"31/12/2018VND\"])",
+  "solver": "codegen"
+ },
+ "833": {
+  "group": "ok",
+  "query": "df1.iloc[1]['2016VND'] + df2.iloc[0]['2024VND'] + df3.iloc[0]['2025VND']",
+  "solver": "raw_table_linker"
+ },
+ "834": {
+  "group": "ok",
+  "query": "max(df1.iloc[2][\"Năm 2015\"], df2.iloc[11][\"Năm nay\"], df3.iloc[10][\"Năm nay\"], df4.iloc[1][\"Năm nay\"])",
+  "solver": "codegen"
+ },
+ "835": {
+  "group": "ok",
+  "query": "max(df1.iloc[1][\"Số cuối năm\"], df2.iloc[1][\"Số cuối năm\"], df3.iloc[1][\"Số cuối năm\"], df4.iloc[2][\"Số cuối năm\"], df5.iloc[9][\"Số cuối năm\"])",
+  "solver": "codegen"
+ },
+ "836": {
+  "group": "ok",
+  "query": "(abs(df4.iloc[0]['Số cuối năm']) + abs(df4.iloc[1]['Số cuối năm']) + abs(df4.iloc[4]['Số cuối năm']) + abs(df4.iloc[5]['Số cuối năm']) + abs(df4.iloc[21]['Số cuối năm']))",
+  "solver": "raw_selection_linker"
+ },
+ "837": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"31/12/2018\"]",
+  "solver": "codegen"
+ },
+ "838": {
+  "group": "ok",
+  "query": "max(df1.iloc[3][\"31/12/2018Triệu VND\"], df2.iloc[3][\"2017Triệu VND\"], df3.iloc[5][\"31/12/2020Triệu VND\"], df5.iloc[3][\"31/12/2021Triệu VND\"], df4.iloc[5][\"31/12/2024Triệu VND\"])",
+  "solver": "codegen"
+ },
+ "839": {
+  "group": "ok",
+  "query": "(df2.iloc[14][\"Số cuối năm\"] / df2.iloc[12][\"Số cuối năm\"] + df3.iloc[14][\"Số cuối năm\"] / df3.iloc[12][\"Số cuối năm\"] + df4.iloc[14][\"Số cuối năm\"] / df4.iloc[12][\"Số cuối năm\"] + df5.iloc[14][\"Số cuối năm\"] / df5.iloc[12][\"Số cuối năm\"]) / 4 * 100",
+  "solver": "codegen"
+ },
+ "84": {
+  "group": "ok",
+  "query": "df1.iloc[9]['Số năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "840": {
+  "group": "ok",
+  "query": "(abs(df1.iloc[20]['31/12/2016 VND']) + abs(df2.iloc[22]['31/12/2017 VND']) + abs(df3.iloc[19]['31/12/2018 VND']) + abs(df4.iloc[21]['31/12/2020 VND']) + abs(df5.iloc[19]['31/12/2024 VND'])) / 5",
+  "solver": "raw_table_linker"
+ },
+ "841": {
+  "group": "ok",
+  "query": "max(df1.iloc[5][\"Chi phí đấttrả trướcVND\"], df2.iloc[3][\"Chi phí đấttrả trướcVND\"], df3.iloc[5][\"Chi phí đấttrả trướcVND\"], df4.iloc[3][\"Chi phí đấttrả trướcVND\"], df5.iloc[4][\"Chi phí đấttrả trướcVND\"])",
+  "solver": "codegen"
+ },
+ "843": {
+  "group": "ok",
+  "query": "df1.iloc[1]['Năm nay'] + df2.iloc[0]['2022triệu đồng'] + df3.iloc[2]['Năm 2024']",
+  "solver": "raw_table_linker"
+ },
+ "844": {
+  "group": "ok",
+  "query": "(((df1.iloc[15]['Số cuối năm']) / (df1.iloc[26]['Số cuối năm']) + (df2.iloc[19]['Số cuối năm']) / (df2.iloc[31]['Số cuối năm']) + (df3.iloc[19]['Số cuối năm']) / (df3.iloc[29]['Số cuối năm'])) / 3) * 100",
+  "solver": "raw_table_linker"
+ },
+ "845": {
+  "group": "ok",
+  "query": "max(df1.iloc[3][\"Cho năm tài chính kết thúc ngày 31/12/2022\"], df2.iloc[3][\"Cho năm tài chính kết thúc ngày 31 tháng 12 năm 2024\"], df3.iloc[4][\"Cho năm tài chínhkết thúc ngày 31tháng 12 năm 2024VND\"], df4.iloc[3][\"Năm nayVND\"], df5.iloc[4][\"Cho năm tài chínhkết thúc ngày 31tháng 12 năm 2019VND\"])",
+  "solver": "codegen"
+ },
+ "846": {
+  "group": "ok",
+  "query": "(df2.iloc[10][\"Đơn vị tính: VNDTổng cộng\"] / df2.iloc[0][\"Đơn vị tính: VNDTổng cộng\"] + df3.iloc[9][\"Đơn vị tính: VND\"] / df3.iloc[1][\"Đơn vị tính: VND\"] + df4.iloc[6][\"Đơn vị tính: VNDTổng cộng\"] / df4.iloc[2][\"Đơn vị tính: VNDTổng cộng\"] + df5.iloc[9][\"Đơn vị tính: VNDTổng cộng\"] / df5.iloc[3][\"Đơn vị tính: VNDTổng cộng\"] + df1.iloc[11][\"Số cuối năm\"] / df1.iloc[7][\"Số cuối năm\"]) / 5",
+  "solver": "codegen"
+ },
+ "847": {
+  "group": "ok",
+  "query": "max(df1.iloc[14][\"Cộng\"], df2.iloc[15][\"Cộng\"], df3.iloc[12][\"Cộng\"], df4.iloc[14][\"Cộng\"], df5.iloc[14][\"Cộng\"])",
+  "solver": "codegen"
+ },
+ "848": {
+  "group": "ok",
+  "query": "df1.iloc[3][\"Số cuối năm\"] + df2.iloc[2][\"Số cuối năm\"] + df3.iloc[3][\"Số cuối năm\"]",
+  "solver": "codegen"
+ },
+ "849": {
+  "group": "ok",
+  "query": "max([df5.iloc[2][\"2018 VND\"] / (df5.iloc[0][\"2018 VND\"] + df5.iloc[1][\"2018 VND\"] + df5.iloc[2][\"2018 VND\"] + df5.iloc[3][\"2018 VND\"] + df5.iloc[4][\"2018 VND\"]), df4.iloc[2][\"2020VND\"] / (df4.iloc[0][\"2020VND\"] + df4.iloc[1][\"2020VND\"] + df4.iloc[2][\"2020VND\"] + df4.iloc[3][\"2020VND\"] + df4.iloc[4][\"2020VND\"]), df2.iloc[3][\"2024VND\"] / (df2.iloc[0][\"2024VND\"] + df2.iloc[1][\"2024VND\"] + df2.iloc[2][\"2024VND\"] + df2.iloc[3][\"2024VND\"] + df2.iloc[4][\"2024VND\"]), df3.iloc[3][\"2025VND\"] / (df3.iloc[0][\"2025VND\"] + df3.iloc[1][\"2025VND\"] + df3.iloc[2][\"2025VND\"] + df3.iloc[3][\"2025VND\"] + df3.iloc[4][\"2025VND\"])])",
+  "solver": "codegen"
+ },
+ "85": {
+  "group": "ok",
+  "query": "abs(df1.iloc[1]['2016Triệu VND'])",
+  "solver": "cell_locator"
+ },
+ "851": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "df4.iloc[16][\"Năm 2015\"] + df2.iloc[1][\"Số phải nộp trong năm\"] + df5.iloc[17][\"Năm nay\"] + df3.iloc[3][\"Số phải nộp cuối năm\"]",
+  "solver": "codegen"
+ },
+ "852": {
+  "group": "ok",
+  "query": "(df4.iloc[2]['Số cuối năm']) * 0 + 2025",
+  "solver": "raw_selection_linker"
+ },
+ "853": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df1.iloc[13][\"31/12/2022 VND\"] / df1.iloc[21][\"31/12/2022 VND\"] * 100 + df3.iloc[11][\"Vốn góp của chú sở hữu\"] / df3.iloc[11][\"Tổng cộng\"] * 100) / 2",
+  "solver": "codegen"
+ },
+ "854": {
+  "group": "dòng quá tầm",
+  "query": "(df3.iloc[8][\"Unnamed: 2\"] + df5.iloc[7][\"Số cuối năm\"] + df4.iloc[7][\"Số cuối năm\"]) / 3 / 1e10",
+  "solver": "codegen"
+ },
+ "855": {
+  "group": "ok",
+  "query": "((df2.iloc[6][\"Năm nay\"] > 0) + (df2.iloc[6][\"Ngàn VNDNăm trước\"] > 0) + (df3.iloc[6][\"Năm nay\"] > 0) + (df3.iloc[6][\"Ngân VNDNăm trước\"] > 0) + (df4.iloc[5][\"Năm nay\"] > 0) + (df4.iloc[5][\"Ngân VNDNăm trước\"] > 0) + (df5.iloc[6][\"Năm nay\"] > 0) + (df5.iloc[6][\"Ngàn VNDNăm trước\"] > 0)).sum()",
+  "solver": "codegen"
+ },
+ "856": {
+  "group": "ok",
+  "query": "(df1.iloc[22]['Năm 2015'] + df2.iloc[4]['Năm 2020'] + df3.iloc[5]['2022 VND'] + df4.iloc[5]['2023 VND'] + df5.iloc[5]['2024 VND']) / 5",
+  "solver": "raw_table_linker"
+ },
+ "857": {
+  "group": "ok",
+  "query": "df3.iloc[12][\"Quỹ đầu tư phát triển Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "858": {
+  "group": "ok",
+  "query": "df1.iloc[6][\"2017VND\"] + df2.iloc[1][\"Năm nay\"] + df3.iloc[8][\"Năm nay(Tự lập)\"]",
+  "solver": "codegen"
+ },
+ "859": {
+  "group": "ok",
+  "query": "df2.iloc[10]['Số cuối năm']",
+  "solver": "raw_selection_linker"
+ },
+ "86": {
+  "group": "ok",
+  "query": "df1.iloc[20]['Năm 2024']",
+  "solver": "cell_locator"
+ },
+ "860": {
+  "group": "ok",
+  "query": "df2.iloc[13][\"Năm 2022 VND\"]",
+  "solver": "codegen"
+ },
+ "861": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "pd.to_numeric(df1.iloc[7][\"31/12/2015\"], errors=\"coerce\") + pd.to_numeric(df2.iloc[6][\"Ngày 31 tháng 12 năm 2015\"], errors=\"coerce\") + pd.to_numeric(df3.iloc[5][\"Số cuối năm\"], errors=\"coerce\")",
+  "solver": "codegen"
+ },
+ "862": {
+  "group": "ok",
+  "query": "df1.iloc[6][\"2016 VND\"] + df2.iloc[6][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "863": {
+  "group": "ok",
+  "query": "(df1.iloc[7][\"Số cuối năm\"] - df2.iloc[7][\"Số cuối năm\"]) + (df1.iloc[7][\"Số cuối năm\"] - df2.iloc[7][\"Số cuối năm\"]) + (df1.iloc[7][\"Số cuối năm\"] - df2.iloc[7][\"Số cuối năm\"])",
+  "solver": "codegen"
+ },
+ "864": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "max(df4.iloc[13][\"31/12/2017Triệu VND\"], df2.iloc[10][\"Quỹ dự trữbổ sungvốn điều lệTriệu VND\"], df3.iloc[13][\"Quỹ dự phòng tài chính\"], df5.iloc[12][\"Quỹ dự phòngtài chínhTriệu VND\"])",
+  "solver": "codegen"
+ },
+ "865": {
+  "group": "ok",
+  "query": "((df2.iloc[6][\"Số cuối năm\"] / df2.iloc[5][\"Số cuối năm\"]) + (df3.iloc[6][\"Số cuối năm\"] / df3.iloc[5][\"Số cuối năm\"]) + (df4.iloc[7][\"Số cuối năm\"] / df4.iloc[6][\"Số cuối năm\"]) + (df5.iloc[10][\"Số cuối năm\"] / df5.iloc[9][\"Số cuối năm\"])) / 4 * 100",
+  "solver": "codegen"
+ },
+ "866": {
+  "group": "cột lạ: mượn từ df khác",
+  "query": "max(df3.iloc[13][\"Tại ngày 31/12/2018\"], df4.iloc[12][\"Số cuối năm\"], df5.iloc[14][\"Số cuối năm\"])",
+  "solver": "codegen"
+ },
+ "867": {
+  "group": "ok",
+  "query": "(df1.iloc[0]['31/12/2022VND'] + df2.iloc[0]['31/12/2023VND'] + df3.iloc[0]['31/12/2025VND']) / 3",
+  "solver": "raw_table_linker"
+ },
+ "868": {
+  "group": "ok",
+  "query": "max(df1.iloc[3][\"2018Triệu VND\"], df2.iloc[12][\"2017Triệu VND\"], df3.iloc[13][\"2022Triệu VND\"], df4.iloc[2][\"Phát sinh trong năm\"], df5.iloc[13][\"2023Triệu VND\"])",
+  "solver": "codegen"
+ },
+ "869": {
+  "group": "ok",
+  "query": "df2.iloc[7][\"Năm 2015\"] + df3.iloc[7][\"Năm 2016\"] + df4.iloc[7][\"Năm 2019\"] + df1.iloc[7][\"Năm 2024\"] + df5.iloc[7][\"Năm 2025\"]",
+  "solver": "codegen"
+ },
+ "87": {
+  "group": "ok",
+  "query": "df1.iloc[3]['Năm 2024VND']",
+  "solver": "raw_table_linker"
+ },
+ "870": {
+  "group": "ok",
+  "query": "(df3.iloc[7][\"2022 VND\"] < 0) + (df4.iloc[6][\"2023 VND\"] < 0) + (df2.iloc[7][\"2024 VND\"] < 0)",
+  "solver": "codegen"
+ },
+ "871": {
+  "group": "ok",
+  "query": "max(df2.iloc[1][\"2024VND\"], df4.iloc[1][\"2023VND\"], df5.iloc[1][\"2022VND\"])",
+  "solver": "codegen"
+ },
+ "872": {
+  "group": "ok",
+  "query": "(df1.iloc[20]['Số cuối năm'] + df2.iloc[19]['31/12/2022 triệu đồng'] + df3.iloc[20]['31/12/2023 triệu đồng'] + df4.iloc[24]['Tại 31/12/2025']) / 4",
+  "solver": "raw_table_linker"
+ },
+ "873": {
+  "group": "ok",
+  "query": "max(df2.iloc[12][\"Năm nay\"], df3.iloc[13][\"Năm nay\"], df4.iloc[12][\"Năm nay\"], df5.iloc[9][\"Năm nay\"], df1.iloc[16][\"Năm nay\"])",
+  "solver": "codegen"
+ },
+ "874": {
+  "group": "ok",
+  "query": "max(df1.iloc[22][\"Tổng cộng VND\"], df2.iloc[22][\"Tổng cộng VND\"], df3.iloc[19][\"Tổng cộng VND\"], df4.iloc[20][\"Tổng cộng VND\"], df5.iloc[22][\"Tổng VND\"])",
+  "solver": "codegen"
+ },
+ "875": {
+  "group": "ok",
+  "query": "(df1.iloc[38]['Số cuối năm Triệu đồng'] + df2.iloc[38]['Số cuối năm Triệu đồng'] + df3.iloc[34]['Số cuối năm Triệu đồng'] + df4.iloc[32]['31/12/2025 Triệu VND']) / 4",
+  "solver": "raw_table_linker"
+ },
+ "876": {
+  "group": "ok",
+  "query": "df3.iloc[0][\"Năm nayVND\"]",
+  "solver": "codegen"
+ },
+ "877": {
+  "group": "ok",
+  "query": "df5.iloc[1][\"Năm nay\"] / df5.iloc[5][\"Năm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "878": {
+  "group": "ok",
+  "query": "(df3.iloc[13]['Đơn vị tính: VND']) * 0 + 2019",
+  "solver": "raw_selection_linker"
+ },
+ "879": {
+  "group": "ok",
+  "query": "max(abs(df1.iloc[2][\"Đã nộpVND\"]), abs(df2.iloc[2][\"Đã nộpVND\"]), abs(df3.iloc[2][\"Đã nộpVND\"]), abs(df4.iloc[2][\"Đã nộpVND\"]), abs(df5.iloc[2][\"Đã nộpVND\"]))",
+  "solver": "codegen"
+ },
+ "88": {
+  "group": "ok",
+  "query": "df1.iloc[18]['31/12/2019']",
+  "solver": "cell_locator"
+ },
+ "880": {
+  "group": "ok",
+  "query": "(df1.iloc[1][\"31/12/2022Triệu đồng\"] / df1.iloc[3][\"31/12/2022Triệu đồng\"] + df2.iloc[1][\"Ngày 31 tháng 12năm 2022triệu đồng\"] / df2.iloc[0][\"Ngày 31 tháng 12năm 2022triệu đồng\"] + df3.iloc[1][\"Số cuối nămTriệu đồng\"] / df3.iloc[6][\"Số cuối nămTriệu đồng\"]) / 3 * 100",
+  "solver": "codegen"
+ },
+ "881": {
+  "group": "ok",
+  "query": "(((abs(df1.iloc[18]['31/12/2016 VND'])) / (abs(df1.iloc[17]['31/12/2016 VND'])) + (abs(df2.iloc[17]['31/12/2018 VND'])) / (abs(df2.iloc[16]['31/12/2018 VND'])) + (abs(df3.iloc[18]['31/12/2019 VND'])) / (abs(df3.iloc[17]['31/12/2019 VND'])) + (abs(df4.iloc[19]['31/12/2020 VND'])) / (abs(df4.iloc[18]['31/12/2020 VND'])) + (abs(df5.iloc[21]['31/12/2021 VND'])) / (abs(df5.iloc[20]['31/12/2021 VND']))) / 5) * 100",
+  "solver": "raw_table_linker"
+ },
+ "882": {
+  "group": "ok",
+  "query": "(df2.iloc[0][\"Tại ngày31/12/2017VND\"] / df2.iloc[3][\"Tại ngày31/12/2017VND\"] + df3.iloc[0][\"Cuối năm VND\"] / df3.iloc[3][\"Cuối năm VND\"]) / 2",
+  "solver": "codegen"
+ },
+ "883": {
+  "group": "ok",
+  "query": "((df2.iloc[0]['31/12/2023triệu đồng'] + df2.iloc[4]['31/12/2023triệu đồng'] + df2.iloc[7]['31/12/2023triệu đồng'] + df2.iloc[8]['31/12/2023triệu đồng'] + df2.iloc[1]['31/12/2023triệu đồng'] + df2.iloc[2]['31/12/2023triệu đồng'] + df2.iloc[3]['31/12/2023triệu đồng'] + df2.iloc[5]['31/12/2023triệu đồng'] + df2.iloc[6]['31/12/2023triệu đồng'])) * 0 + 2023",
+  "solver": "raw_selection_linker"
+ },
+ "884": {
+  "group": "ok",
+  "query": "df2.iloc[3][\"Giá trị ghi sổ và số có khả năng trả nợ31/12/2016VND\"] + df5.iloc[3][\"Giá trị ghi sổ và số có khả năng trả nợ31/12/2017VND\"] + df5.iloc[2][\"Giá trị ghi sổ và số có khả năng trả nợ31/12/2017VND\"] + df3.iloc[4][\"Unnamed: 4\"] + df4.iloc[8][\"Vay dài hạn đến hạn trả VND\"]",
+  "solver": "codegen"
+ },
+ "885": {
+  "group": "ok",
+  "query": "max(df4.iloc[1][\"Số đầu nămTriệu đồng\"] / df4.iloc[6][\"Số đầu nămTriệu đồng\"] * 100, df4.iloc[1][\"Số cuối nămTriệu đồng\"] / df4.iloc[6][\"Số cuối nămTriệu đồng\"] * 100, df3.iloc[1][\"31/12/2025Triệu VND\"] / df3.iloc[6][\"31/12/2025Triệu VND\"] * 100)",
+  "solver": "codegen"
+ },
+ "886": {
+  "group": "ok",
+  "query": "abs(df1.iloc[0]['31/12/2015Triệu đồng'])",
+  "solver": "raw_selection_linker"
+ },
+ "887": {
+  "group": "cột lạ: mượn từ df khác",
+  "query": "df4.iloc[3][\"Unnamed: 2\"] + df5.iloc[3][\"Unnamed: 2\"] + df3.iloc[17][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "888": {
+  "group": "ok",
+  "query": "(df1.iloc[0]['31/12/2021Triệu VND'] + df2.iloc[1]['31/12/2021Triệu VND'] + df3.iloc[12]['31/12/2021Triệu VND'] + df4.iloc[1]['Ngày 31 tháng 12năm 2021triệu đồng'] + df5.iloc[1]['Số cuối nămTriệu đồng'] + df6.iloc[0]['Ngày 31 tháng 12năm 2021Triệu đồng']) / 6",
+  "solver": "raw_table_linker"
+ },
+ "889": {
+  "group": "ok",
+  "query": "max(df2.iloc[19][\"Tổng cộng\"], df4.iloc[19][\"Tổng cộng\"], df5.iloc[19][\"Tổng cộng\"])",
+  "solver": "codegen"
+ },
+ "89": {
+  "group": "ok",
+  "query": "df2.iloc[1][\"2018 Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "890": {
+  "group": "ok",
+  "query": "((df2.iloc[1]['Tại ngày 31 tháng 12 năm'] + df2.iloc[3]['Tại ngày 31 tháng 12 năm'] + df2.iloc[9]['Tại ngày 31 tháng 12 năm'] + df2.iloc[14]['Tại ngày 31 tháng 12 năm'] + df2.iloc[5]['Tại ngày 31 tháng 12 năm'])) * 0 + 2021",
+  "solver": "raw_selection_linker"
+ },
+ "891": {
+  "group": "ok",
+  "query": "(abs(df1.iloc[2]['Số cuối năm']) + abs(df2.iloc[3]['Số cuối năm']) + abs(df3.iloc[1]['Số cuối nămVND']) + abs(df4.iloc[7]['Năm 2022 VND'])) / 4",
+  "solver": "raw_table_linker"
+ },
+ "892": {
+  "group": "ok",
+  "query": "(df5.iloc[2][\"Lào\"] + df5.iloc[12][\"Lào\"]) / (df3.iloc[0][\"Năm nay\"] + df4.iloc[0][\"Năm nay\"] + df5.iloc[12][\"Ngàn VND Tổng cộng\"]) * 100",
+  "solver": "codegen"
+ },
+ "893": {
+  "group": "ok",
+  "query": "df1.iloc[0]['2016 VND'] + df2.iloc[0]['2017 VND'] + df3.iloc[0]['2018 VND'] + df4.iloc[0]['2019 VND']",
+  "solver": "raw_table_linker"
+ },
+ "894": {
+  "group": "ok",
+  "query": "(df1.iloc[2]['Số dư tại ngày 31/12/2018'] + df2.iloc[2]['Số dư tại ngày 31/12/2020'] + df3.iloc[2]['Số dư tại ngày 31/12/2021'] + df4.iloc[2]['Số dư tại ngày 31/12/2022'] + df5.iloc[2]['Số dư tại ngày 31/12/2025']) / 5",
+  "solver": "raw_table_linker"
+ },
+ "895": {
+  "group": "cột lạ: mượn từ df khác",
+  "query": "max(pd.to_numeric(df4.iloc[5][\"Số cuối năm\"], errors=\"coerce\"), pd.to_numeric(df5.iloc[2][\"Số cuối năm\"], errors=\"coerce\"))",
+  "solver": "codegen"
+ },
+ "896": {
+  "group": "ok",
+  "query": "(df1.iloc[1][\"VND\"] + df2.iloc[1][\"Số cuối năm\"] + df3.iloc[1][\"Số cuối năm\"] + df4.iloc[3][\"VND\"]) / 4",
+  "solver": "codegen"
+ },
+ "898": {
+  "group": "ok",
+  "query": "df2.iloc[6][\"Số cuối nămTriệu VND\"] + df3.iloc[12][\"Số cuối nămVND\"]",
+  "solver": "codegen"
+ },
+ "899": {
+  "group": "ok",
+  "query": "(df4.iloc[2]['Giá gốc VND'] + df4.iloc[3]['Giá gốc VND'] + df4.iloc[4]['Giá gốc VND'] + df4.iloc[5]['Giá gốc VND'] + df4.iloc[6]['Giá gốc VND'] + df4.iloc[7]['Giá gốc VND'] + df4.iloc[8]['Giá gốc VND'] + df4.iloc[9]['Giá gốc VND'] + df4.iloc[10]['Giá gốc VND'] + df4.iloc[11]['Giá gốc VND'])",
+  "solver": "raw_selection_linker"
+ },
+ "9": {
+  "group": "ok",
+  "query": "df3.iloc[5][\"Năm 2023\"]",
+  "solver": "codegen"
+ },
+ "90": {
+  "group": "ok",
+  "query": "abs(df1.iloc[10]['Năm nay'])",
+  "solver": "raw_table_linker"
+ },
+ "900": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df4.iloc[2]['31/12/2021']) * 0 + 2021",
+  "solver": "raw_selection_linker"
+ },
+ "901": {
+  "group": "ok",
+  "query": "max(df1.iloc[4][\"Cộng\"], df2.iloc[15][\"Cộng\"], df3.iloc[16][\"TổngTriệu VND\"], df4.iloc[10][\"TổngTriệu VND\"], df5.iloc[13][\"Tổng Triệu VND\"])",
+  "solver": "codegen"
+ },
+ "903": {
+  "group": "ok",
+  "query": "max(df1.iloc[13][\"2017 VND\"], df2.iloc[13][\"2018 VND\"], df3.iloc[13][\"2020 VND\"], df4.iloc[13][\"2021 VND\"], df4.iloc[13][\"2022 VND\"])",
+  "solver": "codegen"
+ },
+ "905": {
+  "group": "ok",
+  "query": "df1.iloc[5]['Năm nay'] + df2.iloc[5]['Năm nay'] + df3.iloc[5]['Năm nay'] + df4.iloc[5]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "906": {
+  "group": "ok",
+  "query": "((df2.iloc[4]['31/12/2017 VND'] + df2.iloc[5]['31/12/2017 VND'] + df2.iloc[8]['31/12/2017 VND'] + df2.iloc[21]['31/12/2017 VND'])) * 0 + 2017",
+  "solver": "raw_selection_linker"
+ },
+ "907": {
+  "group": "ok",
+  "query": "max(df2.iloc[7][\"Năm 2021\"], df3.iloc[7][\"Năm 2019\"], df4.iloc[7][\"Năm 2020\"], df5.iloc[7][\"Năm 2016\"])",
+  "solver": "codegen"
+ },
+ "908": {
+  "group": "ok",
+  "query": "df4.iloc[1]['31.12.2023Triệu VND']",
+  "solver": "raw_selection_linker"
+ },
+ "909": {
+  "group": "ok",
+  "query": "pd.to_numeric(df2.iloc[1][\"Số cuối năm\"], errors=\"coerce\") * 1e-9 + pd.to_numeric(df3.iloc[2][\"Số cuối nămVND\"], errors=\"coerce\") * 1e-9 + pd.to_numeric(df4.iloc[1][\"Số cuối nămVND\"], errors=\"coerce\") * 1e-9 + pd.to_numeric(df1.iloc[2][\"Số cuối nămVND\"], errors=\"coerce\") * 1e-9",
+  "solver": "codegen"
+ },
+ "91": {
+  "group": "ok",
+  "query": "df1.iloc[10]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "910": {
+  "group": "ok",
+  "query": "(df4.iloc[11]['Số cuối năm']) * 0 + 2022",
+  "solver": "raw_selection_linker"
+ },
+ "911": {
+  "group": "ok",
+  "query": "max(df1.iloc[14][\"Đơn vị tính: VND Tổng cộng\"], df2.iloc[15][\"Đơn vị tính: VND Tổng cộng\"], df3.iloc[17][\"Đơn vị tính: VND Tổng cộng\"], df4.iloc[17][\"Đơn vị tính: VND Tổng cộng\"], df5.iloc[16][\"Đơn vị tính: VND Tổng cộng\"])",
+  "solver": "codegen"
+ },
+ "912": {
+  "group": "ok",
+  "query": "max(pd.to_numeric(df5.iloc[9][\"Thu nhập\"], errors=\"coerce\"), pd.to_numeric(df2.iloc[1][\"Unnamed: 2\"], errors=\"coerce\"), pd.to_numeric(df2.iloc[1][\"Đơn vị tính: VND\"], errors=\"coerce\")) * 1e-9",
+  "solver": "codegen"
+ },
+ "913": {
+  "group": "ok",
+  "query": "pd.to_numeric(df1.iloc[4][\"Số cuối năm\"], errors=\"coerce\") > 1e9",
+  "solver": "codegen"
+ },
+ "914": {
+  "group": "ok",
+  "query": "max(df1.iloc[4][\"Năm 2022\"], df2.iloc[4][\"Năm 2023\"], df3.iloc[3][\"Năm nay\"], df4.iloc[3][\"Năm nay\"], df5.iloc[5][\"Năm nay\"])",
+  "solver": "codegen"
+ },
+ "915": {
+  "group": "ok",
+  "query": "df1.iloc[6][\"2016 VND\"] + df2.iloc[5][\"Năm nay\"] + df3.iloc[4][\"Năm nay\"]",
+  "solver": "codegen"
+ },
+ "916": {
+  "group": "ok",
+  "query": "abs(df3.iloc[13]['Số cuối năm'])",
+  "solver": "raw_selection_linker"
+ },
+ "917": {
+  "group": "ok",
+  "query": "(df1.iloc[3]['31/12/2017 VND'] + df2.iloc[3]['31/12/2017 VND'] + df3.iloc[2]['Số cuối năm']) / 3",
+  "solver": "raw_table_linker"
+ },
+ "918": {
+  "group": "cột lạ: mượn từ df khác",
+  "query": "df1.iloc[5][\"31/12/2024Triệu VND\"] + df2.iloc[6][\"31/12/2024Triệu VND\"] + df3.iloc[6][\"31/12/2024triệu đồng\"] + df1.iloc[5][\"31/12/2024Triệu VND\"]",
+  "solver": "codegen"
+ },
+ "919": {
+  "group": "ok",
+  "query": "(df1.iloc[2]['Số cuối năm'] + df2.iloc[2]['Số cuối năm'] + df3.iloc[3]['31/12/2019 VND']) / 3",
+  "solver": "raw_table_linker"
+ },
+ "920": {
+  "group": "dòng quá tầm",
+  "query": "df1.iloc[3][\"Công ty Cổ phần19/5 Đoàn Hùng\"] + df1.iloc[3][\"Công ty Cổ phầnCờ Đồ\"] + df2.iloc[4][\"Unnamed: 0\"]",
+  "solver": "codegen"
+ },
+ "921": {
+  "group": "ok",
+  "query": "max(df3.iloc[1][\"Giá gốc/Số có khả năng trả nợ\"], df5.iloc[1][\"Giá gốc/Số có khả năng trả nợ\"], df4.iloc[1][\"Giá gốc/Số có khả năng trả nợ\"])",
+  "solver": "codegen"
+ },
+ "922": {
+  "group": "ok",
+  "query": "df1.iloc[6][\"Năm 2025 VND\"] + df2.iloc[6][\"Năm 2025 VND\"]",
+  "solver": "codegen"
+ },
+ "923": {
+  "group": "ok",
+  "query": "df3.iloc[2][\"Năm 2017\"] + df3.iloc[2][\"Năm 2016\"] + df4.iloc[2][\"Năm 2018\"]",
+  "solver": "codegen"
+ },
+ "924": {
+  "group": "ok",
+  "query": "df5.iloc[8][\"VNDTổng cộng\"]",
+  "solver": "codegen"
+ },
+ "925": {
+  "group": "ok",
+  "query": "((df1.iloc[1]['31/12/2020'] + df1.iloc[2]['31/12/2020'] + df1.iloc[0]['31/12/2020'] + df1.iloc[12]['31/12/2020'])) * 0 + 2020",
+  "solver": "raw_selection_linker"
+ },
+ "926": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df1.iloc[5][\"31/12/2020\"] + df2.iloc[5][\"31/12/2020\"] + df3.iloc[5][\"31/12/2020\"] * 1e6 + df3.iloc[8][\"31/12/2020\"] * 1e6) / (df1.iloc[7][\"31/12/2020\"] + df2.iloc[6][\"31/12/2020\"] + df3.iloc[8][\"31/12/2020\"] * 1e6) * 100",
+  "solver": "codegen"
+ },
+ "927": {
+  "group": "ok",
+  "query": "(df1.iloc[4]['31/12/2016'] + df2.iloc[4]['Số cuối năm'] + df3.iloc[4]['Số cuối năm'] + df4.iloc[4]['Số cuối năm'] + df5.iloc[4]['Số cuối năm']) / 5",
+  "solver": "raw_table_linker"
+ },
+ "928": {
+  "group": "ok",
+  "query": "(abs(df4.iloc[0]['2025VND']) + abs(df4.iloc[1]['2025VND']) + abs(df4.iloc[2]['2025VND']) + abs(df4.iloc[3]['2025VND']))",
+  "solver": "raw_selection_linker"
+ },
+ "929": {
+  "group": "ok",
+  "query": "df3.iloc[1][\"31/12/2018triệu đồng\"]",
+  "solver": "codegen"
+ },
+ "930": {
+  "group": "ok",
+  "query": "max(df2.iloc[0][\"31/12/2022VND\"], df1.iloc[1][\"Số cuối năm\"], df3.iloc[0][\"31/12/2023VND\"], df4.iloc[0][\"31/12/2024VND\"]) * 1e-09",
+  "solver": "codegen"
+ },
+ "931": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df1.iloc[11][\"Tổng\"] / df1.iloc[6][\"Tổng\"] + df2.iloc[19][\"Tổng\"] / df2.iloc[11][\"Tổng\"] + df3.iloc[9][\"Tổng VND\"] / df3.iloc[4][\"Tổng VND\"]) / 3",
+  "solver": "codegen"
+ },
+ "932": {
+  "group": "ok",
+  "query": "((df1.iloc[1][\"31/12/2020triêu đồng\"] > 40000) | (df2.iloc[2][\"Số cuối nămTriệu đồng\"] > 40000) | (df3.iloc[0][\"31/12/2020Triệu VND\"] > 40000)).sum()",
+  "solver": "codegen"
+ },
+ "933": {
+  "group": "ok",
+  "query": "(df1.iloc[5]['2015 VND']) * 0 + 2015",
+  "solver": "raw_selection_linker"
+ },
+ "934": {
+  "group": "ok",
+  "query": "df1.iloc[6]['Năm 2018'] + df2.iloc[6]['Năm 2018'] + df3.iloc[27]['Năm nay']",
+  "solver": "raw_table_linker"
+ },
+ "935": {
+  "group": "ok",
+  "query": "(((df1.iloc[10]['Số cuối năm']) / (df2.iloc[14]['Năm nay']) + (df3.iloc[9]['Số cuối năm VND']) / (df4.iloc[14]['Năm nay VND']) + (df5.iloc[9]['Số cuối năm']) / (df6.iloc[12]['Năm nay'])) / 3) * 100",
+  "solver": "raw_table_linker"
+ },
+ "936": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "max(df3.iloc[4][\"31/12/2021\"], df4.iloc[4][\"31/12/2020\"], df5.iloc[4][\"31/12/2022\"], df2.iloc[11][\"31/12/2025\"])",
+  "solver": "codegen"
+ },
+ "937": {
+  "group": "ok",
+  "query": "(df1.iloc[0][\"Ngày 31 tháng 12năm 2017triệu đồng\"] + df2.iloc[0][\"Ngày 31 tháng 12năm 2018triệu đồng\"] + df4.iloc[0][\"Ngày 31 tháng 12năm 2019triệu đồng\"] + df3.iloc[0][\"Ngày 31 tháng 12năm 2020triệu đồng\"]) / 4",
+  "solver": "codegen"
+ },
+ "938": {
+  "group": "ok",
+  "query": "df1.iloc[10]['31/12/2018 Triệu VND'] + df2.iloc[7]['31/12/2018 Triệu VND'] + df3.iloc[10]['31/12/2018 Triệu VND']",
+  "solver": "raw_table_linker"
+ },
+ "939": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df2.iloc[10][\"Tổng cộngVND\"] + df3.iloc[8][\"Tổng cộng VND\"] + df1.iloc[9][\"Cộng\"]) / (df1.iloc[9][\"Cộng\"] + df1.iloc[9][\"Cộng\"] + df1.iloc[9][\"Cộng\"] + df1.iloc[9][\"Cộng\"])",
+  "solver": "codegen"
+ },
+ "94": {
+  "group": "ok",
+  "query": "df1.iloc[7]['Kinh doanh thức ăn chăn nuôi và nguyên vật liệu sản xuất thức ăn chăn nuôi']",
+  "solver": "cell_locator"
+ },
+ "940": {
+  "group": "ok",
+  "query": "(df1.iloc[6]['Năm nay'] + df2.iloc[5]['Năm nay'] + df3.iloc[5]['Năm nay']) / 3",
+  "solver": "raw_table_linker"
+ },
+ "941": {
+  "group": "ok",
+  "query": "df4.iloc[8]['Số cuối năm']",
+  "solver": "raw_selection_linker"
+ },
+ "942": {
+  "group": "ok",
+  "query": "abs(df1.iloc[6][\"2020 Triệu VND\"]) + df2.iloc[6][\"Năm nay Triệu đồng\"]",
+  "solver": "codegen"
+ },
+ "943": {
+  "group": "ok",
+  "query": "(df1.iloc[3]['Số cuối năm'] + df2.iloc[2]['Số cuối nămVND'] + df3.iloc[2]['2018VNĐ']) / 3",
+  "solver": "raw_table_linker"
+ },
+ "944": {
+  "group": "ok",
+  "query": "max([df1.iloc[36][\"Số cuối năm\"], df2.iloc[37][\"Số cuối năm\"], df4.iloc[3][\"Số cuối năm\"], df5.iloc[0][\"Số cuối năm\"]])",
+  "solver": "codegen"
+ },
+ "945": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(df1.iloc[1][\"31/12/2023\"] / (df1.iloc[1][\"31/12/2023\"] + df1.iloc[2][\"31/12/2023\"] + df1.iloc[3][\"31/12/2023\"] + df1.iloc[4][\"31/12/2023\"] + df1.iloc[5][\"31/12/2023\"] + df1.iloc[6][\"31/12/2023\"])) * 100",
+  "solver": "codegen"
+ },
+ "946": {
+  "group": "ok",
+  "query": "max(df1.iloc[18][\"Tại ngày 31 tháng 12 năm\"], df2.iloc[17][\"Tại ngày 31 tháng 12 năm\"], df3.iloc[18][\"Tại ngày 31 tháng 12 năm\"])",
+  "solver": "codegen"
+ },
+ "947": {
+  "group": "ok",
+  "query": "(df1.iloc[3]['Năm nay'] + df2.iloc[3]['Năm nay'] + df3.iloc[3]['Năm nay'] + df4.iloc[3]['Năm nay']) / 4",
+  "solver": "raw_table_linker"
+ },
+ "948": {
+  "group": "ok",
+  "query": "max(df1.iloc[16][\"31/12/2024 VND\"], df2.iloc[8][\"31/12/2017VND\"], df3.iloc[8][\"2023VND\"], df4.iloc[5][\"31/12/2019VND\"], df5.iloc[8][\"31/12/2018VND\"])",
+  "solver": "codegen"
+ },
+ "949": {
+  "group": "ok",
+  "query": "(df1.iloc[6][\"Năm nay\"] > 1000000) + (df2.iloc[6][\"Năm 2025 triệu đồng\"] > 1000000) + (df3.iloc[9][\"Năm nay\"] > 1000000)",
+  "solver": "codegen"
+ },
+ "95": {
+  "group": "ok",
+  "query": "abs(df1.iloc[16]['2015 VND'])",
+  "solver": "cell_locator"
+ },
+ "950": {
+  "group": "ok",
+  "query": "df2.iloc[3][\"Giá trị giao dịch\"] + df2.iloc[4][\"Giá trị giao dịch\"] + df2.iloc[5][\"Giá trị giao dịch\"] + df2.iloc[6][\"Giá trị giao dịch\"] + df3.iloc[3][\"Giá trị giao dịch\"] + df3.iloc[4][\"Giá trị giao dịch\"] + df3.iloc[5][\"Giá trị giao dịch\"] + df3.iloc[6][\"Giá trị giao dịch\"] + df4.iloc[8][\"Giá trị giao dịch\"] + df4.iloc[9][\"Giá trị giao dịch\"] + df4.iloc[10][\"Giá trị giao dịch\"] + df4.iloc[11][\"Giá trị giao dịch\"] + df5.iloc[8][\"Giá trị giao dịch\"] + df5.iloc[9][\"Giá trị giao dịch\"] + df5.iloc[10][\"Giá trị giao dịch\"] + df5.iloc[11][\"Giá trị giao dịch\"] + df5.iloc[12][\"Giá trị giao dịch\"]",
+  "solver": "codegen"
+ },
+ "951": {
+  "group": "ok",
+  "query": "max([df3.iloc[2][\"2018\"], df5.iloc[3][\"2019\"], df4.iloc[2][\"2025\"]])",
+  "solver": "codegen"
+ },
+ "952": {
+  "group": "ok",
+  "query": "(df1.iloc[14]['Số cuối năm'] + df2.iloc[0]['Số cuối năm'] + df3.iloc[0]['Số cuối năm'] + df4.iloc[9]['31/12/2025 VND']) / 4",
+  "solver": "raw_table_linker"
+ },
+ "953": {
+  "group": "ok",
+  "query": "df3.iloc[17][\"Tổng\"]",
+  "solver": "codegen"
+ },
+ "954": {
+  "group": "ok",
+  "query": "(abs(df1.iloc[1]['Năm nay']) + abs(df2.iloc[1]['Năm nay']) + abs(df3.iloc[0]['Năm nay'])) / 3",
+  "solver": "raw_table_linker"
+ },
+ "955": {
+  "group": "ok",
+  "query": "(((df1.iloc[0]['31.12.2019Triệu VND']) / (df1.iloc[3]['31.12.2019Triệu VND']) + (df2.iloc[0]['31/12/2019triệu đồng']) / (df2.iloc[3]['31/12/2019triệu đồng']) + (df3.iloc[0]['Số cuối nămTriệu VND']) / (df3.iloc[3]['Số cuối nămTriệu VND']) + (df4.iloc[0]['Số cuối nămTriệu đồng']) / (df4.iloc[3]['Số cuối nămTriệu đồng'])) / 4) * 100",
+  "solver": "raw_table_linker"
+ },
+ "956": {
+  "group": "ok",
+  "query": "(df1.iloc[11]['Miền BắcTriệu VND'] + df2.iloc[9]['Miền BắcTriệu VND'] + df3.iloc[9]['Miền BắcTriệu VND'] + df4.iloc[12]['Miền Bắc']) / 4",
+  "solver": "raw_table_linker"
+ },
+ "957": {
+  "group": "ok",
+  "query": "(df1.iloc[36][\"31/12/2020 Triệu VND\"] + df2.iloc[27][\"Ngày 31 tháng 12 năm 2020Triệu đồng\"] + df1.iloc[36][\"31/12/2020 Triệu VND\"]) / 3",
+  "solver": "codegen"
+ },
+ "958": {
+  "group": "ok",
+  "query": "df1.iloc[11]['Số phát sinh trong năm'] + df2.iloc[8]['Số cuối năm VND'] + df3.iloc[5]['Số cuối năm']",
+  "solver": "raw_table_linker"
+ },
+ "96": {
+  "group": "ok",
+  "query": "abs(df1.iloc[3]['31/12/2025VND'])",
+  "solver": "cell_locator"
+ },
+ "960": {
+  "group": "ok",
+  "query": "max(df1.iloc[18][\"Năm 2019 VND\"], df2.iloc[18][\"Năm 2020 VND\"], df3.iloc[17][\"Năm 2023 VND\"], df4.iloc[18][\"Năm 2017 VND\"], df5.iloc[17][\"Năm 2021VND\"])",
+  "solver": "codegen"
+ },
+ "961": {
+  "group": "cột lạ: mượn từ df khác",
+  "query": "max(df1.iloc[6][\"Số cuối năm\"], df2.iloc[6][\"Số cuối năm\"], df3.iloc[6][\"Số cuối năm\"], df4.iloc[6][\"Số cuối năm\"])",
+  "solver": "codegen"
+ },
+ "963": {
+  "group": "ok",
+  "query": "((df1.iloc[1][\"Số cuối năm\"] > 100e9) + (df2.iloc[2][\"31/12/2016\"] > 100e9) + (df3.iloc[2][\"Từ 1 năm trở xuống\"] > 100e9)).astype(int)",
+  "solver": "codegen"
+ },
+ "964": {
+  "group": "ok",
+  "query": "df1.iloc[1][\"Năm 2023\"] + df2.iloc[1][\"31/12/2023\"]",
+  "solver": "codegen"
+ },
+ "965": {
+  "group": "ok",
+  "query": "(int(df1.iloc[6][\"Năm nay\"] > 20e9) + int(df2.iloc[3][\"Năm 2022VND\"] > 20e9) + int(df3.iloc[1][\"Unnamed: 1\"] > 20e9))",
+  "solver": "codegen"
+ },
+ "966": {
+  "group": "ok",
+  "query": "(df2.iloc[16][\"Năm nay\"] > 1e12) + (df3.iloc[16][\"Năm nay\"] > 1e12) + (df1.iloc[15][\"Năm nay\"] > 1e12)",
+  "solver": "codegen"
+ },
+ "967": {
+  "group": "ok",
+  "query": "max(df1.iloc[13][\"31/12/2024 Triệu VND\"], df2.iloc[5][\"Dự phòng cụ thể\"], df3.iloc[2][\"Số cuối nămTriệu VND\"], df4.iloc[5][\"Dự phòng cụ thể\"], df5.iloc[5][\"Dự phòng cụ thể\"])",
+  "solver": "codegen"
+ },
+ "968": {
+  "group": "ok",
+  "query": "max(df1.iloc[1][\"Số cuối năm\"] / (df1.iloc[1][\"Số cuối năm\"] + df1.iloc[2][\"Số cuối năm\"]), df2.iloc[1][\"Số cuối năm\"] / (df2.iloc[1][\"Số cuối năm\"] + df2.iloc[2][\"Số cuối năm\"]), df3.iloc[1][\"Số cuối năm\"] / (df3.iloc[1][\"Số cuối năm\"] + df3.iloc[2][\"Số cuối năm\"]), df4.iloc[1][\"Số cuối năm\"] / (df4.iloc[1][\"Số cuối năm\"] + df4.iloc[2][\"Số cuối năm\"]), df5.iloc[1][\"Số cuối năm\"] / (df5.iloc[1][\"Số cuối năm\"] + df5.iloc[2][\"Số cuối năm\"])) * 100",
+  "solver": "codegen"
+ },
+ "97": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "(((df1.iloc[4]['Unnamed: 3'] + df1.iloc[4]['Unnamed: 7'])) / ((df2.iloc[0]['31/12/2023 VND'] + df2.iloc[1]['31/12/2023 VND']))) * 100",
+  "solver": "raw_table_linker"
+ },
+ "970": {
+  "group": "ok",
+  "query": "(df4.iloc[4][\"2021Triệu VND\"] / df1.iloc[13][\"31/12/2015 Triệu VND\"]) * 100",
+  "solver": "codegen"
+ },
+ "971": {
+  "group": "ok",
+  "query": "((abs(df2.iloc[1]['31/12/2023']) + abs(df2.iloc[3]['31/12/2023']) + abs(df2.iloc[4]['31/12/2023']))) * 0 + 2023",
+  "solver": "raw_selection_linker"
+ },
+ "972": {
+  "group": "ok",
+  "query": "max(df1.iloc[11][\"Năm nay\"], df2.iloc[11][\"Năm nay\"], df5.iloc[3][\"Current year VND\"])",
+  "solver": "codegen"
+ },
+ "973": {
+  "group": "ok",
+  "query": "(int(df1.iloc[14][\"2022 VND\"] > 0) + int(df2.iloc[15][\"2022 VND\"] > 0) + int(df3.iloc[17][\"Năm kết thúc ngày\"] > 0))",
+  "solver": "codegen"
+ },
+ "974": {
+  "group": "ok",
+  "query": "((df3.iloc[1]['Số cuối năm'] + df3.iloc[2]['Số cuối năm'] + df3.iloc[3]['Số cuối năm'] + df3.iloc[4]['Số cuối năm'])) * 0 + 2024",
+  "solver": "raw_selection_linker"
+ },
+ "975": {
+  "group": "ok",
+  "query": "(df2.iloc[1][\"2024VND\"] + df1.iloc[16][\"Năm 2024\"] + df3.iloc[2][\"Năm nay\"]) / 3",
+  "solver": "codegen"
+ },
+ "976": {
+  "group": "ok",
+  "query": "(df1.iloc[3][\"2022 VND\"] / df1.iloc[3][\"2022 VND\"]) * 100",
+  "solver": "codegen"
+ },
+ "977": {
+  "group": "ok",
+  "query": "(((df1.iloc[10]['Số cuối năm']) / (df1.iloc[25]['Số cuối năm']) + (df2.iloc[10]['31/12/2017']) / (df2.iloc[22]['31/12/2017']) + (df3.iloc[11]['Tập đoàn']) / (df3.iloc[11]['Công tv']) + (df4.iloc[8]['31/12/2017 VND']) / (df5.iloc[3]['Tổng VND'])) / 4) * 100",
+  "solver": "raw_table_linker"
+ },
+ "978": {
+  "group": "ok",
+  "query": "max([df1.iloc[7][\"Tại ngày 31 tháng 12 năm\"], df3.iloc[8][\"2022VND\"], df4.iloc[7][\"2020VND\"], df2.iloc[12][\"31/12/2025\"]])",
+  "solver": "codegen"
+ },
+ "979": {
+  "group": "ok",
+  "query": "pd.to_numeric(df2.iloc[1][\"Năm nay\"], errors=\"coerce\") / pd.to_numeric(df2.iloc[7][\"Năm nay\"], errors=\"coerce\") * 100",
+  "solver": "codegen"
+ },
+ "98": {
+  "group": "ok",
+  "query": "df1.iloc[15][\"Số đầu năm\"]",
+  "solver": "codegen"
+ },
+ "980": {
+  "group": "ok",
+  "query": "(df3.iloc[3]['Tại ngày 31 tháng 12 năm'] + df3.iloc[5]['Tại ngày 31 tháng 12 năm'] + df3.iloc[6]['Tại ngày 31 tháng 12 năm'] + df3.iloc[27]['Tại ngày 31 tháng 12 năm'] + df3.iloc[34]['Tại ngày 31 tháng 12 năm'] + df3.iloc[2]['Tại ngày 31 tháng 12 năm'] + df3.iloc[4]['Tại ngày 31 tháng 12 năm'])",
+  "solver": "raw_selection_linker"
+ },
+ "982": {
+  "group": "ok",
+  "query": "((df5.iloc[0]['Số cuối năm'] + df5.iloc[17]['Số cuối năm'] + df5.iloc[33]['Số cuối năm'] + df5.iloc[12]['Số cuối năm'] + df5.iloc[14]['Số cuối năm'])) * 0 + 2025",
+  "solver": "raw_selection_linker"
+ },
+ "983": {
+  "group": "ok",
+  "query": "((pd.to_numeric(df1.iloc[16][\"2019 VND\"], errors=\"coerce\") > 50e9) + (pd.to_numeric(df2.iloc[16][\"Năm kết thúc ngày 31/12/2019 VND\"], errors=\"coerce\") > 50e9) + (pd.to_numeric(df3.iloc[6][\"2019VND\"], errors=\"coerce\") > 50e9)).astype(int)",
+  "solver": "codegen"
+ },
+ "984": {
+  "group": "ok",
+  "query": "(df1.iloc[0]['31/12/2019VND'] + df1.iloc[1]['31/12/2019VND'] + df1.iloc[2]['31/12/2019VND'])",
+  "solver": "raw_selection_linker"
+ },
+ "985": {
+  "group": "ok",
+  "query": "(df5.iloc[9]['31/12/2021VND']) * 0 + 2021",
+  "solver": "raw_selection_linker"
+ },
+ "986": {
+  "group": "ok",
+  "query": "(abs(df4.iloc[0]['Năm nay'])) * 0 + 2025",
+  "solver": "raw_selection_linker"
+ },
+ "987": {
+  "group": "ok",
+  "query": "df1.iloc[4][\"2020 VND\"] + df2.iloc[3][\"2020 VND\"]",
+  "solver": "codegen"
+ },
+ "988": {
+  "group": "ok",
+  "query": "max(df1.iloc[21][\"Năm 2022 VND\"], df2.iloc[4][\"Năm 2022\"], df3.iloc[4][\"Năm 2023\"], df4.iloc[3][\"Năm nay\"], df5.iloc[5][\"Năm nay\"])",
+  "solver": "codegen"
+ },
+ "989": {
+  "group": "cột lạ: bịa hẳn",
+  "query": "max(df5.iloc[0][\"31/12/2024Triệu VND\"], df3.iloc[3][\"Số cuối năm\"], df1.iloc[8][\"Số cuối năm Triệu đồng\"])",
+  "solver": "codegen"
+ },
+ "99": {
+  "group": "ok",
+  "query": "df1.iloc[2]['Tại ngày 31 tháng 12 năm']",
+  "solver": "cell_locator"
+ },
+ "990": {
+  "group": "ok",
+  "query": "(int(df1.iloc[2][\"Số cuối năm(Cổ phiếu)\"]) > 350000000) + (int(df2.iloc[4][\"Số lượng cổ phiếu\"]) > 350000000) + (int(df3.iloc[4][\"Số cuối năm\"]) > 350000000)",
+  "solver": "codegen"
+ },
+ "991": {
+  "group": "ok",
+  "query": "abs(df1.iloc[8][\"Số cuối năm\"]) + abs(df2.iloc[10][\"31/12/2016triệu đồng\"]) + abs(df3.iloc[0][\"31/12/2016Triệu VND\"])",
+  "solver": "codegen"
+ },
+ "992": {
+  "group": "dòng quá tầm",
+  "query": "(df1.iloc[11][\"Tổng cộngtriệu đồng\"] / df1.iloc[13][\"Tổng cộngtriệu đồng\"]) * 100 + (df2.iloc[15][\"Tổng cộng Triệu VND\"] / df2.iloc[17][\"Tổng cộng Triệu VND\"]) * 100 + (df3.iloc[15][\"Tổng cộng Triệu VND\"] / df3.iloc[17][\"Tổng cộng Triệu VND\"]) * 100",
+  "solver": "codegen"
+ },
+ "993": {
+  "group": "ok",
+  "query": "df1.iloc[15][\"Năm nay\"] / df1.iloc[1][\"Năm nay\"] * 100",
+  "solver": "codegen"
+ },
+ "994": {
+  "group": "ok",
+  "query": "abs(df4.iloc[8]['Năm 2022 VND'])",
+  "solver": "raw_selection_linker"
+ },
+ "995": {
+  "group": "ok",
+  "query": "(df1.iloc[14][\"Số cuối năm\"] + df4.iloc[6][\"Số cuối năm\"] + df2.iloc[18][\"Số cuối năm\"] + df3.iloc[4][\"Số cuối năm\"]) - (df2.iloc[18][\"Số cuối năm\"] + df3.iloc[4][\"Số cuối năm\"])",
+  "solver": "codegen"
+ },
+ "996": {
+  "group": "ok",
+  "query": "max(df2.iloc[16][\"Tổng cộng Triệu VND\"], df3.iloc[15][\"Tổng cộngTriệu VND\"], df4.iloc[15][\"Tổng cộngTriệu VND\"], df5.iloc[14][\"Tổng cộng Triệu VND\"])",
+  "solver": "codegen"
+ },
+ "997": {
+  "group": "ok",
+  "query": "(df1.iloc[9]['Số cuối năm']) * 0 + 2019",
+  "solver": "raw_selection_linker"
+ },
+ "999": {
+  "group": "ok",
+  "query": "(df1.iloc[22]['Năm kết thúc31/12/2016Triệu VND']) * 0 + 2016",
+  "solver": "raw_selection_linker"
+ }
+}

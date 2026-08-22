@@ -1,0 +1,130 @@
+# 73 câu sai, phân theo chữ ký số học: chỉ 6 câu sửa được bằng luật
+
+Ba phiên trước đều đi từ phía retrieval: bảng gold ở đâu, judge chọn gì, khe evidence đủ
+chưa. `docs/shortlist_gap_2026-08-22.md` đóng hướng đó. Phiên này đi từ phía ngược lại: so
+**con số** đã nộp với **con số** gold, rồi hỏi hai số lệch nhau kiểu gì.
+
+`scripts/gate_sign_rule.py` in bảng này (không gọi LLM, đọc submission và nhãn):
+
+```
+73 câu sai, theo chữ ký số học:
+  ô khác hẳn                58
+  một bên bằng 0             8
+  chỉ sai dấu                3  [774, 777, 894]
+  sai lũy thừa 10 (x1e-3)    1  [139]
+  sai lũy thừa 10 (x1e1)     1  [267]
+  sai lũy thừa 10 (x1e-6)    1  [284]
+  sai lũy thừa 10 (x1e6)     1  [748]
+```
+
+Đây là con số đáng nhớ nhất của phiên: **58 trên 73 câu sai là đọc hẳn một ô khác**, không
+phải lệch đơn vị, không phải lệch dấu, không phải cộng trừ nhầm. Hy vọng "có một lớp lỗi hậu
+xử lý rẻ tiền" chết ở đây: cả lớp dấu và lớp lũy thừa 10 cộng lại đúng 7 câu.
+
+Nhưng 7 câu đó là 7 câu **xác định**, sửa bằng luật đọc được, không cần chạy lại LLM. Trần
++3 đã lấy được, xem §2.
+
+## 1. Truy vấn có index vào cột thật không: manh mối chết
+
+`config.py:218` ghi kiểu lỗi nó thấy khi nâng trần bảng: "a column name taken from df2 used
+to index df5". Nếu đúng vậy thì chặn được bằng một phép kiểm tra thuần cơ học.
+`scripts/gate_query_grounding.py` parse `pandas_query` bằng `ast`, đối chiếu mọi tên cột và
+chỉ số dòng với frame nó index, trên cả 1012 câu:
+
+```
+  ok                          857   84.7%
+  cột lạ: mượn từ df khác       8    0.8%
+  cột lạ: bịa hẳn              41    4.1%
+  dòng quá tầm                  3    0.3%
+  biến lạ                       1    0.1%
+  không có truy vấn           102   10.1%
+```
+
+Cả 49 câu "cột lạ" đều thật: chạy lại truy vấn với `load_frame` thì cả 49 raise. Nhưng
+hướng này vẫn chết, vì ba lý do đo được:
+
+- Chỉ **8** câu là kiểu `config.py:218` mô tả (mượn cột từ df khác). 41 câu còn lại là tên
+  bị cắt ngắn từ header hai tầng đã làm phẳng (`"31/12/2020"` cho
+  `"31/12/2020 | Triệu VND"`), tức lỗi đọc header, không phải lỗi lẫn frame.
+- Chỉ **30/49** câu có tên cột hỏng phân giải về đúng một cột duy nhất. Sửa tự động 19 câu
+  còn lại là đoán.
+- Trên 119 câu chấm được, cả lớp này chỉ có **8 câu, 5 câu sai**, và giao với 23 câu "đã nạp
+  đủ bằng chứng mà vẫn sai" đúng hai câu: [97, 748].
+
+Đóng hướng. Ghi lại vì `config.py:218` sẽ còn dụ người đọc sau đi vào đây.
+
+## 2. Luật dấu: hiệu giữa hai pháp nhân là độ lớn
+
+Ba câu sai dấu (774, 777, 894) là lớp duy nhất trong bảng đầu file có một nguyên nhân chung.
+
+Vì sao luật cũ bỏ sót. `SIGNED_METRIC` chứa `chenh lech`, nên `cell_locator.value_transform`
+phủ quyết mọi câu hỏi hiệu số; `execute.as_magnitude` phủ quyết y hệt bằng `DIFF_CUE_LOOSE`,
+và docstring của nó viết "in those the sign *is* the answer". Câu đó **đúng** với hiệu theo
+thời gian và **sai** với hiệu giữa hai pháp nhân:
+
+- q623 "chênh lệch ... cuối năm 2023 và cuối năm 2022 của PC1": 2023 trừ 2022, đảo dấu là
+  đảo nghĩa. Nhãn âm, ta trả âm, đúng.
+- q774 "chênh lệch ... của công ty mẹ VIB và công ty mẹ SHB": thứ tự VIB/SHB do người viết
+  câu chọn, không phải do phép tính. Nhãn dương.
+- q894 "trung bình cộng thuế TNDN đã nộp": khoản chi ghi âm trong lưu chuyển tiền tệ, mà
+  `MAGNITUDE_METRIC` (`chi phí|dự phòng|hao mòn|khấu hao|lãi vay`) không khớp chữ nào.
+
+Sáu biến thể luật, đo bằng cách lấy `abs()` đáp án ở những câu luật bắn rồi chấm lại (đúng
+phép vì mọi nhân đơn vị trên đường `apply_units` đều dương):
+
+| luật | điểm | được | mất | đổi dấu / 1012 |
+|---|---:|---|---|---:|
+| hiệu, câu chỉ nhắc một mốc | 48 | 774, 777 | | 32 |
+| hiệu, scope có ≥2 mã | 48 | 774, 777 | | 38 |
+| `đã nộp/trả/chi` | 47 | 894 | | 1 |
+| hiệu một mốc + đã nộp | 49 | 774, 777, 894 | | 33 |
+| hiệu ≥2 mã + đã nộp | 49 | 774, 777, 894 | | 39 |
+| **hiệu ≥2 mã, một mốc, không sàng lọc, + đã nộp** | **49** | 774, 777, 894 | | **28** |
+
+Nguyên bản 46/119. Mọi biến thể đạt 49/119 đều **mất 0 câu**, nên tập 119 câu không tách
+được chúng. Chọn biến thể cuối vì hai lý do không nằm trong con số tổng:
+
+1. **Nó nói đúng điều nó làm.** "Hiệu giữa hai pháp nhân trong cùng một mốc" là mệnh đề
+   giải thích được: hai bên chỉ khác nhau ở pháp nhân, nên thứ tự là tuỳ ý. Biến thể "câu
+   chỉ nhắc một mốc" chỉ là proxy văn bản, và nó bắn sai ngay trên một test đang có:
+   `tests/test_solve_units.py:253` khẳng định "Hiệu số giữa chi phí bán hàng và chi phí quản
+   lý" phải giữ dấu, mà đó là hiệu giữa hai **chỉ tiêu**, không phải hai pháp nhân.
+2. **Nó đổi dấu ít nhất: 28 câu thay vì 39.** Trên 893 câu không có nhãn, mỗi lần đổi dấu
+   thêm là một lần rủi ro không đo được. Chặn `SELECTION_MARKER` bỏ đúng ba câu sàng lọc
+   (417, 418, 445), nơi "cao hơn" làm `DIFF_CUE_LOOSE` bắn nhưng đáp án là hệ số ROA của một
+   công ty, và ROA âm là hợp lệ.
+
+Đọc `artifacts/runs/gate_sign_rule_flips.out`: cả 28 câu bị đổi dấu đều là dạng "chênh lệch
+giữa A và B", trừ q894.
+
+### Cài ở đâu
+
+Một chỗ duy nhất: `execute.as_magnitude`. `graph.py` chạy **mọi** solver qua `aexecute`, nên
+`abs` ở đó phủ cả codegen, raw_table_linker, raw_selection_linker, cell_locator và nhánh
+revise. Quan trọng hơn: `apply_units` bọc `abs()` quanh **toàn bộ** truy vấn, còn
+`value_transform` chỉ bọc từng số hạng. Với q774 thì `abs(a) - abs(b)` vẫn âm, chỉ
+`abs(a - b)` mới đúng, nên chỗ cài phải là `apply_units`, không phải `value_transform`.
+
+`state["tickers"]` được truyền thêm vào `aexecute` ở 5 điểm gọi trong `graph.py`. Điểm gọi
+thứ sáu là nhánh câu con của `decompose`, chỗ đó mỗi câu con chỉ có một công ty một năm nên
+nhánh mã không bao giờ bắn; `đã nộp` vẫn bắn được vì nó chỉ đọc văn bản.
+
+Một cái bẫy đã dính rồi và đáng ghi: predicate phải đọc `intent_norm(question)`, không phải
+`norm(question)`. `SELECTION_MARKER` có nhánh `cong ty co\b`, nên "Công ty Cổ phần" tự khớp
+nếu không gỡ dạng pháp nhân trước.
+
+## 3. Còn lại gì
+
+Bảng đầu file để lại hai lớp:
+
+- **58 câu "ô khác hẳn".** Không có luật hậu xử lý nào chạm được. Đây là bài toán chọn ô, và
+  `docs/cell_ranking_2026-08-22.md` đang đo đúng nó.
+- **4 câu sai lũy thừa 10** (139, 267, 284, 748). Đo được: `source_unit_from` bằng "mặc định
+  vnd (bảng không khai đơn vị)" ở **427/1012** câu, và 230 câu trong đó bị nhân theo đúng
+  giả định ấy. Trên 119 câu là 31 câu, **16 đúng 15 sai**
+  [87, 109, 139, 284, 308, 336, 478, 523, 552, 641, 769, 777, 836, 919, 934]. q139 và q284
+  đúng là ca này: bảng ghi nghìn/triệu đồng, code mặc định vnd. q748 là lỗ khác, nó cần
+  `target_unit` kiểu "triệu cổ phiếu" mà `Unit` không có.
+
+Lớp đơn vị mặc định là hướng đo tiếp theo, và nó đắt hơn lớp dấu: 15 câu sai nghe to, nhưng
+đổi mặc định thì 16 câu đang đúng cũng bị đổi theo.
