@@ -88,3 +88,9 @@ artifacts/reports/questions_taxonomy.md
 
 # temporary v1 source-tree reconstruction (rebuilt from rewind snapshots)
 .v1arm/
+
+# 1.1M of normalized raw-OCR excerpts (two reports x 6k chars per ticker), built by the
+# name->ticker resolver behind the clean eval set. Derived from the gitignored corpus and
+# rebuildable from it; the resolver output it produced (ticker_names/canonical/name_index)
+# is small and IS kept.
+artifacts/relabel/ticker_blob.json
