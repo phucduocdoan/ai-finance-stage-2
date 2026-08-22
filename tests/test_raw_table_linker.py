@@ -19,6 +19,30 @@ def check(name: str, condition: bool) -> None:
         raise AssertionError(name)
 
 
+# Row wording, on the three cases that used to tie. `ngắn` survives tokenising, so
+# short-term and long-term are different words; bank names still leave row scoring
+# because `_scoring_query_for_table` drops them per table.
+check("ngắn hạn is not dài hạn", raw._tokens("Ngắn hạn") != raw._tokens("Dài hạn"))
+
+q32_tokens = raw._tokens(
+    "Số dư phải thu theo tiến độ kế hoạch hợp đồng của FPT đến ngày 31/12/2025 là bao nhiêu tỷ đồng?"
+)
+check(
+    "a one-word row cannot tie a six-word exact hit",
+    raw._token_score(q32_tokens, "Tiền")
+    < raw._token_score(q32_tokens, "Phải thu theo tiến độ kế hoạch hợp đồng"),
+)
+
+q164_tokens = raw._tokens(
+    "Trích khấu hao bất động sản đầu tư cho thuê của CTCP Phát triển Sunshine Homes (SSH)"
+)
+check(
+    "an aggregated line scores below the row naming only what was asked",
+    raw._token_score(q164_tokens, "Khấu hao tài sản cố định và bất động sản đầu tư")
+    < raw._token_score(q164_tokens, "Trích khấu hao trong năm"),
+)
+
+
 FRAMES = {
     "KLB_financial_statements_2024_separate|42": pd.DataFrame({
         "Unnamed: 0": ["Chứng chỉ tiền gửi (*)", "Trái phiếu (**)", "Tổng cộng"],

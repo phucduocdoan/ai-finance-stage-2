@@ -467,7 +467,10 @@ distractor_candidates = [
         column="Số cuối nămTriệu đồng",
         value=300000000.0,
         source_unit="million_vnd",
-        row_label="Động sản",
+        # A real phrase hit, so the distractor table clears the three-component floor
+        # on its own merits. `Động sản` used to stand here and matched `Tài sản thuê
+        # ngoài` at a perfect 1.0, because a one-token row divided by its own length.
+        row_label="Các chứng từ có giá trị khác",
         row_score=0.62,
         table_score=0.5,
         column_score=0.5,

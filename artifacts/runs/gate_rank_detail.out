@@ -1,0 +1,86 @@
+
+q32 Số dư phải thu theo tiến độ kế hoạch hợp đồng của FPT đến ngày 31/12/2025 là bao nhiêu tỷ đồng?
+  gold [200405269967.0] hạng [1]  (trong 12)
+     0 0.841 (r1.00 t0.92 c0.50) FPT_financial_statements_2025_consolidated|5 r3 'Tại ngày 31 tháng 12 năm' = 8084751080186  'Tiền'
+  >  1 0.841 (r1.00 t0.92 c0.50) FPT_financial_statements_2025_consolidated|5 r10 'Tại ngày 31 tháng 12 năm' = 200405269967  'Phải thu theo tiến độ kế hoạch hợp đồng'
+     2 0.807 (r0.92 t0.92 c0.50) FPT_financial_statements_2025_consolidated|7 r8 'Tại ngày 31 tháng 12 năm' = 85650109236  'Phải trả theo tiến độ kế hoạch hợp đồng'
+     3 0.750 (r1.00 t0.92 c0.12) FPT_financial_statements_2025_consolidated|5 r3 'Unnamed: 4' = 6725619929289  'Tiền'
+
+q51 Số dư kỳ phiếu, trái phiếu trung hạn bằng đồng nội tệ của Ngân hàng TMCP Ngoại thương Việt Nam (VCB) là bao nh
+  gold [10437945.0] hạng [1]  (trong 12)
+     0 0.870 (r1.00 t0.92 c0.62) VCB_financial_statements_2020_consolidated|64 r4 '31/12/2020Triệu VND' = 47  'Ngắn hạn bằng VND'
+  >  1 0.870 (r1.00 t0.92 c0.62) VCB_financial_statements_2020_consolidated|64 r6 '31/12/2020Triệu VND' = 10437945  'Trung hạn bằng VND'
+     2 0.836 (r0.92 t0.92 c0.62) VCB_financial_statements_2020_consolidated|64 r5 '31/12/2020Triệu VND' = 30  'Ngắn hạn bằng ngoại tệ'
+     3 0.836 (r0.92 t0.92 c0.62) VCB_financial_statements_2020_consolidated|64 r7 '31/12/2020Triệu VND' = 12  'Trung hạn bằng ngoại tệ'
+
+q87 Tổng giá vốn hàng bán của HPX trong năm 2024 là bao nhiêu tỷ đồng?
+  gold [1097119148438.0] hạng [5]  (trong 12)
+     0 0.841 (r1.00 t0.92 c0.50) HPX_financial_statements_2024_consolidated|7 r3 'Năm 2024VND' = 6  'Giá vốn hàng bán'
+     1 0.750 (r1.00 t0.92 c0.12) HPX_financial_statements_2024_consolidated|7 r3 'CHỈ TIÊU' = 4  'Giá vốn hàng bán'
+     2 0.750 (r1.00 t0.92 c0.12) HPX_financial_statements_2024_consolidated|7 r3 'Unnamed: 5' = 1392219958307  'Giá vốn hàng bán'
+     3 0.663 (r0.84 t0.84 c0.12) HPX_financial_statements_2024_consolidated|59 r2 'Kinh doanhbất động sản' = 958597395523  'Tổng giá vốn'
+  >  5 0.663 (r0.84 t0.84 c0.12) HPX_financial_statements_2024_consolidated|59 r2 'Tổng' = 1097119148438  'Tổng giá vốn'
+
+q109 Số tiền trả trước cho người bán ngắn hạn của CTCP Phát triển Hạ tầng Kỹ thuật tính đến ngày 31/12/2016 là bao 
+  gold [25195451251.0] hạng [24]  (ngoài 12)
+     0 0.908 (r0.92 t0.92 c0.92) IJC_financial_statements_2016_consolidated|17 r3 'Số cuối năm' = 5576335963  'Trả trước cho các người bán khác'
+     1 0.782 (r0.62 t0.92 c0.92) IJC_financial_statements_2016_consolidated|17 r0 'Số cuối năm' = 19619115288  'Trả trước cho các bên liên quan'
+     2 0.718 (r1.00 t0.50 c0.74) IJC_financial_statements_2016_consolidated|14 r0 'Số cuối năm | Giá gốc' = 11200000000  'Ngắn hạn'
+     3 0.718 (r1.00 t0.50 c0.74) IJC_financial_statements_2016_consolidated|14 r0 'Số cuối năm | Giá trị ghi sổ' = 11200000000  'Ngắn hạn'
+  > 24 0.522 (r0.00 t0.92 c0.92) IJC_financial_statements_2016_consolidated|17 r6 'Số cuối năm' = 25195451251  'Cộng'
+
+q164 Trích khấu hao bất động sản đầu tư cho thuê của CTCP Phát triển Sunshine Homes (SSH) là bao nhiêu tỷ đồng tron
+  gold [4900612861.0] hạng [28]  (ngoài 12)
+     0 0.908 (r0.92 t0.92 c0.92) SSH_financial_statements_2023_consolidated|7 r3 'Năm nay' = 28957745264  'Khấu hao tài sản cố định và bắt động sản đầu tư'
+     1 0.902 (r1.00 t0.92 c0.92) SSH_financial_statements_2023_consolidated|4 r11 'Số cuối năm' = 625182780964  'Bất động sản đầu tư'
+     2 0.828 (r0.92 t0.92 c0.92) SSH_financial_statements_2023_consolidated|51 r4 'Năm nay' = 29522959676  'Chi phí khấu hao tài sản cố định và bắt động sản đầu tư'
+     3 0.794 (r0.84 t0.92 c0.92) SSH_financial_statements_2023_consolidated|51 r1 'Năm nay' = 352529002714  'Chi phí phát triển bắt động sản đã bán'
+  > 28 0.682 (r0.84 t0.92 c0.12) SSH_financial_statements_2023_consolidated|27 r9 'Tổng' = 4900612861  'Trích khấu hao trong năm'
+
+q185 Tổng các khoản cho vay dài hạn không có tài sản đảm bảo của công ty mẹ Tập đoàn VINGROUP - CTCP (VIC) vào cuối
+  gold [2704370400000.0] hạng [74]  (ngoài 12)
+     0 0.922 (r1.00 t0.84 c0.92) VIC_financial_statements_2016_separate|6 r0 'Số cuối năm' = 55723140138323  'B. TÀI SẢN DÀI HẠN'
+     1 0.922 (r1.00 t0.84 c0.92) VIC_financial_statements_2016_separate|6 r26 'Số cuối năm' = 82922573348412  'TỔNG CỘNG TÀI SẢN'
+     2 0.855 (r0.84 t0.84 c0.92) VIC_financial_statements_2016_separate|6 r2 'Số cuối năm' = 2720370400000  '1. Phải thu về cho vay dài hạn'
+     3 0.830 (r1.00 t0.62 c0.92) VIC_financial_statements_2016_separate|5 r0 'Số cuối năm' = 27199433210089  'A. TÀI SẢN NGĂN HẠN'
+  > 74 0.571 (r0.62 t0.84 c0.12) VIC_financial_statements_2016_separate|21 r9 'Đơn vị tính: VND' = 2704370400000  'Các khoản cho vay các bên liên quan dài hạn (Thuyết minh số '
+
+q214 Doanh thu của Tổng Công ty Điện lực TKV - CTCP (DTK) năm 2024 là bao nhiêu trăm tỷ đồng?
+  gold [12839301284671.0] hạng [12]  (ngoài 12)
+     0 0.661 (r0.67 t0.67 c0.92) DTK_financial_statements_2024_consolidated|32 r2 'Số cuối năm' = 25144889205  'Thuế thu nhập doanh nghiệp'
+     1 0.661 (r0.67 t0.67 c0.92) DTK_financial_statements_2024_consolidated|33 r1 'Số cuối năm' = 14774222857  'Thuế thu nhập doanh nghiệp'
+     2 0.661 (r0.67 t0.67 c0.92) DTK_financial_statements_2024_consolidated|49 r0 'Số năm nay' = 12548788301513  'Doanh thu bán điện'
+     3 0.661 (r0.67 t0.67 c0.92) DTK_financial_statements_2024_consolidated|49 r1 'Số năm nay' = 157970986678  'Doanh thu bán than'
+  > 12 0.609 (r1.00 t0.67 c0.12) DTK_financial_statements_2024_consolidated|73 r0 'Cộng' = 12839301284671  'Doanh thu'
+
+q255 Tổng tiền trả trước cho người bán ngắn hạn cuối năm 2016 của công ty mẹ CTCP - Tổng công ty Phân bón Dầu khí C
+  gold [17658016630.0] hạng [1]  (trong 12)
+     0 0.942 (r1.00 t0.92 c0.92) DCM_financial_statements_2016_separate|5 r2 'Số cuối năm' = 481252282373  '1. Tiên'
+  >  1 0.942 (r1.00 t0.92 c0.92) DCM_financial_statements_2016_separate|5 r8 'Số cuối năm' = 17658016630  '2. Trả trước cho người bán ngắn hạn'
+     2 0.859 (r0.84 t0.86 c0.92) DCM_financial_statements_2016_separate|6 r2 'Số cuối năm' = 694917293842  '1. Phải trả người bán ngắn hạn'
+     3 0.857 (r0.83 t0.86 c0.92) DCM_financial_statements_2016_separate|6 r3 'Số cuối năm' = 64450940342  '2. Người mua trả tiền trước ngắn hạn'
+
+q267 Số dư tiền gửi có kỳ hạn bằng ngoại tệ của công ty mẹ Ngân hàng TMCP Á Châu (ACB) đến ngày 31/12/2020 là bao n
+  gold [340063.0] hạng [12]  (ngoài 12)
+     0 0.756 (r0.92 t0.92 c0.62) ACB_financial_statements_2020_separate|54 r1 '31.12.2020Triệu VND' = 231000  'Tiền gửi có kỳ hạn tại các TCTD khác(Thuyết minh 6.1(i))'
+     1 0.756 (r0.92 t0.92 c0.62) ACB_financial_statements_2020_separate|78 r2 '31.12.2020Triệu VND' = 22303637  'Tiền gửi tại các TCTD khác (gồm tiền gửi không kỳ hạn và tiề'
+     2 0.756 (r0.92 t0.92 c0.62) ACB_financial_statements_2020_separate|82 r1 '31.12.2020Triệu VND' = 231000  'Tiền gửi có kỳ hạn tại TCTD khác(Thuyết minh 6.1)'
+     3 0.755 (r1.00 t0.78 c0.62) ACB_financial_statements_2020_separate|30 r0 '31.12.2020Triệu VND' = 177853958  'Ngắn hạn'
+  > 12 0.670 (r1.00 t0.92 c0.62) ACB_financial_statements_2020_separate|55 r5 '31.12.2020Triệu VND' = 340063  '- Bằng ngoại tệ'
+
+q308 Tổng cho vay dài hạn của công ty mẹ CTCP Tập đoàn Đức Long Gia Lai đến ngày 31/12/2016 là bao nhiêu tỷ đồng?
+  gold [225647099300.0] hạng [10]  (trong 12)
+     0 0.842 (r1.00 t0.84 c0.92) DLG_financial_statements_2016_separate|44 r0 'Số cuối kỳ' = 517950110299  'Vay ngắn hạn'
+     1 0.842 (r1.00 t0.84 c0.92) DLG_financial_statements_2016_separate|45 r0 'Số cuối kỳ' = 529421412929  'Vay dài hạn'
+     2 0.809 (r1.00 t0.67 c0.62) DLG_financial_statements_2016_separate|23 r0 '31/12/2016' = 65441054300  'Cho vay'
+     3 0.783 (r0.84 t0.84 c0.62) DLG_financial_statements_2016_separate|22 r1 '31/12/2016' = 0  'DNTN Du lịch Lữ hành & Đầu tư Xây dựng NHHTC'
+  > 10 0.743 (r0.84 t0.84 c0.62) DLG_financial_statements_2016_separate|5 r21 '31/12/2016 VND' = 225647099300  '1. Phải thu về cho vay dài hạn'
+
+10 câu, scope cho không từ nhãn, không gọi LLM
+
+                       một ô   nhiều ô
+  trong 12                 5         0
+  ngoài 12                 5         0
+
+  một ô   sai  / ngoài 12            [109, 164, 185, 214, 267]
+  một ô   sai  / trong 12            [32, 51, 87, 255, 308]

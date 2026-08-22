@@ -81,6 +81,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ids", help="chỉ chạy các câu này, cách nhau bởi dấu phẩy")
     ap.add_argument("--show", type=int, default=0, help="in mấy ứng viên đầu của mỗi câu")
+    ap.add_argument("--dump", help="ghi {id: hạng tệ nhất} ra file JSON để so trước/sau")
     args = ap.parse_args()
 
     labels = load_labels()
@@ -99,6 +100,7 @@ def main() -> int:
     tally: Counter[tuple[str, str]] = Counter()
     detail: dict[str, list[int]] = defaultdict(list)
     refused: Counter[str] = Counter()
+    worst_rank: dict[str, int | None] = {}
     for i in ids:
         label, record = labels[i], run.get(i, {})
         targets = gold_values(label)
@@ -119,16 +121,25 @@ def main() -> int:
             ranks = [rank_of(candidates, t) for t in targets]
             if any(r is None for r in ranks):
                 group = "ngoài pool"
+                worst_rank[str(i)] = None
             else:
                 worst = max(ranks)  # type: ignore[type-var]
+                worst_rank[str(i)] = worst
                 group = "hạng 0" if worst == 0 else (
                     f"trong {PRODUCTION_LIMIT}" if worst < PRODUCTION_LIMIT else f"ngoài {PRODUCTION_LIMIT}"
                 )
             if args.show:
-                print(f"\nq{i} gold {targets} hạng {ranks}  ({group})")
-                for c in candidates[: args.show]:
-                    print(f"  {c.score:.3f} {c.table_id} r{c.row_position} {c.column!r}"
-                          f" = {c.value:.0f}  {c.row_label[:60]!r}")
+                print(f"\nq{i} {submission[i].get('question', '')[:110]}")
+                print(f"  gold {targets} hạng {ranks}  ({group})")
+                seen = set(range(min(args.show, len(candidates))))
+                seen.update(r for r in ranks if r is not None)
+                for index in sorted(seen):
+                    c = candidates[index]
+                    mark = ">" if index in ranks else " "
+                    print(f"  {mark}{index:>3} {c.score:.3f} (r{c.row_score:.2f}"
+                          f" t{c.table_score:.2f} c{c.column_score:.2f}) {c.table_id}"
+                          f" r{c.row_position} {c.column!r} = {c.value:.0f}"
+                          f"  {c.row_label[:60]!r}")
         arity = "một ô" if len(targets) == 1 else "nhiều ô"
         hit = correct(submission[i].get("answer"), label["answer"])
         tally[(arity, group)] += 1
@@ -149,6 +160,8 @@ def main() -> int:
         print("\nlý do linker không nhận câu:")
         for reason, n in refused.most_common():
             print(f"  {n:>3}  {reason}")
+    if args.dump:
+        Path(args.dump).write_text(json.dumps(worst_rank, indent=1, sort_keys=True))
     return 0
 
 

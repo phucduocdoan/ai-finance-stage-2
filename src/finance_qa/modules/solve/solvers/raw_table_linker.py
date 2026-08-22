@@ -79,7 +79,10 @@ _STOPWORDS = {
     "a", "an", "and", "bao", "bao nhieu", "bang", "bao cao", "bctc",
     "cai", "cac", "cho", "co", "cong", "cong ty", "cp", "ctcp", "cua",
     "cuoi", "den", "diem", "don", "don vi", "duoc", "giua", "hoi",
-    "hop", "la", "me", "muc", "nam", "ngan", "ngan hang", "phan", "rieng",
+    # `ngan` is deliberately absent: it was here for `ngân hàng`, but stripping it
+    # also deletes `ngắn` from every row label, so `Ngắn hạn` and `Dài hạn` become
+    # the same word. Bank names are dropped per table by `_scoring_query_for_table`.
+    "hop", "la", "me", "muc", "nam", "ngan hang", "phan", "rieng",
     "so", "tai", "tap", "tap doan", "theo", "thoi", "tinh", "tmcp", "trong",
     "ty", "va", "vao", "viet", "viet nam", "vnd",
 }
@@ -130,18 +133,38 @@ def _text_list(value: object) -> list[str]:
     return [_text(value)] if _text(value) else []
 
 
-def _token_score(query_tokens: Sequence[str], target: object) -> float:
+def _token_score(
+    query_tokens: Sequence[str], target: object, *, partial_query: bool = False
+) -> float:
+    """Overlap between a query and one label. `partial_query` when the query side is a
+    deliberate fragment, such as one row phrase out of a search plan, rather than a
+    whole question that ought to account for the label."""
     target_tokens = set(_tokens(target))
     if not query_tokens or not target_tokens:
         return 0.0
     matched = sum(1 for token in set(query_tokens) if token in target_tokens)
     # Long finance questions carry company names and units; dividing by all query
     # tokens would bury a good row-label hit. Use the smaller side as the ceiling.
-    return min(matched / max(1, min(len(set(query_tokens)), len(target_tokens))), 1.0)
+    #
+    # Floor that ceiling at three words. With a bare `min`, a one-word row scores a
+    # perfect 1.0 off a single shared token and ties a six-word exact hit: `Tiền`
+    # matched `tiến` from "phải thu theo tiến độ" and drew level with the gold row.
+    ceiling = min(len(set(query_tokens)), max(len(target_tokens), 3))
+    coverage = min(matched / max(1, ceiling), 1.0)
+    if partial_query:
+        return coverage
+    # Charge for the words the label uses that the question never mentioned. An
+    # aggregated line (`Khấu hao tài sản cố định và bất động sản đầu tư`) shares every
+    # word of a question about investment property alone and so ties the specific note
+    # row (`Trích khấu hao trong năm`), even though it answers something wider.
+    unexplained = (len(target_tokens) - matched) / len(target_tokens)
+    return coverage * (1.0 - 0.5 * unexplained)
 
 
-def _semantic_score(query_tokens: Sequence[str], query_norm: str, target: object) -> float:
-    score = _token_score(query_tokens, target)
+def _semantic_score(
+    query_tokens: Sequence[str], query_norm: str, target: object, *, partial_query: bool = False
+) -> float:
+    score = _token_score(query_tokens, target, partial_query=partial_query)
     target_tokens = _tokens(target)
     if not target_tokens:
         return score

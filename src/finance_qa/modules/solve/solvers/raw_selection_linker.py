@@ -310,7 +310,9 @@ def _phrase_match_score(phrase: str, row_label: str) -> float:
         return 0.0
     if phrase_norm in row_norm or row_norm in phrase_norm:
         return 1.0
-    return raw._semantic_score(raw._tokens(phrase), phrase_norm, row_label)
+    return raw._semantic_score(
+        raw._tokens(phrase), phrase_norm, row_label, partial_query=True
+    )
 
 
 def _component_phrases(search_plan: raw.RawSearchPlan, request: RawLinkRequest | None = None) -> list[str]:
