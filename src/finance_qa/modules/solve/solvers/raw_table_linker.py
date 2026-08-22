@@ -282,6 +282,17 @@ def _is_component_row(label: str) -> bool:
     return bool(_COMPONENT_ROW.search(label))
 
 
+_PERCENT_COLUMN = re.compile(r"\bty\s+le\b|\bphan\s+tram\b")
+_MONEY_UNITS = frozenset(
+    {"vnd", "thousand_vnd", "million_vnd", "billion_vnd", "hundred_billion_vnd", "trillion_vnd"}
+)
+
+
+def _is_percent_column(column: object) -> bool:
+    """A share-of-total column. `_norm` drops the sign, so `%` is checked on the raw text."""
+    return "%" in str(column) or bool(_PERCENT_COLUMN.search(_norm(column)))
+
+
 def _wants_total(question: str) -> bool:
     return bool(_TOTAL_QUESTION.search(_intent_norm(question)))
 
@@ -772,19 +783,50 @@ def _candidate_rows(
         }
     except Exception:  # noqa: BLE001 - header enrichment is advisory for linking
         column_profiles = {}
+    # Column scores do not depend on the row, so they are computed once per table.
+    column_scores: dict[object, float] = {}
+    for column in df.columns:
+        if column == label_col:
+            continue
+        profile = column_profiles.get(str(column))
+        if profile is not None and profile.is_identifier:
+            continue
+        # A share-of-total column cannot answer a question asked in đồng, and it holds a
+        # number in the same row as the amount, so it wins ties it has no claim to.
+        if request.target_unit in _MONEY_UNITS and _is_percent_column(column):
+            continue
+        column_scores[column] = max(0.0, min(1.0, _column_score(
+            column,
+            slot_year=slot.year,
+            period=request.period,
+            table_year=table_year,
+            resolved_year=profile.resolved_year if profile else None,
+        ) + _flow_column_adjustment(request, column)))
+
+    # A breakdown table (`Điện | Than | Khác | Cộng`) holds the answer in its total
+    # column unless the question names one of the parts. `_column_score` reads only
+    # period wording, so those four columns tied and row order picked the winner.
+    total_columns = {c for c in column_scores if _is_total_row(_norm(_leaf(c)))}
+    if total_columns and not any(
+        _token_score(scoring_tokens, _leaf(c)) > 0 for c in column_scores if c not in total_columns
+    ):
+        for column in total_columns:
+            column_scores[column] = min(1.0, column_scores[column] + 0.12)
+
+    # `Cộng` says nothing about what is being added, so a total row borrows the best
+    # score among the rows above it. This used to run only when the question spelled out
+    # "tổng", which left every other total row at exactly 0 on the row axis: q109 asks
+    # for prepayments to sellers and the answer is the note's `Cộng` row, scored 0.00.
     row_anchor = 0.0
-    if request.wants_total:
-        for position, raw_label in df[label_col].items():
-            label = _text(raw_label)
-            if label and not _is_total_row(label):
-                row_anchor = max(
-                    row_anchor,
-                    _semantic_score(
-                        scoring_tokens,
-                        scoring_norm,
-                        _row_text(label, row_paths.get(position)),
-                    ),
-                )
+    for position, raw_label in df[label_col].items():
+        label = _text(raw_label)
+        if label and not _is_total_row(label):
+            row_anchor = max(
+                row_anchor,
+                _semantic_score(
+                    scoring_tokens, scoring_norm, _row_text(label, row_paths.get(position))
+                ),
+            )
     out: list[RawCellCandidate] = []
 
     for position, row in df.iterrows():
@@ -817,20 +859,12 @@ def _candidate_rows(
         for column in df.columns:
             if column == label_col:
                 continue
-            column_profile = column_profiles.get(str(column))
-            if column_profile is not None and column_profile.is_identifier:
+            if column not in column_scores:
                 continue
             value = _safe_number(row[column])
             if value is None:
                 continue
-            col_score = _column_score(
-                column,
-                slot_year=slot.year,
-                period=request.period,
-                table_year=table_year,
-                resolved_year=column_profile.resolved_year if column_profile else None,
-            )
-            col_score = max(0.0, min(1.0, col_score + _flow_column_adjustment(request, column)))
+            col_score = column_scores[column]
             component_role = _component_role_from_text(
                 _norm(f"{_row_text(row_label, row_path)} {column}"),
                 is_total=total_row,
@@ -843,7 +877,15 @@ def _candidate_rows(
                     total_adjust = 0.0
                 else:
                     total_adjust = -0.18
-            elif _is_component_row(row_label):
+            elif total_row:
+                # It borrowed the best row's score, so without it a total row would tie
+                # the specific row it borrowed from. Enough to lose that tie, not enough
+                # to fall behind rows the question does not name at all.
+                total_adjust = -0.06
+            elif _is_component_row(row_label) and row_score < row_anchor:
+                # The dash is a printing convention, so charge it only while some other
+                # row answers the question better. q313 asks for `Chi phí công cụ, dụng
+                # cụ chờ phân bổ` and the note prints exactly that, under a dash.
                 total_adjust = -0.12
             source_unit, source_unit_from = detect_unit(df, str(column), page_text(table_id))
             score = (

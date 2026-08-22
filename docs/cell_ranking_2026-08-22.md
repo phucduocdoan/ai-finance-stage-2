@@ -200,3 +200,87 @@ Bốn nguyên nhân đã nhìn thấy mà chưa sửa, kèm câu chúng chặn:
   gold là dòng `- Bằng ngoại tệ` và bị trừ 0.12 vì có dấu gạch đầu dòng.
 - **q139 là lỗi đơn vị, không phải lỗi hạng.** Lấy đúng ô, lệch 1000 lần. Gate xếp nó vào
   "trong 12" nên nó làm con số bi quan hơn thực tế một câu.
+
+## 7. Vòng thứ hai: trục cột và dòng tổng (2026-08-22)
+
+Điểm khởi đầu không phải §6.8 mà là một phép đo khác. Với 33 câu "ngoài df" ở §2, đo hạng
+của bảng gold *trong shortlist*:
+
+```
+hạng gold nhỏ nhất: {0: 14, 1: 3, 2: 4, 3: 5, 4: 2, 7+: 5}
+```
+
+**14/33 câu có bảng gold ở hạng 0 mà vẫn không vào `df`.** Bốn câu nhãn một ô xem thẳng thì
+retrieval đã xếp đúng bảng lên đầu và solver bỏ nó để lấy `|5`, `|6`, `|7`, tức báo cáo
+chính: q164 (`SSH|27` -> `|7`), q169 (`STB|45` -> `|98`), q185 (`VIC|21` -> `|6`), q703
+(`GEX|67` -> `|5`). Không phải lỗi retrieval, không phải trần bảng của `codegen_budget`.
+
+### 7.1. Năm biến thể, đo trên cùng 119 câu
+
+`--dump` ghi `{id: hạng tệ nhất}` nên so được từng câu, không chỉ so tổng.
+
+| biến thể | hạng 0 | trong 12 | ngoài 12 | ngoài pool |
+|---|---:|---:|---:|---:|
+| gốc (`9e7bcf6`) | 24 | 12 | 31 | 7 |
+| A thưởng riêng hạng 0 | 24 | 11 | 32 | 7 |
+| B chuẩn hóa điểm cột theo bảng | 23 | 16 | 29 | 6 |
+| C+D cột tổng, cột phần trăm | 24 | 13 | 30 | 7 |
+| **C+D+F+G** | **24** | **14** | **29** | **7** |
+| C+D+F+G+E thưởng cụm từ có phạt | 23 | 16 | 28 | 7 |
+
+Cột "hạng 0" là cột duy nhất đã đo được tỷ lệ chuyển hóa (19/20). Ba biến thể bị bỏ đều bỏ
+vì cột đó, không vì cột nào khác.
+
+### 7.2. Hai luật đã giữ trên trục cột
+
+**C. Cột tổng khi câu hỏi không gọi tên phần nào.** `_column_score` chỉ đọc chữ chỉ kỳ, nên
+bảng bộ phận `Điện | Than | Khác | Cộng` cho bốn cột điểm y nhau và thứ tự cột quyết định.
+Cộng thêm 0.12 cho cột tổng, và chỉ khi không cột thành phần nào khớp chữ với câu hỏi.
+q214 12 -> 6.
+
+**D. Cột tỷ lệ không trả lời được câu hỏi tính bằng đồng.** `Tỷ lệ(%)` giữ một con số ngay
+cạnh số tiền nên nó thắng những trận hòa mà nó không có quyền dự. Loại cột đó khi
+`request.target_unit` là đơn vị tiền. `_norm` xóa dấu `%` nên phải kiểm trên chuỗi thô.
+
+### 7.3. Hai luật đã giữ trên trục dòng
+
+**F. Dòng tổng luôn vay điểm của dòng tốt nhất.** `row_anchor` trước đây chỉ tính khi
+`request.wants_total`, tức **mọi** dòng tổng còn lại trong corpus chấm đúng 0.00 trên trục
+dòng. q109 hỏi trả trước cho người bán và đáp án là dòng `Cộng` của thuyết minh: 20 -> 1.
+Kèm theo `total_adjust = -0.06` khi câu hỏi không nói "tổng", đủ để thua dòng cụ thể mà nó
+vay điểm, không đủ để thua những dòng câu hỏi không nhắc.
+
+**G. `_is_component_row` chỉ trừ khi có dòng khác khớp hơn.** Dấu gạch đầu dòng là quy ước
+in ấn. Điều kiện `row_score < row_anchor` không thêm ngưỡng mới nào. q267 11 -> 1, và nó
+cứu q313 mà F vừa làm hỏng (0 -> 1 rồi về 0).
+
+### 7.4. Ba biến thể đã bỏ, và vì sao
+
+**A. Thưởng riêng cho hạng 0** (0.18 so với 0.08 của hạng 1-2). Đây là giả thuyết trực tiếp
+từ con số 14/33 ở trên, và nó **sai**: 109, 164, 185 đi đúng hướng nhưng không câu nào đổi
+nhóm, còn q267 và q308 bị đẩy khỏi top 12. Thứ hạng retrieval không phải chỗ chặn.
+
+**B. Chuẩn hóa điểm cột theo bảng.** Ý tưởng: bảng thuyết minh một cột `Tổng` không bao giờ
+kiếm được +0.42 của `Năm nay`, nên nó chịu bất lợi 0.8 vì *hình dạng* chứ không vì nội dung;
+chấm mỗi cột theo cột tốt nhất của chính bảng đó. Đo được: q164 26 -> 4, q214 29 -> 3,
+q185 62 -> 26, bốn câu vào top 12. Nhưng nó mất q332 vì chuẩn hóa nâng cột `Số tiềnVND`
+không có kỳ nào lên **bằng** cột in rõ `Năm 2024`. Hạ trần xuống 0.88 không cứu được: mọi
+bảng đều được nâng cột tốt nhất của chính nó lên trần, nên bằng chứng "in đúng năm được
+hỏi" biến mất hoàn toàn. Đó là xóa bằng chứng thật, không phải xóa bất lợi.
+
+Bài học đắt nhất của vòng này: q164 có khoảng cách cột 0.192 nên trông như lỗi trục cột,
+nhưng cột `Năm nay` của bảng lưu chuyển tiền tệ **thật sự** là bằng chứng đúng. Khoảng cách
+số lớn nhất không phải thành phần sai nhất.
+
+**E. Phạt thưởng cụm từ theo số từ dư.** Thưởng cụm từ là `max(score, 0.92)` phẳng, nên một
+dòng chứa 4 từ liền của câu hỏi lấy 0.92 bất kể nó nói thêm gì, ghi đè luôn hình phạt §6.3.
+Nhân nó với cùng hệ số precision *nghe* đúng, nhưng đo ra mất q360 khỏi hạng 0 và làm q164
+tệ hơn (26 -> 49), ngược hẳn giả thuyết. Ai định thử lại hướng này thì đọc số này trước.
+
+### 7.5. Chỗ chặn còn lại
+
+Bốn câu giờ nằm hạng 1, mỗi câu bị đúng một ô nhiễu chặn: 109, 267, 308, 684. Cả bốn đều
+thua một dòng ở báo cáo chính hoặc một dòng thành phần khớp nhiều chữ hơn. q164 (26) và
+q185 (70) vẫn xa, và §7.4 cho thấy không sửa được bằng trục cột. q87 (3) vẫn là lỗi giá trị
+rác ở §6.8. Số đo nói thẳng: hạng 0 đứng nguyên 24, nên vòng này chưa mua thêm điểm nào,
+chỉ dọn bốn khuyết tật cấu trúc và không làm hỏng câu nào.

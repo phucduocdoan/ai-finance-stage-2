@@ -957,6 +957,109 @@ check(
     not raw.deterministic_decision(numeric_label_request, numeric_label_candidates).supported,
 )
 
+
+# Column and row shape, on the four cases the score used to decide by row order.
+BREAKDOWN_NOTE = "DTK_financial_statements_2024_consolidated|73"
+FRAMES[BREAKDOWN_NOTE] = pd.DataFrame({
+    "Unnamed: 0": ["Doanh thu", "Giá vốn"],
+    "Điện": [12548788301513.0, 11000000000000.0],
+    "Than": [157970986678.0, 120000000000.0],
+    "Cộng": [12839301284671.0, 11300000000000.0],
+    "Tỷ lệ(%)": [100.0, 88.0],
+})
+META[BREAKDOWN_NOTE] = {
+    "ticker": "DTK",
+    "year": 2024,
+    "doc_type": "consolidated",
+    "statement_type": "note",
+    "note_title": "Báo cáo bộ phận theo lĩnh vực kinh doanh",
+}
+Q_BREAKDOWN = "Doanh thu của DTK năm 2024 là bao nhiêu trăm tỷ đồng?"
+breakdown_request = raw.RawLinkRequest(
+    operation="direct",
+    slots=[raw.RawScopeSlot(ticker="DTK", year=2024)],
+    doc_type="consolidated",
+    period="current",
+    target_unit="hundred_billion_vnd",
+    query_norm=raw._norm(Q_BREAKDOWN),
+    query_tokens=raw._tokens(Q_BREAKDOWN),
+)
+breakdown_candidates, _ = raw.build_candidates(
+    breakdown_request, table_ids=[BREAKDOWN_NOTE], limit_per_slot=12
+)
+check(
+    "a question naming no segment takes the total column",
+    breakdown_candidates[0].column == "Cộng",
+)
+check(
+    "a share-of-total column cannot answer a question asked in đồng",
+    all(c.column != "Tỷ lệ(%)" for c in breakdown_candidates),
+)
+
+Q_SEGMENT = "Doanh thu từ điện của DTK năm 2024 là bao nhiêu trăm tỷ đồng?"
+segment_candidates, _ = raw.build_candidates(
+    breakdown_request.model_copy(update={
+        "query_norm": raw._norm(Q_SEGMENT), "query_tokens": raw._tokens(Q_SEGMENT),
+    }),
+    table_ids=[BREAKDOWN_NOTE],
+    limit_per_slot=12,
+)
+check(
+    "naming a segment keeps the total column from taking the bonus",
+    next(c for c in segment_candidates if c.column == "Điện").column_score
+    == next(c for c in segment_candidates if c.column == "Cộng").column_score,
+)
+
+PREPAID_NOTE = "IJC_financial_statements_2016_consolidated|17"
+FRAMES[PREPAID_NOTE] = pd.DataFrame({
+    "Unnamed: 0": ["Trả trước cho các bên liên quan", "- Trả trước tiền thuê đất", "Cộng"],
+    "Số cuối năm": [19619115288.0, 5576335963.0, 25195451251.0],
+})
+META[PREPAID_NOTE] = {
+    "ticker": "IJC",
+    "year": 2016,
+    "doc_type": "consolidated",
+    "statement_type": "note",
+    "note_title": "Trả trước cho người bán ngắn hạn",
+}
+Q_PREPAID = "Số tiền trả trước cho người bán ngắn hạn của IJC đến ngày 31/12/2016 là bao nhiêu tỷ đồng?"
+prepaid_candidates, _ = raw.build_candidates(
+    raw.RawLinkRequest(
+        operation="direct",
+        slots=[raw.RawScopeSlot(ticker="IJC", year=2016)],
+        doc_type="consolidated",
+        period="current",
+        target_unit="billion_vnd",
+        query_norm=raw._norm(Q_PREPAID),
+        query_tokens=raw._tokens(Q_PREPAID),
+    ),
+    table_ids=[PREPAID_NOTE],
+    limit_per_slot=12,
+)
+check(
+    "a total row scores off its siblings even when the question omits tổng",
+    next(c for c in prepaid_candidates if c.row_label == "Cộng").row_score > 0,
+)
+
+Q_COMPONENT = "Số dư trả trước tiền thuê đất của IJC đến ngày 31/12/2016 là bao nhiêu tỷ đồng?"
+component_candidates, _ = raw.build_candidates(
+    raw.RawLinkRequest(
+        operation="direct",
+        slots=[raw.RawScopeSlot(ticker="IJC", year=2016)],
+        doc_type="consolidated",
+        period="current",
+        target_unit="billion_vnd",
+        query_norm=raw._norm(Q_COMPONENT),
+        query_tokens=raw._tokens(Q_COMPONENT),
+    ),
+    table_ids=[PREPAID_NOTE],
+    limit_per_slot=12,
+)
+check(
+    "the row the question names by name outranks the total above it",
+    component_candidates[0].row_label == "- Trả trước tiền thuê đất",
+)
+
 # pytest imports every test module into one process, so leaving the synthetic
 # loaders in place makes any module that reads a real table fail depending on
 # collection order.
