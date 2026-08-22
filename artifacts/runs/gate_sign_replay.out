@@ -3,8 +3,8 @@ chạy lại được 838/1012 câu có solution, không gọi LLM
 luật đổi kết quả ở 23 câu
 
 submission gốc        46/119
-chạy lại, luật cũ     39/119   (lệch submission 2 câu)
-chạy lại, luật mới    42/119
+chạy lại, luật cũ     41/119   (lệch submission 0 câu)
+chạy lại, luật mới    44/119
 
   q735 không đổi	cũ -15.218778473339206	mới 15.218778473339206	nhãn 14.11
   q769 không đổi	cũ -2191.768460245	mới 2191.768460245	nhãn 31.29

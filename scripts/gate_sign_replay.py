@@ -55,8 +55,12 @@ def replay(record: dict, *, new_rule: bool) -> tuple[float | None, bool]:
     # `diag["evidence_tables"]` là `names.values()` của graph, tức đúng df1..dfN mà
     # codegen đã thấy. `record["table_ids"]` là danh sách retrieval *trước* khi
     # `codegen_budget` xoay vòng và cắt theo `max_tables`, nên dùng nó thì 106/400
-    # truy vấn KeyError vì số hiệu df lệch.
+    # truy vấn KeyError vì số hiệu df lệch. `names` phải truyền vào `apply_units`
+    # nữa: đơn vị tra trong page text của bảng đi qua nó, thiếu nó thì q744 rơi về
+    # "mặc định vnd" rồi bị chia thêm 1e6.
+    names = {}
     for i, table_id in enumerate((record.get("diag") or {}).get("evidence_tables") or [], 1):
+        names[f"df{i}"] = table_id
         try:
             frames[f"df{i}"] = load_frame(table_id)
         except Exception:  # noqa: BLE001 - bảng thiếu thì câu đó bỏ qua
@@ -72,6 +76,7 @@ def replay(record: dict, *, new_rule: bool) -> tuple[float | None, bool]:
         query, diag = apply_units(
             solution, frames,
             question=record.get("question") or "",
+            names=names,
             tickers=tickers_of(record.get("table_ids") or []),
         )
     finally:

@@ -1,4 +1,4 @@
-# 73 câu sai, phân theo chữ ký số học: chỉ 6 câu sửa được bằng luật
+# 73 câu sai, phân theo chữ ký số học: chỉ 7 câu sửa được bằng luật
 
 Ba phiên trước đều đi từ phía retrieval: bảng gold ở đâu, judge chọn gì, khe evidence đủ
 chưa. `docs/shortlist_gap_2026-08-22.md` đóng hướng đó. Phiên này đi từ phía ngược lại: so
@@ -21,8 +21,8 @@ chưa. `docs/shortlist_gap_2026-08-22.md` đóng hướng đó. Phiên này đi 
 phải lệch đơn vị, không phải lệch dấu, không phải cộng trừ nhầm. Hy vọng "có một lớp lỗi hậu
 xử lý rẻ tiền" chết ở đây: cả lớp dấu và lớp lũy thừa 10 cộng lại đúng 7 câu.
 
-Nhưng 7 câu đó là 7 câu **xác định**, sửa bằng luật đọc được, không cần chạy lại LLM. Trần
-+3 đã lấy được, xem §2.
+Nhưng 7 câu đó là 7 câu **xác định**, sửa bằng luật đọc được, không cần chạy lại LLM. Lớp
+dấu đã lấy hết, +3, xem §2 và §3.
 
 ## 1. Truy vấn có index vào cột thật không: manh mối chết
 
@@ -108,19 +108,52 @@ Bảng trên đo bằng cách lấy `abs()` con số đã nộp. Đúng phép v�
 ```
 chạy lại được 838/1012 câu có solution, không gọi LLM
 submission gốc        46/119
-chạy lại, luật cũ     39/119   (lệch submission 2 câu)
-chạy lại, luật mới    42/119   được [774, 777, 894]
+chạy lại, luật cũ     41/119   (lệch submission 0 câu)
+chạy lại, luật mới    44/119   được [774, 777, 894]
 ```
 
-39 chứ không phải 46 vì 174 câu không chạy lại được (42 câu truy vấn rỗng, phần còn lại là
-solver dòng thô đánh số df khác); trong số chạy lại được thì chỉ 2 câu lệch submission.
-Delta +3 / −0 là *cùng ba câu* mà gate `abs()` chỉ ra. Hai câu bị đổi dấu mà vẫn sai (735,
-769) sai vì lý do khác: nhãn 14.11 so với 15.22, và 31.29 so với 2191.77.
+**Lệch 0 câu** là con số quan trọng ở đây: cả 838 câu chạy lại được đều tái tạo *đúng* con
+số đã nộp khi luật bị vô hiệu hoá, nên replay trung thực với pipeline, không phải một mô
+phỏng gần đúng. 41 chứ không phải 46 chỉ vì 174 câu không chạy lại được (42 câu truy vấn
+rỗng, phần còn lại solver dòng thô đánh số df khác). Delta +3 / −0 là *cùng ba câu* mà gate
+`abs()` chỉ ra. Hai câu bị đổi dấu mà vẫn sai (735, 769) sai vì lý do khác: nhãn 14.11 so
+với 15.22, và 31.29 so với 2191.77.
 
-Một chi tiết đáng ghi cho lần sau: khoá đúng để dựng lại `df1..dfN` là
-`diag["evidence_tables"]`, không phải `record["table_ids"]`. `table_ids` là danh sách
-retrieval *trước* khi `codegen_budget` xoay vòng và cắt theo `max_tables`, nên dùng nó thì
-106/400 truy vấn KeyError chỉ vì số hiệu df lệch.
+Hai chi tiết phải đúng mới dựng lại được, ghi lại vì lần sau còn dùng:
+
+- `df1..dfN` lấy từ `diag["evidence_tables"]`, không phải `record["table_ids"]`. `table_ids`
+  là danh sách retrieval *trước* khi `codegen_budget` xoay vòng và cắt theo `max_tables`,
+  dùng nó thì 106/400 truy vấn KeyError chỉ vì số hiệu df lệch.
+- `names` phải truyền vào `apply_units`. Đơn vị tra trong page text của bảng đi qua nó, nên
+  thiếu nó thì q744 và q787 rơi về "mặc định vnd" rồi bị chia thêm 1e6. Đây chính là hai câu
+  duy nhất còn lệch trước khi thêm `names`.
+
+`unit_hint` thì không dựng lại được: nó do understand sinh ra và bản ghi run không lưu.
+Trên 838 câu này nó không đổi kết quả câu nào, nhưng đó là lý do phải có phép kiểm "luật cũ
+tái tạo đúng số đã nộp" thay vì tin replay vô điều kiện.
+
+## 3. submission v9: vá 23 câu, không chạy lại LLM
+
+Luật dấu nằm hoàn toàn trong `apply_units`, không đổi prompt, không đổi retrieval, không
+đổi bảng nào được chọn. Nên chạy lại full 1012 câu là sai cách đo: nó xáo 58 câu "ô khác
+hẳn" theo nhiễu LLM, mà biên độ nhiễu đó lớn hơn 3 câu cần đo.
+`scripts/patch_sign_submission.py` vá tại chỗ, mỗi câu chỉ vá khi lượt "luật cũ" tái tạo
+đúng con số đã nộp:
+
+```
+vá 23 câu, giữ nguyên 989 câu
+  luật không đổi kết quả   815
+  không chạy lại được      174
+  replay lệch, bỏ qua      0
+```
+
+`output/submission_v9_sign` chấm **49/119 = 0.412** (v8_round2: 46/119 = 0.387). Đã kiểm:
+`validate_format` sạch, đúng 23 item khác v8 và chỉ khác ở `answer` + `pandas_query`, cả 23
+truy vấn đã vá chạy lại trên CSV staged đều khớp con số ghi trong `answer`, và cấu trúc zip
+trùng v8 từng entry (10.922 file).
+
+Vá cả `pandas_query` chứ không chỉ `answer` vì EXECUTION_ACCURACY chạy lại chuỗi đã nộp:
+vá một bên thì hai chỉ số chỏi nhau.
 
 ### Cài ở đâu
 
@@ -138,7 +171,7 @@ Một cái bẫy đã dính rồi và đáng ghi: predicate phải đọc `inten
 `norm(question)`. `SELECTION_MARKER` có nhánh `cong ty co\b`, nên "Công ty Cổ phần" tự khớp
 nếu không gỡ dạng pháp nhân trước.
 
-## 3. Còn lại gì
+## 4. Còn lại gì
 
 Bảng đầu file để lại hai lớp:
 
