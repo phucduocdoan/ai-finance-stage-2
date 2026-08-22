@@ -246,3 +246,101 @@ trong 42 câu trả > 1e6 không có phép chia nào, truy vấn chỉ là một
 Router cho thấy mọi solver tất định đều từ chối và codegen chạy vì `fallback`. Codegen thấy
 bảng của nhiều công ty rồi trả về một ô của một công ty, việc mà không luật hậu xử lý nào
 sửa được.
+
+### Mất công ty ở khâu nào
+
+`scripts/gate_screening_evidence.py` tách ba khâu từ bản ghi run, không gọi LLM: scope là mã
+đọc từ `table_ids`, evidence là mã trong `diag["evidence_tables"]` sau khi `codegen_budget`
+cắt, used là mã của những `dfK` thật sự xuất hiện trong truy vấn.
+
+```
+budget cắt mất công ty          124 câu   có nhãn 1/16
+understand thu scope < 3 mã      32 câu   có nhãn 3/5
+đủ cả ba khâu                    24 câu   có nhãn 0/2
+codegen không chạy               20 câu   có nhãn 0/4
+sinh code chỉ dùng một phần      10 câu   có nhãn 0/2
+```
+
+Đọc bảng này mà kết luận "lỗi ở budget" là sai, và tôi đã sai đúng một lượt trước khi đọc
+lại `config.py:236-259`. Ở đó biến nhân quả đã được đổi: nới trần lên 12 bảng đưa coverage
+từ 107/310 lên 310/310 mà điểm đứng nguyên 4/38. Budget cắt bảng là có thật, nhưng nó không
+phải cái đang giữ điểm ở mức này.
+
+Một cái bẫy trong chính gate đó, đã sửa: `evidence_tables` rỗng không phải bảng bị cắt hết.
+102 trong 1012 câu rỗng và tất cả đều do `selection_facts` hay `formula_facts` giải, tức
+codegen không chạy nên không ghi gì.
+
+### Solver nào nhận lớp này, và đúng bao nhiêu
+
+Trên run v7, chấm theo tập eval sạch:
+
+| solver                 | số câu | có nhãn |
+|------------------------|--------|---------|
+| `cell_locator`         | 131    | 13/17   |
+| `raw_table_linker`     | 229    | 11/30   |
+| `codegen`              | 520    | 23/63   |
+| `formula_facts`        | 54     | 1/1     |
+| `selection_facts`      | 48     | 1/5     |
+| `raw_selection_linker` | 30     | 0/3     |
+
+`selection_facts` là solver duy nhất được viết cho việc chọn lọc, và trên lớp sàng lọc nó
+nhận 4 câu, đúng 0. Tôi đọc tay cả bốn plan nó dựng, cả bốn sai cùng một kiểu và không plan
+nào có `filters`:
+
+- q410 đổi chỗ selector (`roe`) với chỉ số đáp án (`de_ratio`) rồi bỏ mất mốc trung vị. Số
+  nộp 95.81 đúng dáng một tỉ lệ D/E, tức plan đó là plan thật chứ không phải suy đoán.
+- q467 mất "3 doanh nghiệp" và mất luôn chỉ số đáp án là tỉ trọng tiền.
+- q492 dùng `cfo` thay cho tỉ lệ CFO trên lợi nhuận thuần, và bỏ điều kiện dấu.
+- q842 trả về giá trị lợi nhuận thay vì trả về năm. Số nộp 1.500.889.847.164.
+
+Chỗ hỏng là bộ dựng plan, không phải bộ thực thi và không phải dữ liệu.
+
+### Vì sao nó từ chối 123 câu còn lại
+
+`diag["capability_router"]` gộp 123 câu vào một lý do "no max/min selection marker", con số
+đó vô dụng vì `deterministic_selection_plan` trả về đúng chuỗi ấy trong bốn tình huống khác
+nhau. `scripts/gate_selection_reasons.py` gọi thẳng hàm đó rồi bóc ra:
+
+```
+  38  1/2     không có chỉ số nào trong catalog
+  15  2/4     dưới 2 mã (đọc được 1)
+  13  0/5     len(years) = 4
+  11  0/1     nhánh aggregate từ chối: no group filter to aggregate over
+  10  -       len(years) = 2
+   7  0/1     len(years) = 3
+   2  -       len(years) = 5
+```
+
+Nhóm 38 câu to nhất lại là hai lớp khác nhau: 14 câu là câu ngân hàng, ticker không có trong
+`long_format.parquet`, nên mở rộng catalog bao nhiêu cũng vô ích, chúng phải đi đường
+`_read_bank_label_rows`. 24 câu còn lại là thiếu alias chỉ số thật.
+
+Số năm là xấp xỉ, vét từ văn bản câu hỏi chứ understand lấy năm từ LLM, nên các nhóm
+`len(years) != 1` phải đọc như chặn trên.
+
+### Kho dữ liệu không phải chỗ nghẽn
+
+`long_format.parquet` (290.230 dòng, 75 mã, 2015-2025) phủ đủ mọi ticker của 183 trong 210
+câu sàng lọc. 26 câu không có gì đều là câu ngân hàng (BID, MSB, STB, MBB, EIB, ABB, HDB,
+ACB, SHB, NAB, VIB, VPB). Trên 29 câu có nhãn: 26 câu phủ đủ, đúng 2/26.
+
+### Bốn cần cẩu có sẵn, cả bốn đã đo và đều chết
+
+| cần cẩu                              | đo được | ghi ở đâu |
+|--------------------------------------|---------|-----------|
+| nới `codegen_max_tables_multi_company` | coverage 310/310, điểm 4/38 | `config.py:236-259` |
+| `decompose` fan-out theo công ty     | 3/34 (baseline 2-3) | `config.py:388` |
+| `selection_facts`                    | 0/4 | §6 trên |
+| `structured_facts` + tắt `selection_facts` | 4/29, ngưỡng chốt trước là 8/29 | `artifacts/runs/gate_screening_structured.out` |
+
+Lần cuối chạy `structured_facts`: nó nhận 7 trong 29 câu và đúng 1, đổi được q492 và mất
+q571, tổng lớp không nhúc nhích. 19 câu rơi xuống codegen đúng 0/19.
+
+Bốn thứ này hỏng ở cùng một chỗ, và chỗ đó viết thẳng trong schema:
+`PandasSolution.pandas_query` là "Single pandas expression returning one number"
+(`solution.py:48`). Một biểu thức đơn không có chỗ nào đặt điều kiện lọc, nên mô hình cộng
+hoặc nhân thẳng qua mọi công ty. `config.py` đã ghi sẵn kết luận này bằng số: trong 18 câu
+nhìn thấy đủ mọi công ty mà vẫn sai, 17 câu sinh ra truy vấn cộng hoặc nhân thẳng qua tất cả.
+
+Nên lever còn lại chưa có bằng chứng phản là cho schema mang phần theo từng công ty, một
+điều kiện, và một phép chọn cuối, rồi gộp lại thành một biểu thức để vẫn chạy lại được.
