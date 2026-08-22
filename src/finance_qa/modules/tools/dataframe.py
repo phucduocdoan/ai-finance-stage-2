@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from bisect import bisect_right
 
 import pandas as pd
 
@@ -94,45 +95,81 @@ def _looks_like_stt_label_shift(df: pd.DataFrame, cols: list[str]) -> bool:
     )
 
 
+def _shifted_leaves(df: pd.DataFrame) -> list[str] | None:
+    """Leaf labels of a second header row that landed in the data as row 0.
+
+    The extractor drops that row's leading label cell, so the leaves sit flush left
+    with the trailing columns empty. Anything numeric means it is a real data row.
+    """
+    first = [str(value).strip() for value in df.iloc[0]]
+    leaves = [value for value in first if value]
+    if len(leaves) < 2:
+        return None
+    if first[: len(leaves)] != leaves or any(first[len(leaves) :]):
+        return None
+    if any(parse_number(value) is not None for value in leaves):
+        return None
+    return leaves
+
+
+def _named_run(cols: list[str]) -> tuple[int, int] | None:
+    """Span of real header labels, which `Unnamed:` columns pad on both sides."""
+    named = [i for i, col in enumerate(cols) if col.strip() and not col.startswith("Unnamed:")]
+    if not named or named != list(range(named[0], named[-1] + 1)):
+        return None
+    return named[0], named[-1]
+
+
 def repair_shifted_multilevel_header(df: pd.DataFrame) -> pd.DataFrame:
-    """Reconstruct a legacy-extracted two-row header with a spanned group."""
+    """Rebuild a two-row header whose second row landed in the data.
+
+    Row 0 holds group labels for a few spans, row 1 holds the leaves of every span,
+    and the leaves are one column left of where they belong. Every column that holds
+    real numbers then comes out named `Unnamed: n`, so reading the table by column
+    name returns another period's figure: in `KLB_2019_consolidated|67` the column
+    called `Số đầu năm` holds the *closing* fair value, and the opening one has no
+    name at all. See `docs/multiyear_failures_2026-08-22.md` §5.
+
+    The old version hard-coded a `số cuối` / `số đầu` pair and then filed every leaf
+    under the first group, so the symmetric layout, by far the most common one, came
+    out with both halves labelled `số cuối` and duplicate column names.
+
+    Group boundaries come from the leaf row repeating its first label once per group:
+    `Phải nộp, Phải thu | Phải nộp, Đã nộp, Giảm khác | Phải nộp, Phải thu` is three
+    groups of unequal width, and `SJG_2018_consolidated|45` really is shaped that way.
+    Every named column has to end up a group with at least one leaf, the leaves have to
+    cover every column that carries data, and no two rebuilt names may collide. Anything
+    else leaves the frame alone: a named column left without a leaf was the old bug's
+    signature, and it means the layout is something this function cannot read.
+    """
     if df.empty or len(df.columns) < 5:
         return df
     cols = [str(col) for col in df.columns]
-    first = [str(value).strip() for value in df.iloc[0]]
-    subheaders = [value for value in first if value]
-    if len(subheaders) < 2:
-        return df
-    if first[: len(subheaders)] != subheaders or any(first[len(subheaders) :]):
-        return df
-    if any(parse_number(value) is not None for value in subheaders):
+    leaves = _shifted_leaves(df)
+    run = _named_run(cols)
+    if leaves is None or run is None:
         return df
 
-    group_start = len(cols) - len(subheaders) - 1
-    if group_start < 1 or group_start + 1 >= len(cols):
+    start, groups = run[0], cols[run[0] : run[1] + 1]
+    boundaries = [i for i, leaf in enumerate(leaves) if leaf == leaves[0]]
+    if len(boundaries) != len(groups) or start < 1 or start + len(leaves) > len(cols):
         return df
-    group_name = cols[group_start]
-    final_name = cols[group_start + 1]
-    if not (
-        "số cuối" in group_name.casefold()
-        and "số đầu" in final_name.casefold()
-        and all(col.startswith("Unnamed:") for col in cols[group_start + 2 :])
-    ):
+    body = df.iloc[1:]
+    if any(not _filled(body.iloc[:, i]).empty for i in range(start + len(leaves), len(cols))):
         return df
 
-    leaf_columns = [*cols[:group_start], *subheaders, final_name]
-    if len({column.casefold() for column in leaf_columns}) == len(leaf_columns):
-        repaired_columns = leaf_columns
-    else:
-        repaired_columns = [
-            *cols[:group_start],
-            *(f"{group_name} | {subheader}" for subheader in subheaders),
-            final_name,
-        ]
-    if len(repaired_columns) != len(cols):
+    repaired = [
+        *cols[:start],
+        *(
+            f"{groups[bisect_right(boundaries, i) - 1]} | {leaf}"
+            for i, leaf in enumerate(leaves)
+        ),
+        *cols[start + len(leaves) :],
+    ]
+    if len({name.casefold() for name in repaired}) != len(repaired):
         return df
-    out = df.iloc[1:].reset_index(drop=True).copy()
-    out.columns = repaired_columns
+    out = body.reset_index(drop=True).copy()
+    out.columns = repaired
     return out
 
 __all__ = [
