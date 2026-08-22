@@ -1,0 +1,87 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 4847.20it/s]
+
+q267 Số dư tiền gửi có kỳ hạn bằng ngoại tệ của công ty mẹ Ngân hàng TMCP Á Châu (ACB) đến ngày 31/12/2020 là
+  scope ['ACB'] [2020] separate  keys 97  ranked 31  gửi 7
+                 340.063  judge bỏ     ACB_financial_statements_2020_separate|55  (4 bảng chứa)
+                          keys 49  bm25 1  dense 3  ranked 0  gửi None
+
+q306 Tổng số tài sản tài chính của Ngân hàng TMCP Xuất nhập khẩu Việt Nam (EIB) đến ngày 31/12/2020 là bao nh
+  scope ['EIB'] [2020] consolidated  keys 88  ranked 33  gửi 6
+             156.257.957  ngoài ranked EIB_financial_statements_2020_consolidated|99  (1 bảng chứa)
+                          keys 86  bm25 39  dense 43  ranked None  gửi None
+
+q336 Tổng số tiền thuê tối thiểu trong tương lai của công ty mẹ HND đến ngày 31 tháng 12 năm 2025 là bao nhiê
+  scope ['HND'] [2025] unknown  keys 43  ranked 27  gửi 6
+         387.656.354.540  judge bỏ     HND_financial_statements_2025|29  (1 bảng chứa)
+                          keys 28  bm25 5  dense 38  ranked 17  gửi None
+
+q523 Trong các năm 2019, 2022, 2023, 2024 và 2025, tiền mặt cuối năm của công ty mẹ CTCP - Tổng công ty Phân 
+  scope ['DCM'] [2019, 2022, 2023, 2024, 2025] separate  keys 270  ranked 49  gửi 35
+           2.055.255.183  judge bỏ     DCM_financial_statements_2024_separate|14  (2 bảng chứa)
+                          keys 171  bm25 9  dense 6  ranked 3  gửi None
+
+q585 Số tiền phải trả của Quỹ khen thưởng phúc lợi của công ty mẹ Ngân hàng TMCP Sài Gòn Tài Lộc (mã STB) năm
+  scope ['STB'] [2016, 2017, 2018, 2019, 2020, 2021, 2022] separate  keys 740  ranked 66  gửi 44
+               1.550.540  judge bỏ     STB_financial_statements_2022_separate|74  (5 bảng chứa)
+                          keys 701  bm25 5  dense 3  ranked 3  gửi None
+
+q596 Tính tỷ lệ tăng trưởng (%) giá trị đầu tư (Giá gốc) vào Công ty Cổ phần APIS của công ty mẹ CTCP Sữa Việ
+  scope ['VNM'] [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024] separate  keys 474  ranked 88  gửi 56
+          20.350.000.000  đã gửi       VNM_financial_statements_2024_separate|24  (8 bảng chứa)
+                          keys 433  bm25 7  dense 0  ranked 0  gửi 0
+           8.100.000.000  judge bỏ     VNM_financial_statements_2017_separate|23  (15 bảng chứa)
+                          keys 19  bm25 1  dense 1  ranked 1  gửi None
+
+q649 Thay đổi số dư chi phí thuê trả trước dài hạn của CTCP Tập đoàn Hoa Sen vào ngày 30/9/2025 so với ngày 3
+  scope ['HSG'] [2021, 2022, 2023, 2024, 2025] consolidated  keys 315  ranked 61  gửi 34
+          43.136.294.408  judge bỏ     HSG_financial_statements_2025_consolidated|19  (1 bảng chứa)
+                          keys 276  bm25 8  dense 49  ranked 11  gửi None
+          49.633.658.164  đã gửi       HSG_financial_statements_2021_consolidated|31  (2 bảng chứa)
+                          keys 30  bm25 15  dense 13  ranked 7  gửi 1
+
+q714 Kết quả thuần từ hoạt động tài chính của HUT năm 2024 là mấy tỷ đồng?
+  scope ['HUT'] [2024] consolidated  keys 61  ranked 33  gửi 6
+         706.004.285.205  ngoài keys   HUT_financial_statements_2024_separate|4  (4 bảng chứa)
+                          keys None  bm25 None  dense None  ranked None  gửi None
+         874.739.630.652  ngoài keys   HUT_financial_statements_2024_separate|4  (4 bảng chứa)
+                          keys None  bm25 None  dense None  ranked None  gửi None
+
+q727 Tốc độ tăng trưởng giá trị rủi ro (VaR) 1 ngày danh mục cổ phiếu niêm yết của công ty mẹ BVH trong năm 2
+  scope ['BVH'] [2019] separate  keys 67  ranked 32  gửi 6
+          15.229.827.235  judge bỏ     BVH_financial_statements_2019_separate|64  (2 bảng chứa)
+                          keys 62  bm25 1  dense 1  ranked 1  gửi None
+          16.533.003.610  judge bỏ     BVH_financial_statements_2019_separate|63  (2 bảng chứa)
+                          keys 61  bm25 0  dense 0  ranked 0  gửi None
+
+q769 Chênh lệch giữa giá trị còn lại của Quyền sử dụng đất giữa CTCP Container Việt Nam và Tổng Công ty Cảng 
+  scope ['ACV', 'VSC'] [2015] consolidated  keys 100  ranked 41  gửi 12
+          36.648.986.835  judge bỏ     ACV_financial_statements_2015_consolidated|23  (1 bảng chứa)
+                          keys 22  bm25 2  dense 6  ranked 2  gửi None
+           5.355.027.273  judge bỏ     VSC_financial_statements_2015_consolidated|16  (6 bảng chứa)
+                          keys 71  bm25 4  dense 3  ranked 0  gửi None
+
+q821 Tính tỷ trọng trung bình dư nợ cho vay ngành bất động sản của Ngân hàng TMCP Phương Đông (OCB) công ty m
+  scope ['OCB'] [2017, 2020, 2024, 2025] separate  keys 592  ranked 73  gửi 45
+     170.844.469.638.663  judge bỏ     OCB_financial_statements_2025_separate|38  (37 bảng chứa)
+                          keys 396  bm25 2  dense 10  ranked 1  gửi None
+     198.764.945.826.810  judge bỏ     OCB_financial_statements_2025_separate|38  (18 bảng chứa)
+                          keys 396  bm25 2  dense 10  ranked 1  gửi None
+      28.851.442.834.099  đã gửi       OCB_financial_statements_2025_separate|42  (4 bảng chứa)
+                          keys 400  bm25 18  dense 49  ranked 10  gửi 1
+      38.045.493.326.685  đã gửi       OCB_financial_statements_2025_separate|42  (2 bảng chứa)
+                          keys 400  bm25 18  dense 49  ranked 10  gửi 1
+       4.423.443.894.553  đã gửi       OCB_financial_statements_2017_separate|30  (4 bảng chứa)
+                          keys 25  bm25 9  dense 47  ranked 15  gửi 2
+      48.182.976.683.825  đã gửi       OCB_financial_statements_2017_separate|29  (44 bảng chứa)
+                          keys 24  bm25 0  dense 2  ranked 3  gửi 0
+       6.268.194.676.278  ngoài ranked OCB_financial_statements_2020_separate|32  (4 bảng chứa)
+                          keys 118  bm25 186  dense 327  ranked None  gửi None
+      89.237.886.166.154  ngoài top-20 OCB_financial_statements_2020_separate|88  (22 bảng chứa)
+                          keys 168  bm25 3  dense 31  ranked 31  gửi None
+
+11 câu, scope cho không từ nhãn, không gọi LLM
+
+  ngoài keys       1  [714]
+  ngoài ranked     2  [306, 821]
+  judge bỏ         8  [267, 336, 523, 585, 596, 649, 727, 769]

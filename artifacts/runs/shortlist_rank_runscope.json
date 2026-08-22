@@ -1,0 +1,240 @@
+{
+ "267": {
+  "group": "judge bỏ",
+  "tokens": [
+   {
+    "token": "340.063",
+    "table": "ACB_financial_statements_2020_separate|55",
+    "group": "judge bỏ",
+    "detail": "keys 49  bm25 1  dense 3  ranked 0  gửi None",
+    "n_holders": 4
+   }
+  ],
+  "n_keys": 97,
+  "n_ranked": 31
+ },
+ "306": {
+  "group": "ngoài ranked",
+  "tokens": [
+   {
+    "token": "156.257.957",
+    "table": "EIB_financial_statements_2020_consolidated|99",
+    "group": "ngoài ranked",
+    "detail": "keys 86  bm25 39  dense 43  ranked None  gửi None",
+    "n_holders": 1
+   }
+  ],
+  "n_keys": 88,
+  "n_ranked": 33
+ },
+ "336": {
+  "group": "judge bỏ",
+  "tokens": [
+   {
+    "token": "387.656.354.540",
+    "table": "HND_financial_statements_2025|29",
+    "group": "judge bỏ",
+    "detail": "keys 28  bm25 5  dense 38  ranked 17  gửi None",
+    "n_holders": 1
+   }
+  ],
+  "n_keys": 43,
+  "n_ranked": 27
+ },
+ "523": {
+  "group": "judge bỏ",
+  "tokens": [
+   {
+    "token": "2.055.255.183",
+    "table": "DCM_financial_statements_2024_separate|14",
+    "group": "judge bỏ",
+    "detail": "keys 171  bm25 9  dense 6  ranked 3  gửi None",
+    "n_holders": 2
+   }
+  ],
+  "n_keys": 270,
+  "n_ranked": 49
+ },
+ "585": {
+  "group": "judge bỏ",
+  "tokens": [
+   {
+    "token": "1.550.540",
+    "table": "STB_financial_statements_2022_separate|74",
+    "group": "judge bỏ",
+    "detail": "keys 701  bm25 5  dense 3  ranked 3  gửi None",
+    "n_holders": 5
+   }
+  ],
+  "n_keys": 740,
+  "n_ranked": 66
+ },
+ "596": {
+  "group": "judge bỏ",
+  "tokens": [
+   {
+    "token": "20.350.000.000",
+    "table": "VNM_financial_statements_2024_separate|24",
+    "group": "đã gửi",
+    "detail": "keys 433  bm25 7  dense 0  ranked 0  gửi 0",
+    "n_holders": 8
+   },
+   {
+    "token": "8.100.000.000",
+    "table": "VNM_financial_statements_2017_separate|23",
+    "group": "judge bỏ",
+    "detail": "keys 19  bm25 1  dense 1  ranked 1  gửi None",
+    "n_holders": 15
+   }
+  ],
+  "n_keys": 474,
+  "n_ranked": 88
+ },
+ "649": {
+  "group": "judge bỏ",
+  "tokens": [
+   {
+    "token": "43.136.294.408",
+    "table": "HSG_financial_statements_2025_consolidated|19",
+    "group": "judge bỏ",
+    "detail": "keys 276  bm25 8  dense 49  ranked 11  gửi None",
+    "n_holders": 1
+   },
+   {
+    "token": "49.633.658.164",
+    "table": "HSG_financial_statements_2021_consolidated|31",
+    "group": "đã gửi",
+    "detail": "keys 30  bm25 15  dense 13  ranked 7  gửi 1",
+    "n_holders": 2
+   }
+  ],
+  "n_keys": 315,
+  "n_ranked": 61
+ },
+ "714": {
+  "group": "ngoài keys",
+  "tokens": [
+   {
+    "token": "706.004.285.205",
+    "table": "HUT_financial_statements_2024_separate|4",
+    "group": "ngoài keys",
+    "detail": "keys None  bm25 None  dense None  ranked None  gửi None",
+    "n_holders": 4
+   },
+   {
+    "token": "874.739.630.652",
+    "table": "HUT_financial_statements_2024_separate|4",
+    "group": "ngoài keys",
+    "detail": "keys None  bm25 None  dense None  ranked None  gửi None",
+    "n_holders": 4
+   }
+  ],
+  "n_keys": 61,
+  "n_ranked": 33
+ },
+ "727": {
+  "group": "judge bỏ",
+  "tokens": [
+   {
+    "token": "15.229.827.235",
+    "table": "BVH_financial_statements_2019_separate|64",
+    "group": "judge bỏ",
+    "detail": "keys 62  bm25 1  dense 1  ranked 1  gửi None",
+    "n_holders": 2
+   },
+   {
+    "token": "16.533.003.610",
+    "table": "BVH_financial_statements_2019_separate|63",
+    "group": "judge bỏ",
+    "detail": "keys 61  bm25 0  dense 0  ranked 0  gửi None",
+    "n_holders": 2
+   }
+  ],
+  "n_keys": 67,
+  "n_ranked": 32
+ },
+ "769": {
+  "group": "judge bỏ",
+  "tokens": [
+   {
+    "token": "36.648.986.835",
+    "table": "ACV_financial_statements_2015_consolidated|23",
+    "group": "judge bỏ",
+    "detail": "keys 22  bm25 2  dense 6  ranked 2  gửi None",
+    "n_holders": 1
+   },
+   {
+    "token": "5.355.027.273",
+    "table": "VSC_financial_statements_2015_consolidated|16",
+    "group": "judge bỏ",
+    "detail": "keys 71  bm25 4  dense 3  ranked 0  gửi None",
+    "n_holders": 6
+   }
+  ],
+  "n_keys": 100,
+  "n_ranked": 41
+ },
+ "821": {
+  "group": "ngoài ranked",
+  "tokens": [
+   {
+    "token": "170.844.469.638.663",
+    "table": "OCB_financial_statements_2025_separate|38",
+    "group": "judge bỏ",
+    "detail": "keys 396  bm25 2  dense 10  ranked 1  gửi None",
+    "n_holders": 37
+   },
+   {
+    "token": "198.764.945.826.810",
+    "table": "OCB_financial_statements_2025_separate|38",
+    "group": "judge bỏ",
+    "detail": "keys 396  bm25 2  dense 10  ranked 1  gửi None",
+    "n_holders": 18
+   },
+   {
+    "token": "28.851.442.834.099",
+    "table": "OCB_financial_statements_2025_separate|42",
+    "group": "đã gửi",
+    "detail": "keys 400  bm25 18  dense 49  ranked 10  gửi 1",
+    "n_holders": 4
+   },
+   {
+    "token": "38.045.493.326.685",
+    "table": "OCB_financial_statements_2025_separate|42",
+    "group": "đã gửi",
+    "detail": "keys 400  bm25 18  dense 49  ranked 10  gửi 1",
+    "n_holders": 2
+   },
+   {
+    "token": "4.423.443.894.553",
+    "table": "OCB_financial_statements_2017_separate|30",
+    "group": "đã gửi",
+    "detail": "keys 25  bm25 9  dense 47  ranked 15  gửi 2",
+    "n_holders": 4
+   },
+   {
+    "token": "48.182.976.683.825",
+    "table": "OCB_financial_statements_2017_separate|29",
+    "group": "đã gửi",
+    "detail": "keys 24  bm25 0  dense 2  ranked 3  gửi 0",
+    "n_holders": 44
+   },
+   {
+    "token": "6.268.194.676.278",
+    "table": "OCB_financial_statements_2020_separate|32",
+    "group": "ngoài ranked",
+    "detail": "keys 118  bm25 186  dense 327  ranked None  gửi None",
+    "n_holders": 4
+   },
+   {
+    "token": "89.237.886.166.154",
+    "table": "OCB_financial_statements_2020_separate|88",
+    "group": "ngoài top-20",
+    "detail": "keys 168  bm25 3  dense 31  ranked 31  gửi None",
+    "n_holders": 22
+   }
+  ],
+  "n_keys": 592,
+  "n_ranked": 73
+ }
+}

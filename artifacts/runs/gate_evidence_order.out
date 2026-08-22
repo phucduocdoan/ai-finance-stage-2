@@ -1,0 +1,12 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 4386.54it/s]
+
+116 câu dò được bảng gold, scope production, không gọi LLM
+
+thứ tự        top-1    top-3    top-5   top-12
+gửi              45       68       75       90
+ranked           21       49       66       90
+fused            30       59       69       86
+picks+ranked       40       66       79       94
+
+codegen_max_tables = 3, tức cột top-3 là số khe evidence thật
