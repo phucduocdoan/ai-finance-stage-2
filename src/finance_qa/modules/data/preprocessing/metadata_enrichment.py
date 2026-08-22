@@ -177,6 +177,22 @@ def extract_page_prose(text: str, table_offset: int) -> str:
     return WHITESPACE_RE.sub(" ", window).strip()[:CONTEXT_MAX_CHARS]
 
 
+def page_prose_for(text: str, offsets: list[int], table_pos: int) -> str:
+    """Prose of the page holding table `table_pos`, which is 1-based.
+
+    A function only so the indexing is testable. It was written inline as
+    `offsets[table_pos]`, which is the page of the *next* table: measured over a
+    152-report, 11,136-table sample, 59.5% of rows carried prose from the wrong
+    page and 3.4% read a wrong "Đơn vị tính" off it, while the last table of every
+    report indexed past the end and got "". The global minimum `table_pos` over
+    all 146,246 rows is 1, and each report's positions run 1..len(tables) exactly.
+    """
+    idx = table_pos - 1
+    if not text or not 0 <= idx < len(offsets):
+        return ""
+    return extract_page_prose(text, offsets[idx])
+
+
 def pick_label_col(rows: list[list[str]]) -> int:
     max_c = min(LABEL_COL_MAX_INDEX + 1, max((len(r) for r in rows[1:]), default=0))
     best_col, best_score = 0, -1
@@ -306,11 +322,9 @@ class MetadataEnricher:
                         cur_offsets = []
                         ocr_missing_reports.add(rid)
 
-                tpos = rec.get("table_pos", -1)
-                if cur_text and 0 <= tpos < len(cur_offsets):
-                    rec["context_page_text"] = extract_page_prose(cur_text, cur_offsets[tpos])
-                else:
-                    rec["context_page_text"] = ""
+                rec["context_page_text"] = page_prose_for(
+                    cur_text, cur_offsets, rec.get("table_pos", 0)
+                )
 
                 if not labels:
                     empty_labels += 1

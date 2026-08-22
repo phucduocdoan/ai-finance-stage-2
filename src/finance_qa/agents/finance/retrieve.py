@@ -18,6 +18,7 @@ def make_retrieve_node(cfg):
             str(state.get("doc_type") or "unknown"),
             reranker=cfg.reranker,
             judge_top_n=cfg.judge_top_n,
+            dense_backend=cfg.dense_backend,
             frozen_fallback=cfg.frozen_fallback,
             judge_thinking=cfg.judge_thinking,
         )

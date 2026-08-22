@@ -1,7 +1,11 @@
-"""Build per-table doc_text for retrieval indexing.
+"""Build per-table retrieval text for indexing.
 
-One row per table: doc_text = statement_label | note_title | section_title |
-first_col_labels (joined) | header_flat.
+One row per table, three views because the three consumers want different things:
+
+  doc_text    statement_label | note_title | section_title | first_col_labels | header_flat
+              BM25 and the reranker.
+  dense_text  doc_text minus header_flat -- see `build_dense_text`.
+  judge_text  statement_label | note_title | first_col_labels -- see `build_judge_text`.
 
 Per docs/v0_retrieval_pipeline.md (Q5+Q6, finalized 2026-08-03):
 context_page_text is deliberately excluded — it has OCR noise, may contain
@@ -85,6 +89,46 @@ def build_doc_text(rec: dict) -> str:
     return " | ".join(p for p in parts if p.strip())
 
 
+def build_dense_text(rec: dict) -> str:
+    """`doc_text` minus `header_flat`, for the dense channel only.
+
+    BM25 and bge-m3 do not want the same text, and the asymmetry is structural rather than a
+    matter of taste: an unmatched token is *free* for BM25 (no query term, no contribution,
+    and IDF discounts the boilerplate that does match), while bge-m3 has no such escape --
+    every token it reads moves the pooled CLS vector whether or not a query could match it.
+
+    `header_flat` is the period columns ("Số cuối năm", "31/12/2023 VND"). No question asks
+    for them (`strip_entity` even deletes year tokens from the retrieval query), yet they are
+    14.5% of doc_text's characters and 52.6% of them repeat within their own report. Dropping
+    them from the dense index only, BM25 unchanged, over 154 gold questions across two
+    independent eval sets: top-3 +7, top-10 +4, top-1 +1, at a cost of pool -1 and top-20 -2.
+    See docs/retrieval_preprocessing_2026-08-21.md §10.3-10.4.
+
+    That measurement is for a reranker-off retriever, which is not the production default: a
+    rerank re-scores the whole pool and replaces the fused order, leaving only pool membership,
+    where this change is -1 gold and +0; the two then tie at top-20, and end to end the DOCS
+    tier does not move at all while TABLES stays inside the churn floor (§10.5-10.6). The column
+    is built for every table anyway -- it costs one string per row and no index -- but
+    `dense_backend` defaults to plain `doc_text` until the reranker either goes away or stops
+    discarding the order it was given.
+
+    Nothing else is dropped, and specifically *not* by a low-duplication rule. Duplication is
+    the wrong criterion: `statement_label` is the most duplicated segment in the corpus (8
+    distinct values over 146,246 tables, 92.7% repeating within a report, 1.0% of characters)
+    and removing it costs 8 top-1 hits, because a question does say "bảng cân đối kế toán".
+    What matters is whether a query carries signal on that axis, not how rare the string is.
+    Dropping `section_title` too (89.1% intra-report duplicates) measured as a wash: +1 top-3
+    for -2 top-1 and -2 top-20, for a bigger change.
+    """
+    parts = [
+        statement_label(rec),
+        rec.get("note_title") or "",
+        rec.get("section_title") or "",
+        " ".join(rec.get("first_col_labels") or []),
+    ]
+    return " | ".join(p for p in parts if p.strip())
+
+
 def build_judge_text(rec: dict) -> str:
     """Narrower view for the LLM judge prompt.
 
@@ -139,6 +183,7 @@ class DocumentTextBuilder:
                     "report_id": rec["report_id"],
                     "table_pos": rec["table_pos"],
                     "doc_text": build_doc_text(rec),
+                    "dense_text": build_dense_text(rec),
                     "judge_text": build_judge_text(rec),
                 })
 

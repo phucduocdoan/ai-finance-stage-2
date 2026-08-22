@@ -20,11 +20,16 @@ from finance_qa.modules.rag.indexing.dense import encode, load_model
 class DenseIndexBuildConfig:
     parquet_path: Path = DOCUMENT_TEXT_PATH
     out_path: Path = DENSE_INDEX_PATH
+    # Which text view to encode. The pairing of column and output file is not free to choose:
+    # a query vector is only meaningful against an index built from the same column, so both
+    # come from the embedding client (see `retrievers.clients`), and `--backend` sets them
+    # together rather than letting a caller mix them.
+    column: str = "doc_text"
     limit: int | None = None
 
 
 class DenseIndexBuilder:
-    """Build the local bge-m3 dense index from table doc_text."""
+    """Build a local bge-m3 dense index from one of the parquet's text columns."""
 
     def __init__(self, config: DenseIndexBuildConfig | None = None) -> None:
         self.config = config or DenseIndexBuildConfig()
@@ -32,10 +37,15 @@ class DenseIndexBuilder:
     def run(self) -> int:
         cfg = self.config
         df = pd.read_parquet(cfg.parquet_path)
+        if cfg.column not in df.columns:
+            raise SystemExit(
+                f"{cfg.parquet_path} has no {cfg.column!r} column "
+                f"(has {list(df.columns)}); rebuild it with scripts/build_doc_text.py"
+            )
         if cfg.limit:
             df = df.head(cfg.limit)
-        texts = df["doc_text"].tolist()
-        print(f"encoding {len(texts):,} doc_text")
+        texts = df[cfg.column].tolist()
+        print(f"encoding {len(texts):,} {cfg.column}")
 
         tok, model = load_model()
         t0 = time.perf_counter()
@@ -54,10 +64,21 @@ class DenseIndexBuilder:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from finance_qa.modules.rag.retrievers.clients import embedding_client
+
     ap = argparse.ArgumentParser()
+    ap.add_argument("--backend", default="bge-m3", help="bge-m3 | bge-m3-dense-text")
     ap.add_argument("--limit", type=int, default=None)
     args = ap.parse_args(argv)
-    return DenseIndexBuilder(DenseIndexBuildConfig(limit=args.limit)).run()
+
+    client = embedding_client(args.backend)
+    if not hasattr(client, "_model"):
+        raise SystemExit(f"{args.backend} is not a local backend; see build_deepinfra_index.py")
+    return DenseIndexBuilder(
+        DenseIndexBuildConfig(
+            out_path=client.index_path, column=client.text_column, limit=args.limit
+        )
+    ).run()
 
 
 if __name__ == "__main__":

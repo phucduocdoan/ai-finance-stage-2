@@ -18,15 +18,20 @@ _frozen: dict[int, list[str]] | None = None
 
 
 @lru_cache(maxsize=None)
-def _build_retriever(reranker: str | None, judge_top_n: int) -> CandidateRetriever:
+def _build_retriever(
+    reranker: str | None, judge_top_n: int, dense_backend: str
+) -> CandidateRetriever:
     return CandidateRetriever(
         load_judge_text=True,
         reranker=reranker,
         judge_top_n=judge_top_n,
+        dense_backend=dense_backend,
     )
 
 
-def get_retriever(reranker: str | None, judge_top_n: int) -> CandidateRetriever:
+def get_retriever(
+    reranker: str | None, judge_top_n: int, dense_backend: str = "bge-m3"
+) -> CandidateRetriever:
     """Return the process-wide retriever for this config, built exactly once.
 
     lru_cache alone is not enough: it evaluates the wrapped function *outside*
@@ -36,10 +41,12 @@ def get_retriever(reranker: str | None, judge_top_n: int) -> CandidateRetriever:
     dict hit.
     """
     with _retriever_lock:
-        return _build_retriever(reranker, judge_top_n)
+        return _build_retriever(reranker, judge_top_n, dense_backend)
 
 
-async def aget_retriever(reranker: str | None, judge_top_n: int) -> CandidateRetriever:
+async def aget_retriever(
+    reranker: str | None, judge_top_n: int, dense_backend: str = "bge-m3"
+) -> CandidateRetriever:
     """`get_retriever` off the event loop.
 
     The build takes ~30 s (146k metadata rows, BM25 IDF, dense index, bge-m3), so
@@ -53,7 +60,9 @@ async def aget_retriever(reranker: str | None, judge_top_n: int) -> CandidateRet
     if lock is None:
         lock = cache["retriever_lock"] = asyncio.Lock()
     async with lock:
-        return await asyncio.to_thread(get_retriever, reranker, judge_top_n)
+        return await asyncio.to_thread(
+            get_retriever, reranker, judge_top_n, dense_backend
+        )
 
 
 def frozen_table_ids(question_id: int) -> list[str]:
@@ -92,6 +101,7 @@ async def aretrieve_table_ids(
     judge_top_n: int,
     frozen_fallback: bool,
     judge_thinking: bool = False,
+    dense_backend: str = "bge-m3",
 ) -> tuple[list[str], list[str], list[str]]:
     """Select relevant table ids for a finance question.
 
@@ -122,7 +132,7 @@ async def aretrieve_table_ids(
     }
 
     try:
-        retriever = await aget_retriever(reranker, judge_top_n)
+        retriever = await aget_retriever(reranker, judge_top_n, dense_backend)
         pool = await retriever.abuild_pool(question_dict)
         result = await retriever.aselect(question_dict, pool, thinking=judge_thinking)
         table_ids = _evidence(retriever, pool, result["picks"])
@@ -144,6 +154,7 @@ def retrieve_table_ids(
     reranker: str | None,
     judge_top_n: int,
     frozen_fallback: bool,
+    dense_backend: str = "bge-m3",
 ) -> tuple[list[str], list[str], list[str]]:
     """Sync `aretrieve_table_ids`, for single-question scripts."""
     return run_sync(
@@ -156,6 +167,7 @@ def retrieve_table_ids(
             reranker=reranker,
             judge_top_n=judge_top_n,
             frozen_fallback=frozen_fallback,
+            dense_backend=dense_backend,
         )
     )
 

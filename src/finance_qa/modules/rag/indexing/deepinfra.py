@@ -70,6 +70,9 @@ class DeepInfraEmbedder:
         self.model = model
         self.name = model.rsplit("/", 1)[-1]
         self.index_path = index_path
+        # This index was built over doc_text. `dense_text` measured better for bge-m3, but
+        # rebuilding a hosted index costs money, so the win is not inherited by assumption.
+        self.text_column = "doc_text"
         self.client = client
 
     def embed_documents(self, texts: Sequence[str]):

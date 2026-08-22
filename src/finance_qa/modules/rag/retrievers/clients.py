@@ -5,10 +5,20 @@ so swapping bge-m3 for a hosted encoder, or DeepInfra for a local vLLM or an
 Alibaba endpoint, is a new class in one file plus a registry line -- no change to
 pool assembly, the judge, or the runner.
 
-An embedding client owns *both* halves of its channel: the encoder and the index
-file it produced. They cannot be mixed (a query vector only means something
-against vectors from the same encoder), so `index_path` is a property of the
-client rather than a separate argument the caller could get wrong.
+An embedding client owns *all three* parts of its channel: the encoder, the text
+column it read, and the index file it produced. None of them can be mixed -- a
+query vector only means something against vectors from the same encoder over the
+same text -- so `index_path` and `text_column` are properties of the client
+rather than separate arguments the caller could get wrong.
+
+`text_column` exists because BM25 and a dense encoder do not want the same text.
+An unmatched token is free for BM25 and not for a bi-encoder, which has no IDF to
+discount it with; measured, that is worth top-3 +7 over 154 gold questions
+*with the reranker off* (docs/retrieval_preprocessing_2026-08-21.md §10.3-10.4).
+With the production reranker it is not: a rerank replaces the fused order, so only
+pool membership survives, the two tie at top-20, and end to end through `_evidence`
+the DOCS tier is identical while TABLES stays inside the run-to-run churn floor
+(§10.5-10.6). Hence `bge-m3` is still the default backend and this one is opt-in.
 
 A reranker client only has to score query/document pairs. Ordering, tie-breaking
 and the empty case are `rerank_order`'s job here, so every backend gets the same
@@ -32,6 +42,7 @@ class EmbeddingClient(Protocol):
 
     name: str
     index_path: Path
+    text_column: str
 
     def embed_documents(self, texts: Sequence[str]):
         """fp16 [n, dim], L2-normalized, in input order."""
@@ -58,7 +69,7 @@ class RerankerClient(Protocol):
 
 # Registries. Lazily imported so that asking for a hosted backend does not pull
 # torch onto a machine that is only making HTTP calls, and vice versa.
-EMBEDDING_BACKENDS = ("bge-m3", "qwen3-4b")
+EMBEDDING_BACKENDS = ("bge-m3", "bge-m3-dense-text", "qwen3-4b")
 RERANKER_BACKENDS = ("qwen3-0.6b",)
 
 
@@ -67,6 +78,10 @@ def embedding_client(name: str) -> EmbeddingClient:
         from finance_qa.modules.rag.indexing.dense import BgeM3Embedder
 
         return BgeM3Embedder()
+    if name == "bge-m3-dense-text":
+        from finance_qa.modules.rag.indexing.dense import BgeM3DenseTextEmbedder
+
+        return BgeM3DenseTextEmbedder()
     if name == "qwen3-4b":
         from finance_qa.modules.rag.indexing.deepinfra import DeepInfraEmbedder
 

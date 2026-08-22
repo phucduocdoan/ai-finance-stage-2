@@ -26,7 +26,7 @@ import numpy as np
 import torch
 from transformers import AutoModel, AutoTokenizer
 
-from finance_qa.core.paths import DENSE_INDEX_PATH
+from finance_qa.core.paths import DENSE_INDEX_PATH, DENSE_TEXT_INDEX_PATH
 
 
 MODEL = "BAAI/bge-m3"
@@ -108,6 +108,7 @@ class BgeM3Embedder:
 
     name = "bge-m3"
     index_path = DENSE_INDEX_PATH
+    text_column = "doc_text"
 
     def __init__(self) -> None:
         self._loaded = None
@@ -128,3 +129,17 @@ class BgeM3Embedder:
 
     def embed_queries(self, texts):
         return encode_queries(list(texts), *self._model())
+
+
+class BgeM3DenseTextEmbedder(BgeM3Embedder):
+    """Same encoder, indexed over `dense_text` (doc_text minus header_flat) instead.
+
+    Subclassed rather than parameterised so that the pairing of encoder + column + index file
+    stays a single named thing a caller selects by registry name, and cannot be assembled
+    wrongly at a call site. See `document_text.build_dense_text` for why the column exists and
+    docs/retrieval_preprocessing_2026-08-21.md §10.4 for the ablation that picked it.
+    """
+
+    name = "bge-m3-dense-text"
+    index_path = DENSE_TEXT_INDEX_PATH
+    text_column = "dense_text"

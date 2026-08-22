@@ -146,9 +146,20 @@ class Judge:
     judge instance the way it takes a dense backend or reranker.
     """
 
-    def __init__(self, *, max_picks: int = MAX_PICKS, thinking: bool = True) -> None:
+    def __init__(
+        self,
+        *,
+        max_picks: int = MAX_PICKS,
+        thinking: bool = True,
+        max_tokens: int | None = None,
+    ) -> None:
         self.max_picks = max_picks
         self.thinking = thinking
+        # None keeps `core.llm`'s own default (256 without thinking), which is ample for
+        # the bare-JSON reply PROMPT asks for -- measured 12 completion tokens. A judge
+        # variant whose prompt asks for anything before the JSON has to raise this, or the
+        # reply is truncated before the JSON and `parse_picks` scrapes digits out of prose.
+        self.max_tokens = max_tokens
 
     def build_prompt(self, question: str, pool: list[tuple[str, str]]) -> str:
         return build_prompt(question, pool, self.max_picks)
@@ -168,7 +179,11 @@ class Judge:
         """
         thinking = self.thinking if thinking is None else thinking
         try:
-            raw = await acall_llm(self.build_prompt(question, pool), thinking=thinking)
+            raw = await acall_llm(
+                self.build_prompt(question, pool),
+                thinking=thinking,
+                max_tokens=self.max_tokens,
+            )
         except httpx.HTTPStatusError as exc:
             # Loud, because the one time this fired it was a context overflow that
             # cost a question outright and looked like a judge quality problem for

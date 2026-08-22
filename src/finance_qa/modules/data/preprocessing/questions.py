@@ -49,6 +49,13 @@ MANUAL_ALIASES: dict[str, list[str]] = {
     "SGB": ["Saigonbank"],
     "MBB": ["MBBank"],
     "EIB": ["Eximbank"],
+    # Measured: of the 21 bank tickers in the corpus, BIDV is the only brand name
+    # no question-side rule reaches. "Ngân hàng TMCP Đầu tư và Phát triển Việt
+    # Nam" yields no signature containing "BIDV", and every word of it is shared
+    # with another issuer, so name_signatures cannot derive it. 2 of the 1,012
+    # questions (790, 800) name BIDV and got no `BID` ticker, which kept every
+    # BID table out of the shortlist before ranking even started.
+    "BID": ["BIDV"],
     "HPG": ["Hòa Phát", "Hoà Phát"],
     "HSG": ["Hoa Sen"],
     "NKG": ["Nam Kim"],
