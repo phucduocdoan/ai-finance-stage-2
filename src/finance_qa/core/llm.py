@@ -31,7 +31,12 @@ from typing import Any
 from finance_qa.core.http import client, pool, run_sync
 
 ENDPOINT = os.environ.get("LLM_ENDPOINT", "http://127.0.0.1:8990/v1/chat/completions")
-MODEL = os.environ.get("LLM_MODEL", "Qwen/Qwen3-8B-Instruct")
+# The id the vLLM server on 8990 actually reports at `/v1/models`. The old default,
+# `Qwen/Qwen3-8B-Instruct`, has not been served for a while, so every call 404'd and
+# every question came back 0.0 with the failure buried in the per-question `errors`
+# list. Same shape as the solver-flag divergence: the good runs only ever happened in
+# a shell that exported `LLM_MODEL`.
+MODEL = os.environ.get("LLM_MODEL", "Qwen3.5-9B")
 API_KEY = os.environ.get("LLM_API_KEY", "")
 
 
