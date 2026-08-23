@@ -1,0 +1,482 @@
+{
+ "579": {
+  "years": [
+   2016,
+   2021
+  ],
+  "phrases": [
+   "lãi tiền gửi có kỳ hạn"
+  ],
+  "v9": 167.24,
+  "cells": [
+   {
+    "table_id": "IJC_financial_statements_2016_separate|57",
+    "row_position": 0,
+    "row_label": "Lãi tiền gửi có kỳ hạn",
+    "column": "Năm nay",
+    "confidence": 0.9629,
+    "source_unit": "unknown",
+    "target_unit": "percent",
+    "value": 2262694070.0
+   },
+   {
+    "table_id": "IJC_financial_statements_2021_separate|57",
+    "row_position": 0,
+    "row_label": "Lãi tiền gửi có kỳ hạn",
+    "column": "Năm nay",
+    "confidence": 0.9629,
+    "source_unit": "unknown",
+    "target_unit": "percent",
+    "value": 6046821980.0
+   }
+  ]
+ },
+ "580": {
+  "years": [
+   2015,
+   2016
+  ],
+  "phrases": [
+   "chi phí thuế hoãn lại"
+  ],
+  "v9": 47954.48,
+  "cells": [
+   {
+    "table_id": "HBC_financial_statements_2015_consolidated|8",
+    "row_position": 17,
+    "row_label": "17. (Chi phí) thu nhập thuế TNDN hoãn lại",
+    "column": "Năm nay",
+    "confidence": 0.9629,
+    "source_unit": "unknown",
+    "target_unit": "million_vnd",
+    "value": -322960454.0
+   },
+   {
+    "table_id": "HBC_financial_statements_2016_consolidated|8",
+    "row_position": 17,
+    "row_label": "17. Chi phí thuế TNDN hoãn lại",
+    "column": "Năm nay",
+    "confidence": 0.9629,
+    "source_unit": "unknown",
+    "target_unit": "million_vnd",
+    "value": -48277443972.0
+   }
+  ]
+ },
+ "586": {
+  "years": [
+   2021,
+   2022
+  ],
+  "phrases": [
+   "tiền và các khoản tương đương tiền"
+  ],
+  "v9": 335.82,
+  "cells": [
+   {
+    "table_id": "ACV_financial_statements_2021_consolidated|4",
+    "row_position": 1,
+    "row_label": "I. Tiền và các khoản tương đương tiền",
+    "column": "Số cuối năm VND",
+    "confidence": 1.0,
+    "source_unit": "vnd",
+    "target_unit": "percent",
+    "value": 572833249811.0
+   },
+   {
+    "table_id": "ACV_financial_statements_2022_consolidated|4",
+    "row_position": 1,
+    "row_label": "I. Tiền và các khoản tương đương tiền",
+    "column": "Số cuối năm VND",
+    "confidence": 1.0,
+    "source_unit": "vnd",
+    "target_unit": "percent",
+    "value": 2496515921711.0
+   }
+  ]
+ },
+ "600": {
+  "years": [
+   2023,
+   2025
+  ],
+  "phrases": [
+   "Lãi vay phải trả người bán ngắn hạn"
+  ],
+  "v9": 1214.71,
+  "cells": [
+   {
+    "table_id": "FPT_financial_statements_2023_consolidated|7",
+    "row_position": 3,
+    "row_label": "Phải trả người bán ngắn hạn",
+    "column": "Tại ngày 31 tháng 12 năm",
+    "confidence": 0.815,
+    "source_unit": "vnd",
+    "target_unit": "billion_vnd",
+    "value": 2602977290710.0
+   },
+   {
+    "table_id": "FPT_financial_statements_2025_consolidated|7",
+    "row_position": 3,
+    "row_label": "Phải trả người bán ngắn hạn",
+    "column": "Tại ngày 31 tháng 12 năm",
+    "confidence": 0.815,
+    "source_unit": "vnd",
+    "target_unit": "billion_vnd",
+    "value": 3837081314767.0
+   }
+  ]
+ },
+ "603": {
+  "years": [
+   2024,
+   2025
+  ],
+  "phrases": [
+   "Chi phí trả trước chi phí bảo dưỡng tàu bay"
+  ],
+  "v9": -108.51,
+  "cells": [
+   {
+    "table_id": "VJC_financial_statements_2024_separate|25",
+    "row_position": 5,
+    "row_label": "Chi phí bảo dưỡng tàu bay",
+    "column": "31/12/2024VND",
+    "confidence": 0.884,
+    "source_unit": "unknown",
+    "target_unit": "billion_vnd",
+    "value": 5432923096287.0
+   },
+   {
+    "table_id": "VJC_financial_statements_2025_separate|24",
+    "row_position": 5,
+    "row_label": "Chi phí bảo dưỡng tàu bay trả trước",
+    "column": "31/12/2025VND",
+    "confidence": 1.0,
+    "source_unit": "unknown",
+    "target_unit": "billion_vnd",
+    "value": 5324416490490.0
+   }
+  ]
+ },
+ "604": {
+  "years": [
+   2018,
+   2019
+  ],
+  "phrases": [
+   "tổng tài sản"
+  ],
+  "v9": 123.98,
+  "cells": [
+   {
+    "table_id": "DLG_financial_statements_2018_separate|5",
+    "row_position": 11,
+    "row_label": "TỔNG CỘNG TÀI SẢN",
+    "column": "31/12/2018 VND",
+    "confidence": 1.0,
+    "source_unit": "vnd",
+    "target_unit": "billion_vnd",
+    "value": 5231553268752.0
+   },
+   {
+    "table_id": "DLG_financial_statements_2019_separate|6",
+    "row_position": 11,
+    "row_label": "TỔNG CỘNG TÀI SẢN",
+    "column": "31/12/2019 VND",
+    "confidence": 1.0,
+    "source_unit": "vnd",
+    "target_unit": "billion_vnd",
+    "value": 5355530683088.0
+   }
+  ]
+ },
+ "609": {
+  "years": [
+   2022,
+   2025
+  ],
+  "phrases": [
+   "Tổng tài sản, GTCG nhận thế chấp, cầm cố và chiết khấu, tái chiết khấu"
+  ],
+  "v9": 49.13,
+  "cells": [
+   {
+    "table_id": "ACB_financial_statements_2022_consolidated|89",
+    "row_position": 14,
+    "row_label": "Tổng tài sản, GTCG nhận thế chấp, cầm cố và chiết khấu, tái chiết khấu",
+    "column": "31.12.2022Triệu VND",
+    "confidence": 0.9382,
+    "source_unit": "million_vnd",
+    "target_unit": "percent",
+    "value": 869424751.0
+   },
+   {
+    "table_id": "ACB_financial_statements_2025_consolidated|99",
+    "row_position": 14,
+    "row_label": "Tổng tài sản, GTCG nhận thế chấp, cảm cố và chiết khấu, tải chiết khấu",
+    "column": "31.12.2025Triệu VND",
+    "confidence": 0.9382,
+    "source_unit": "million_vnd",
+    "target_unit": "percent",
+    "value": 1296566786.0
+   }
+  ]
+ },
+ "613": {
+  "years": [
+   2018,
+   2022
+  ],
+  "phrases": [
+   "lưu chuyển tiền thuần từ hoạt động tài chính"
+  ],
+  "v9": 186259.45,
+  "cells": [
+   {
+    "table_id": "IJC_financial_statements_2018_separate|11",
+    "row_position": 7,
+    "row_label": "Lưu chuyển tiền thuần từ hoạt động tài chính",
+    "column": "Năm nay",
+    "confidence": 0.9629,
+    "source_unit": "unknown",
+    "target_unit": "million_vnd",
+    "value": -301534111657.0
+   },
+   {
+    "table_id": "IJC_financial_statements_2022_separate|13",
+    "row_position": 7,
+    "row_label": "Lưu chuyển tiền thuần từ hoạt động tài chính",
+    "column": "Năm nay",
+    "confidence": 0.9629,
+    "source_unit": "unknown",
+    "target_unit": "million_vnd",
+    "value": -115274660827.0
+   }
+  ]
+ },
+ "621": {
+  "years": [
+   2021,
+   2024
+  ],
+  "phrases": [
+   "chi phí nhiên liệu"
+  ],
+  "v9": 19.74,
+  "cells": [
+   {
+    "table_id": "VJC_financial_statements_2021_separate|56",
+    "row_position": 0,
+    "row_label": "Chi phí nhiên liệu",
+    "column": "2021VND",
+    "confidence": 0.9382,
+    "source_unit": "unknown",
+    "target_unit": "trillion_vnd",
+    "value": 3059363382827.0
+   },
+   {
+    "table_id": "VJC_financial_statements_2024_separate|64",
+    "row_position": 0,
+    "row_label": "Chi phí nhiên liệu",
+    "column": "Năm 2024VND",
+    "confidence": 0.9382,
+    "source_unit": "unknown",
+    "target_unit": "trillion_vnd",
+    "value": 23858693067798.0
+   }
+  ]
+ },
+ "624": {
+  "years": [
+   2015,
+   2016
+  ],
+  "phrases": [
+   "dư tiền mặt bằng ngoại tệ"
+  ],
+  "v9": 652429.0,
+  "cells": [
+   {
+    "table_id": "STB_financial_statements_2015_separate|17",
+    "row_position": 1,
+    "row_label": "Tiền mặt bằng ngoại tệ",
+    "column": "Số cuối nămTriệu đồng",
+    "confidence": 0.9033,
+    "source_unit": "million_vnd",
+    "target_unit": "million_vnd",
+    "value": 2060520.0
+   },
+   {
+    "table_id": "STB_financial_statements_2016_separate|18",
+    "row_position": 1,
+    "row_label": "Tiền mặt bằng ngoại tệ",
+    "column": "Số cuối nămTriệu đồng",
+    "confidence": 0.9033,
+    "source_unit": "million_vnd",
+    "target_unit": "million_vnd",
+    "value": 1408091.0
+   }
+  ]
+ },
+ "643": {
+  "years": [
+   2019,
+   2023
+  ],
+  "phrases": [
+   "số lượng cổ phiếu đang lưu hành"
+  ],
+  "v9": 41586082.0,
+  "cells": [
+   {
+    "table_id": "KLB_financial_statements_2019_separate|42",
+    "row_position": 7,
+    "row_label": "Số lượng cổ phiếu đang lưu hành",
+    "column": "Số cuối năm",
+    "confidence": 1.0,
+    "source_unit": "unknown",
+    "target_unit": "unknown",
+    "value": 319895796.0
+   },
+   {
+    "table_id": "KLB_financial_statements_2023_separate|40",
+    "row_position": 7,
+    "row_label": "Số lượng cổ phiếu đang lưu hành",
+    "column": "Số cuối năm",
+    "confidence": 1.0,
+    "source_unit": "unknown",
+    "target_unit": "unknown",
+    "value": 361481878.0
+   }
+  ]
+ },
+ "646": {
+  "years": [
+   2020,
+   2021
+  ],
+  "phrases": [
+   "Chi phí nhân viên"
+  ],
+  "v9": 10.34,
+  "cells": [
+   {
+    "table_id": "KHG_financial_statements_2020_consolidated|32",
+    "row_position": 1,
+    "row_label": "Chi phí nhân viên",
+    "column": "Năm 2020",
+    "confidence": 0.9382,
+    "source_unit": "vnd",
+    "target_unit": "billion_vnd",
+    "value": 11949173962.0
+   },
+   {
+    "table_id": "KHG_financial_statements_2021_consolidated|41",
+    "row_position": 1,
+    "row_label": "Chi phí nhân viên",
+    "column": "Năm 2021",
+    "confidence": 0.9382,
+    "source_unit": "vnd",
+    "target_unit": "billion_vnd",
+    "value": 22287552828.0
+   }
+  ]
+ },
+ "648": {
+  "years": [
+   2022,
+   2023
+  ],
+  "phrases": [
+   "Chi phí dịch vụ mua ngoài"
+  ],
+  "v9": 414.69,
+  "cells": [
+   {
+    "table_id": "HHS_financial_statements_2022_separate|33",
+    "row_position": 4,
+    "row_label": "Chi phí dịch vụ mua ngoài",
+    "column": "Năm 2022",
+    "confidence": 0.9382,
+    "source_unit": "vnd",
+    "target_unit": "percent",
+    "value": 804598764.0
+   },
+   {
+    "table_id": "HHS_financial_statements_2023_separate|34",
+    "row_position": 4,
+    "row_label": "Chi phí dịch vụ mua ngoài",
+    "column": "Năm 2023",
+    "confidence": 0.9382,
+    "source_unit": "vnd",
+    "target_unit": "percent",
+    "value": 4141153775.0
+   }
+  ]
+ },
+ "654": {
+  "years": [
+   2016,
+   2017
+  ],
+  "phrases": [
+   "giá vốn bán điện"
+  ],
+  "v9": 74.78,
+  "cells": [
+   {
+    "table_id": "DNH_financial_statements_2016_separate|35",
+    "row_position": 0,
+    "row_label": "Giá vốn bán điện",
+    "column": "2016VND",
+    "confidence": 0.9382,
+    "source_unit": "unknown",
+    "target_unit": "billion_vnd",
+    "value": 679331847584.0
+   },
+   {
+    "table_id": "DNH_financial_statements_2017_separate|38",
+    "row_position": 0,
+    "row_label": "Giá vốn bán điện",
+    "column": "2017VND",
+    "confidence": 0.9382,
+    "source_unit": "unknown",
+    "target_unit": "billion_vnd",
+    "value": 754107551854.0
+   }
+  ]
+ },
+ "720": {
+  "years": [
+   2017,
+   2018
+  ],
+  "phrases": [
+   "giá trị còn lại tài sản cố định vô hình"
+  ],
+  "v9": 6.62,
+  "cells": [
+   {
+    "table_id": "SGB_financial_statements_2017_separate|6",
+    "row_position": 8,
+    "row_label": "a. Nguyên giá tài sản cố định vô hình",
+    "column": "31/12/2017",
+    "confidence": 0.786,
+    "source_unit": "million_vnd",
+    "target_unit": "percent",
+    "value": 452225.0
+   },
+   {
+    "table_id": "SGB_financial_statements_2018_separate|6",
+    "row_position": 8,
+    "row_label": "a. Nguyên giá tài sản cố định vô hình",
+    "column": "31/12/2018",
+    "confidence": 0.826,
+    "source_unit": "million_vnd",
+    "target_unit": "percent",
+    "value": 480002.0
+   }
+  ]
+ }
+}
