@@ -93,11 +93,56 @@ Hai lần trong một phiên, cái trông như tín hiệu hóa ra là một bi�
 là cỡ rổ, ở đây nó là độ dài nhãn. Cả hai lần chỉ có xem tay mới phát hiện, không phép đo
 tổng hợp nào lộ ra.
 
-## Việc kế tiếp
+## Đã hiện thực, đã chạy, và kết quả là 0/7
 
-Hiện thực validator ở `execute.py`, nơi đã có sẵn vòng repair cho ngoại lệ: coi "đáp án ngoài
-khoảng cho câu hỏi tỉ lệ" là một dạng thất bại và đưa vào cùng vòng đó. Rồi đo tỉ lệ chuyển
-đổi trên 7 câu của tập eval để có số có nhãn, và trên 51 câu của 1012 để có cỡ thật.
+Validator được nối vào đúng vòng repair đã có ở `execute.py`, coi "đáp án ngoài khoảng cho
+câu hỏi tỉ lệ" là một dạng thất bại thay vì dựng cơ chế thứ hai. Hai chi tiết đáng ghi trong
+lúc hiện thực, vì cả hai đều là chỗ dễ làm sai:
 
-Nếu tỉ lệ chuyển đổi trên bằng chứng cũ thấp như bảng reachability gợi ý, thì bước sau là
-cho validator kéo truy hồi chạy lại chứ không kết luận đường này chết.
+Phép kiểm phải xét giá trị **sau** `apply_units`, không phải số thô, vì một số thô 1e12 có
+thể là tỉ lệ hợp lệ sau khi truy vấn được chia tỉ. Và bản test đầu tiên vô hiệu mà không lộ
+ra: dùng `df1.iloc[0]['a'] * 1e13` thì `apply_units` bóc luôn hệ số mô hình tự viết nên giá
+trị còn 3.0 và validator chấp nhận đúng. Phải đặt số lớn vào trong chính bảng mới chạm được
+đường đó.
+
+Khi hết lượt repair thì trả về giá trị đã bị từ chối, không trả None. Trả None sẽ nộp 0.0,
+mất mục tiêu chấm thực thi mà không được gì ở mục tiêu chấm đáp án, và làm sụp chính tính
+chất đường này dựa vào: đáp án bị từ chối vốn đã sai, nên vòng lặp không được phép làm xấu
+hơn.
+
+Chạy lại 7 câu qua pipeline (`artifacts/runs/answer_type_retry.jsonl`):
+
+| câu | gold | nộp cũ | sau validator |
+|---|---|---|---|
+| q432 | 88.05 | 2.30e13 | 481.83 |
+| q433 | 26.44 | -3.67e12 | 100.0 |
+| q446 | 50.38 | 9.88e12 | 100.0 |
+| q462 | -11.04 | 8.42e12 | 0.9888 |
+| q559 | 4.19 | 1.67e12 | -100.0 |
+| q727 | 8.56 | 8.86e7 | -103.94 |
+| q1004 | 5.27 | 3.68e10 | 0.05267 |
+
+**Chuyển thành đúng 0, phá mất 0, mốc là 6.** Cả 7 câu giờ đều ra số trong khoảng, tức cơ chế
+chạy đúng, nhưng không câu nào ra gold. Phần thua bằng 0 giữ đúng như thiết kế.
+
+Bảng reachability ở trên đã dự báo chính xác chỗ này: sinh lại truy vấn trên **cùng bộ bằng
+chứng** không lấy lại được đáp án, vì với q432 và q727 bằng chứng không chứa đáp án. Việc dự
+báo đúng làm phép kiểm miễn phí đó đáng dùng lại trước mọi đường kiểu retry sau này.
+
+Hai chi tiết trong bảng chỉ tiếp chỗ hỏng thật. q433 và q446 ra **đúng 100.0**, tức truy vấn
+chia một số cho chính nó: mô hình bị ép phải chia nên nó chia bừa. Và q1004 lệch **đúng 1e2**,
+tức tỉ số đã tính đúng và chỉ thiếu bước nhân 100, nên nó chuyển từ "sai loại đại lượng" sang
+bucket "lệch đúng 10^k" của `docs/miss_shape_2026-08-23.md`.
+
+Phần code đã được trả lại (`git revert`), vì nó tốn thêm lượt gọi LLM trên 51/1012 câu mà
+không thêm điểm nào. Giữ lại `scripts/gate_answer_type.py` và doc này làm bản ghi phép đo.
+
+## Đây là đường thứ chín, và nó chết ở một chỗ mới
+
+Tám đường trước chết ở bước **phát hiện**: cái tưởng là tín hiệu hóa ra là cỡ rổ, độ dài
+nhãn, hoặc chỗ v9 vốn đã đúng. Đường này phát hiện được thật, 7 câu trên 119 và 51 trên 1012,
+chứng minh được từng câu, không cần nhãn. Nó chết ở bước **sửa**.
+
+Đó là thông tin mới và nó hẹp lại chỗ còn phải tìm: vấn đề không phải pipeline không biết
+mình sai, mà là biết mình sai cũng không đủ để làm đúng, vì bằng chứng đưa vào prompt không
+chứa đáp án. Đường tiếp theo nếu có thì phải tác động vào truy hồi, không vào codegen.

@@ -569,34 +569,4 @@ check("a query reading nothing indexable still produces a prompt",
       "không xác định được" in verify.build_prompt("q", "42.0", 42.0, {}, {}))
 check("the verdict defaults to accepting", verify.Verdict().correct is True)
 
-# --- a ratio question answered with a raw balance (docs/answer_type_2026-08-23.md) --
-check("a ratio question is recognised",
-      execute.is_ratio_question("Hệ số nợ phải trả trên tổng tài sản là bao nhiêu?"))
-check("a percent question is recognised",
-      execute.is_ratio_question("Tỷ trọng chi phí khấu hao là bao nhiêu phần trăm?"))
-check("unit_hint alone is enough",
-      execute.is_ratio_question("Giá trị là bao nhiêu?", "percent"))
-check("a balance question is not a ratio question",
-      not execute.is_ratio_question("Nợ phải trả năm 2023 là bao nhiêu tỷ đồng?"))
-
-huge = {"df1": pd.DataFrame({"Chỉ tiêu": ["Nợ phải trả"], "2023": [3.672e12]})}
-raw_balance = solution.PandasSolution(pandas_query="df1.iloc[0]['2023']")
-execute._arepair = never_fixes
-rejected = run(execute.aexecute(
-    raw_balance, "PROMPT", huge, question="Hệ số nợ phải trả trên tổng tài sản?"))
-kept = run(execute.aexecute(
-    raw_balance, "PROMPT", huge, question="Nợ phải trả là bao nhiêu tỷ đồng?"))
-execute._arepair = original_repair
-
-check("an out-of-range ratio answer is sent back for repair",
-      any("validate[0]" in e for e in rejected["errors"]))
-check("the complaint says what is wrong",
-      "không thể là một tỉ lệ" in "".join(rejected["errors"]))
-# The whole lever rests on losses being bounded at zero: a rejected answer is
-# already wrong, so exhausting the repair budget must return it unchanged rather
-# than fall through to 0.0 and forfeit the execution objective as well.
-check("exhausting repairs on validation keeps the last value",
-      rejected["answer"] == 3.672e12)
-check("a balance question is left alone", not kept["errors"])
-
 print("tất cả PASS")
