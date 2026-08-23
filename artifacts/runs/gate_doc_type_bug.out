@@ -1,0 +1,23 @@
+146246 bảng, 1965 báo cáo
+
+=== 1. báo cáo chứa hai bản của cùng một loại báo cáo ===
+  kiểm được: 1950   không kiểm được: 15
+  lặp nhãn >=60% → gộp hai bộ: 100 = 5%
+  nhãn rời → chỉ là cắt trang:  1850
+  thẻ hợp nhất/riêng bị đảo (bản riêng có dòng cổ đông thiểu số, bản hợp nhất không): 1 ['HUT_financial_statements_2024_consolidated']
+
+=== 2. phơi nhiễm có dự báo được lỗi không ===
+  câu chạm báo cáo hai-bản: 110/1012 = 11%
+  v9 đúng khi chạm:       10/21 = 48%
+  v9 đúng khi không chạm: 39/98 = 40%
+
+=== 3. bản sao khác của dòng đã dùng có cho ra gold không ===
+  v9 sai, chấm được: 70   dò được nhãn dòng: 61
+  có bản sao khác cho đúng gold: 2
+    q267: v9=3372600.0 gold=340063.0  bản sao ACB_financial_statements_2020_separate|55 = 340063.0
+    q667: v9=1.42 gold=1.24  bản sao EIB_financial_statements_2023_separate|91 = 1247796.0
+
+  v9 ĐÚNG, dò được nhãn dòng: 47
+  trong đó dòng đã dùng còn có bản sao ở bảng khác: 10
+
+  → đổi nhiều nhất 2 câu thắng lấy rủi ro trên 10 câu đang đúng. Mốc đã chốt là 10 thắng / 2 thua.

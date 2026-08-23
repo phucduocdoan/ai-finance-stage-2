@@ -1,4 +1,4 @@
-# Nhãn máy có thay được nhãn cũ không: 83%, dưới mốc (2026-08-23)
+# Nhãn máy có thay được nhãn cũ không: 83% rồi 95.8%, phương sai nằm ở lượt gán (2026-08-23)
 
 Công cụ: `scripts/gate_label_calibration.py`, readout ở
 `artifacts/runs/gate_label_calibration.out`.
@@ -26,7 +26,9 @@ cấm đọc `artifacts/eval_clean/`, `output/`, `artifacts/runs/`, và tự kha
 | lệch dấu | 1 (q774) |
 | lệch thang | 0 |
 
-**83% < 90%, nên theo mốc đã chốt: dừng, không đặt thêm nhãn.**
+**83% < 90%, nên theo mốc đã chốt: dừng, không đặt thêm nhãn.** (Lượt B sau đó ra 95.8%
+trên đúng 24 câu này; xem mục "Lượt B" bên dưới. Kết luận cuối cùng khác kết luận của
+riêng lượt A.)
 
 Lọc theo tin cậy tự khai không cứu được:
 
@@ -89,13 +91,46 @@ Kết luận của phát hiện 6 không đổi. Nếu tính cả ba câu dấu 
 4 thắng / 1 mất, McNemar một phía p = 0.188, vẫn dưới mốc 10/2. Đường L3 hai kỳ vẫn chết
 dù giải quyết câu dấu theo hướng nào.
 
+## Lượt B: 23/24 = 95.8%, và nó đổi kết luận
+
+Lượt gán nhãn thứ hai, cùng 24 câu, cùng điều kiện mù, khác agent:
+
+| tin cậy tự khai | lượt A | lượt B |
+|---|---|---|
+| high | 15/17 = 88% | 16/16 = 100% |
+| medium | 4/6 = 67% | 6/7 = 86% |
+| low | 1/1 | 1/1 |
+| **tổng** | **20/24 = 83%** | **23/24 = 95.8%** |
+
+Lượt A dưới mốc dừng 90%, lượt B trên mốc đặt thêm 95%. Chốt trước hai mốc mà kết quả rơi
+vào hai phía là dấu hiệu rõ: **phương sai nằm ở người gán nhãn, không ở việc gán nhãn máy
+nói chung.** Một lượt đơn lẻ không phải phép đo tin được, nhưng đó là lỗi thiết kế của
+"một lượt", không phải giới hạn của nhãn máy.
+
+Phép so ba chiều tách được đúng chỗ đó:
+
+| | số câu |
+|---|---|
+| cả ba khớp | 20 |
+| một lượt khớp nhãn cũ, lượt kia lệch (q714, q764, q836) | 3 |
+| hai lượt mới khớp nhau, lệch nhãn cũ → nhãn cũ là nghi phạm (q774) | 1 |
+| ba đáp án khác nhau → câu tự nó mơ hồ | 0 |
+
+**Không có câu nào cả ba đáp án khác nhau.** Nghĩa là không câu nào trong 24 câu này mơ hồ
+đến mức vô vọng; mỗi lần lệch đều có hai trong ba bên đồng ý. Ghép cặp hai lượt rồi lấy
+phần đa số giải quyết được 23/24.
+
+q774 là câu duy nhất nhãn cũ đứng một mình: cả hai lượt mới đều nói −204503, nhãn cũ nói
++204503. v9 cũng ra +204503, nhưng vì `pandas_query` của nó bọc `abs(...)`, nên dấu dương
+đó là do luật chứ không do đọc bảng. Ba bên độc lập về dấu thì hai bên chọn âm.
+
+Điều này **không** phủ nhận luận điểm quan trọng ở trên: hai lượt mới cũng đều do Claude
+gán, nên 95.8% vẫn là tính nhất quán, không phải tính đúng, và thiên lệch chung giữa các
+lượt vẫn không quan sát được từ đây. Nhưng nó đổi phần khả thi: nếu muốn đặt thêm nhãn thì
+cách làm là **hai lượt cộng một lượt phá thế**, không phải một lượt.
+
 ## Việc còn mở
 
-Một lượt gán nhãn thứ hai độc lập trên đúng 24 câu này đang chạy, ghi ra
-`artifacts/label_calib/agent_labels_b.jsonl`. Ba đáp án cho mỗi câu tách được hai thứ mà
-hai đáp án gộp lại: nếu hai lượt mới khớp nhau mà lệch nhãn cũ thì nhãn cũ là nghi phạm;
-nếu cả ba khác nhau thì câu tự nó mơ hồ và nên loại khỏi tập chấm. `gate_label_calibration.py`
-đã có sẵn phần so ba chiều, tự bật khi file lượt B xuất hiện.
-
-Việc đó không đổi kết luận dừng ở trên. Nó chỉ nói cho ta biết bao nhiêu câu trong tập
-chấm là câu mơ hồ, tức phần sàn nhiễu không thể lấy lại bằng cách cải thiện pipeline.
+Chưa chốt có đặt thêm vài trăm nhãn theo cách hai-lượt hay không. Giá phải trả gấp đôi
+mỗi câu, và cái nó mua được vẫn chỉ là hạ nhiễu ngẫu nhiên, chứ không cấp được điểm neo
+độc lập với mô hình đang chạy pipeline.
