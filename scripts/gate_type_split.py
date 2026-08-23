@@ -50,6 +50,25 @@ from score_clean_eval import as_float, correct, load_labels, load_submission  # 
 
 QUESTIONS = Path("ViFinQA/questions/questions.jsonl")
 YEAR = re.compile(r"\b(?:19|20)\d\d\b")
+# Một `report_id` có thể kể nhiều báo cáo, phân cách bằng ";", "/" hoặc kèm chú thích
+# trong ngoặc. Đây là mẫu bắt từng cái một.
+REPORT_ID = re.compile(r"[A-Z0-9]{2,6}_[A-Za-z0-9_]+")
+
+
+def missing_reports(label: dict, item: dict) -> bool:
+    """Có báo cáo nào nhãn gọi tên mà shortlist không có.
+
+    Phải tách `report_id` ra rồi so từng cái, và phải so với phần trước dấu "|" của
+    `table_id`, không so bằng substring trên cả chuỗi shortlist. Bản đầu của hàm này
+    kiểm `report_id in " ".join(table_ids)`, nên mọi câu nhiều nguồn ("A; B") đều bị
+    tính là thiếu và số "một nửa câu sai là do truy xuất" là số ảo: đo lại cho đúng
+    thì 66 trong 70 câu sai của v9 đã có đủ mọi báo cáo gold trong tay.
+    """
+    needed = set(REPORT_ID.findall(str(label.get("report_id") or "")))
+    if not needed:
+        return False   # nhãn không ghi nguồn thì không quy oan cho retriever
+    have = {str(t).split("|")[0] for t in (item.get("relevant_tables") or [])}
+    return bool(needed - have)
 
 
 def level(question: str) -> str:
@@ -186,9 +205,7 @@ def main() -> None:
             if correct(first.get(q, {}).get("answer"), labels[q].get("answer")):
                 c["đúng"] += 1
                 continue
-            report = str(labels[q].get("report_id") or "")
-            shortlist = " ".join(map(str, first.get(q, {}).get("relevant_tables") or []))
-            c["đọc" if report and report in shortlist else "truy xuất"] += 1
+            c["truy xuất" if missing_reports(labels[q], first.get(q, {})) else "đọc"] += 1
         tally.update(c)
         print(f"  {lvl:<5}{sum(c.values()):>4}{c['đúng']:>7}{c['đọc']:>13}{c['truy xuất']:>15}")
     print(f"  {'TỔNG':<5}{total:>4}{tally['đúng']:>7}{tally['đọc']:>13}{tally['truy xuất']:>15}")
