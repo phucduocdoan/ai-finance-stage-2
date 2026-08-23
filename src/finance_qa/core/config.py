@@ -11,7 +11,7 @@ class LLMConfig:
 
     endpoint: str = "http://127.0.0.1:8990/v1/chat/completions"
     # Keep in step with `core.llm.MODEL`: the id the server on 8990 reports.
-    model: str = "Qwen3.5-9B"
+    model: str = "Qwen/Qwen3.5-9B"
     api_key: str = ""
 
     @classmethod

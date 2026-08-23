@@ -364,6 +364,93 @@ Khe hở routing trên `single_cell` thì **đóng**: 58 câu `single_cell` rơi
 không thấy ô số). Lever ngưỡng đã định giá và loại ở `c461313`: trên 7 câu bị từ chối vì ngưỡng,
 ô định trả về lệch ở 6, chỉ q360 đúng — hạ ngưỡng mua 1 mất 6.
 
+## Việc số 4: đổi thang cho đáp án dưới sàn (`scripts/rescale_below_floor.py`)
+
+Đây là chỗ tôi tự phủ định kết luận ở Việc số 3. Ở đó tôi viết "phát hiện không đồng nghĩa
+sửa được", vì các câu **vượt trần** lệch 2.6e11 tới 3.4e13, không phải lũy thừa 10. Kết luận
+đó đúng cho nhóm vượt trần và **sai nếu mang sang nhóm dưới sàn**. Nhóm dưới sàn lệch đúng
+một lũy thừa 10, nên một phép nhân là đủ.
+
+Sinh ra từ việc mổ 67 câu sai bền (sai ở cả `full1012_head` và `full1012_v7`) trên tập nhãn:
+
+| nhóm | n | sửa được không |
+|---|---|---|
+| tính sai thật, con số trông hợp lý | 51 | không, đây là trần thực sự |
+| bỏ cuộc, đáp án 0.0 | 10 | chỉ giải lại được (Việc số 3) |
+| **sai thuần hệ số thang, mantissa đúng** | **5** | **có, một phép nhân** |
+| lệch dấu, gold bằng 0 | 0 | |
+
+Năm câu đó, và hai nguyên nhân khác nhau để lại cùng một dấu vết:
+
+```
+q1004  phần trăm  codegen           ta=0.0527    gold=5.27      tỉ số chưa ×100
+q772   tỷ         raw_table_linker  ta=0.0862    gold=86.25     nhận sai đơn vị nguồn, chia quá 1e3
+q284   triệu      cell_locator      ta=17.47     gold=1.747e7   chia 1e6 oan, bảng đã in bằng triệu
+q139   đồng       cell_locator      ta=3.177e6   gold=3.177e9   chia 1e3 oan
+q748   triệu      raw_table_linker  ta=9.133e8   gold=913.29    quên chia 1e6
+```
+
+Máy đổi đơn vị `modules/solve/common/units.py` đã có và đã nối vào 13 chỗ, nên đây không phải
+thiếu tính năng mà là nhận sai đơn vị nguồn của bảng. Sửa gốc là sửa detection, đắt. Sửa hậu
+kỳ là một luật sàn, rẻ.
+
+**Sàn suy từ ngữ nghĩa, không khớp từ nhãn:** một khoản mục tài chính không bằng một phần
+nghìn của chính đơn vị nó được hỏi. Kiểm chéo sau khi đặt: cả 82 đáp án vàng có `unit_hint`
+đều nằm trên sàn của nó, thấp nhất là `trăm tỷ` 0.11 so với sàn 0.01. `đồng` không có sàn vì
+đáp án vàng của nó xuống tới 3.375.
+
+Đo trên `full1012_head`: gắn cờ **38/1012**, đổi được **34**. Trên 3 câu có nhãn trong nhóm:
+**2 sai→đúng, 0 đúng→sai**, đạt mốc đăng ký trước (đúng→sai phải bằng 0).
+
+Tôi đã ước sai một lần ở đây rồi sửa sau khi đọc query. Ban đầu tôi coi ~12 câu có đầu vào
+đúng lũy thừa 10 (`1e-9`, `2e-12`) là rác. Đọc query thì chúng là nhóm **hứa hẹn nhất**:
+
+```
+q823   round((((df4.iloc[2][...] > 40e9) + (df5.iloc[2][...] > 40e9) + ...) * 1e-09) * 1e+09, 2)
+q949   round(((((df1.iloc[6][...] > 1000000) + (df...)) * 1e-12) * 1e+12, 2)
+```
+
+Đó là **đếm boolean**, tức một con số không có đơn vị tiền, mà codegen vẫn nhân hệ số thang
+tiền vào. Phép nhân của luật này hoàn tác đúng cái hệ số đó và trả lại số đếm. Sáu câu q823,
+q913, q949, q963, q965, q966 đều đúng khuôn này. Không câu nào có nhãn nên chưa kiểm được,
+nhưng cơ chế thì đúng và vẫn một chiều.
+
+Ước lại: +10 tới +20, cùng khoảng nhưng lý do phân bố khác.
+
+**Vì sao arm này là phép đo sạch nhất cả tuần:** nó dùng lại y nguyên file chạy v10 và chỉ
+đổi 34 câu, nên delta trên leaderboard **không chứa nhiễu run-to-run**. Mọi arm cờ đều phải
+so với `sqrt(C)`; arm này không.
+
+`pandas_query` bị bọc cùng hệ số chứ không chỉ sửa `answer`. `EXECUTION_ACCURACY` chấm bằng
+cách chạy lại query, nên sửa một mình con số sẽ làm hai chỉ số lệch nhau đúng như v7/v8/v9.
+
+**Không bắt được** q284, q139, q748: chúng lệch lũy thừa 10 nhưng vẫn nằm trong dải vàng của
+đơn vị chúng (`triệu` vàng chạy 18 → 1.563e8, `đồng` chạy 3.375 → 6.497e9). Muốn bắt phải so
+đáp án với ô gốc trong `pandas_query`, tức code mới, để lại sau.
+
+## Bỏ phiếu tự nhất quán: đóng, có số
+
+Ý tưởng: compute miễn phí nên chạy một cấu hình k lần rồi lấy đáp án xuất hiện nhiều nhất.
+Tiền đề của nó là từng câu phải có tính ngẫu nhiên. Đo trên tập nhãn 119 câu:
+
+| cặp lần chạy | cả hai đúng | lệch | lệch nếu mỗi câu là đồng xu độc lập |
+|---|---|---|---|
+| head vs v7 | 40 | **12** | 56 |
+| head vs cell_locator | 36 | 18 | 56 |
+| cell_locator vs qwen35 | 34 | 13 | 54 |
+| head vs qwen35 | 30 | 23 | 54 |
+
+Under-dispersion nặng và nhất quán qua cả 6 cặp: ~90% câu là tất định, chạy lại ra đúng cùng
+đáp án. Bỏ phiếu chỉ chạm được 10% còn lại, và trên khối cả-hai-sai thì hai đáp án sai trùng
+nhau 51%, tức phiếu sai cũng dồn cục.
+
+Với `p ≈ 0.5` trên khối ngẫu nhiên và `d = 0.51`, k=3 cho
+`p³ + 3p²(1-p) + p(1-p)²(1-d) = 0.56` so với `0.50`, tức +6 câu trên 1012 = +0.6pp. Dưới sàn
+nhiễu ~1.0pp, mà tốn gấp 3 wall clock cho mọi arm sau đó. Không làm.
+
+Con số này cũng nói lại một chuyện đã biết theo cách mạnh hơn: 9% churn **không phải** tài
+nguyên chờ khai thác, nó là toàn bộ phần ngẫu nhiên và nó nhỏ.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.

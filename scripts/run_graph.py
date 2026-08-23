@@ -109,6 +109,30 @@ def _match(pred, expected: float) -> bool:
     return abs(float(pred) - expected) / denom < 0.01
 
 
+def preflight() -> None:
+    """Die now if the endpoint will 404 every call.
+
+    A wrong `MODEL` does not crash: each question catches the 404, records it in
+    `errors`, and returns the give-up constant 0.0. So a whole run completes,
+    fast, with every answer wrong. That has now happened twice (`71890ce`, and the
+    85-question retry pool on 2026-08-23). One HTTP call up front is cheaper than
+    finding out from the leaderboard.
+    """
+    import urllib.request
+
+    from finance_qa.core.llm import ENDPOINT, MODEL
+
+    url = ENDPOINT.replace("/chat/completions", "/models")
+    try:
+        with urllib.request.urlopen(url, timeout=10) as fh:
+            served = [m["id"] for m in json.loads(fh.read().decode("utf-8", "replace"))["data"]]
+    except Exception as exc:  # no listener, or a body we cannot parse
+        sys.exit(f"preflight: cannot reach {url}: {exc}")
+    if MODEL not in served:
+        sys.exit(f"preflight: LLM_MODEL={MODEL!r} not served at {url}; it has {served}")
+    print(f"preflight: {MODEL} live at {url}")
+
+
 async def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     grp = ap.add_mutually_exclusive_group(required=True)
@@ -129,6 +153,7 @@ async def main() -> None:
         help="questions in flight at once (async: the cap is the LLM server, not threads)",
     )
     args = ap.parse_args()
+    preflight()
 
     questions = load_questions()
     gold = load_gold()
