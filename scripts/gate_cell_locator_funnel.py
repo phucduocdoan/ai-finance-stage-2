@@ -1,38 +1,32 @@
-"""Đo phễu (funnel) của cổng `cell_locator` trên 37 câu L1 của tập eval sạch.
+"""Đo phễu cổng `cell_locator` trên 119 câu eval sạch, bằng diag của một run thật.
 
-`cell_locator` (src/finance_qa/modules/solve/solvers/cell_locator.py) là solver
-xác định một cell duy nhất. `build_request` (dòng 208-235) lọc câu hỏi qua năm
-điều kiện theo đúng thứ tự code, rồi `locate_single_cell` (dòng 356-414) tìm
-hàng/cột thật trên bảng và áp bốn điều kiện nữa trước khi nhận (`done=True`).
+`cell_locator` (src/finance_qa/modules/solve/solvers/cell_locator.py) là solver đọc
+một ô duy nhất. `build_request` (dòng 208-235) lọc câu qua năm điều kiện, rồi
+`locate_single_cell` tìm hàng/cột thật và áp bốn điều kiện nữa trước khi nhận.
 
-Script này KHÔNG gọi LLM, KHÔNG chạy pipeline, chỉ đọc dữ liệu đã có sẵn trên
-đĩa. Điều đó để lại một lỗ hổng đo lường thật, không giả lập được:
+Bản đầu của script này KHÔNG đọc run nào: nó dựng lại state từ
+`questions_enriched.jsonl` rồi tự gọi `build_request`/`locate_single_cell`. Cách đó
+để lại một lỗ hổng đủ lớn để làm sai kết luận: state thật có `metric` từ LLM, proxy
+đặt `metric=""`, mà `metric` chính là đầu vào chính của khâu tra hàng. Phễu proxy
+báo S8 loại 5 câu và S9 loại 5 câu; phễu thật là S8 7 câu, S9 7 câu, trên những id
+khác. Tôi đã một lần chốt ngưỡng dựa trên bộ số proxy đó, nên bản này đọc diag thật
+thay vì giả lập.
 
-  - `tickers`/`years`/`multi_year`/`multi_company`/`doc_type`/`answer_shape`
-    trong state thật đến từ node `understand` (một lệnh gọi LLM). Ở đây chúng
-    được thay bằng cột cùng tên trong `data/metadata/questions_enriched.jsonl`,
-    tức đầu ra của `modules/data/preprocessing/questions.py::enrich()` — một
-    pipeline rule-based khác, không phải LLM và không phải cái `understand`
-    dùng khi chạy thật (ngoại lệ: `tickers` dùng đúng `find_tickers`, cũng là
-    hàm `understand` gọi, nên cột này khớp state thật; các cột năm/doc_type/
-    answer_shape là XẤP XỈ, có thể lệch với state LLM thật của v9).
-  - `operation` (lookup/formula/compare/multi_step) không có mặt trong
-    `questions_enriched.jsonl` — không có cách nào tái tạo ngoại tuyến. Điều
-    kiện 4 (`operation not in {"", "lookup"} and answer_shape != "single_cell"`)
-    được ép luôn qua bằng cách đặt `operation=""`, nên script này KHÔNG đếm câu
-    nào bị điều kiện 4 loại — cột đó ghi "không đo được", không phải "0 câu".
-  - `metric` (chuỗi gợi ý từ LLM) không có; đặt `metric=""`. `direct_metric_phrases`
-    vẫn chạy hàm thật trên chuỗi câu hỏi nên vẫn bắt được cụm từ chính, chỉ mất
-    nhánh alias-theo-metric-key.
-  - Danh sách bảng đưa vào `locate_single_cell(table_ids=..., shortlist=...)`
-    lấy từ `relevant_tables` của submission đã nộp — đây là danh sách CUỐI
-    CÙNG sau khi executor đã chạy xong, không phải shortlist retrieval lúc
-    `cell_locator` thực sự nhìn thấy (shortlist gốc rộng hơn, ~106 bảng qua hard
-    filter). Dùng nó là theo đúng yêu cầu đo ("bảng mà run đã nộp thực sự có"),
-    nhưng số bảng thật cell_locator từng thấy khi chạy có thể nhiều hơn.
+Nguồn: `artifacts/runs/cell_locator_1012.jsonl`, run đủ 1012 câu, mỗi dòng có
+`diag.cell_locator` gồm `reason` và (khi cổng bị chặn ở khâu chấm điểm) cả ô `best`
+mà solver đã tính nhưng từ chối. Không gọi LLM, không chạy lại pipeline.
 
-Vì hai lỗ hổng trên, số "claimed" ở đây là ước lượng, không phải con số chạy
-thật của solver trên submission đã nộp (submission không lưu field `solver`).
+Hai điều cần đọc kỹ trước khi trích số:
+
+  - Run này là 2026-08-16, KHÁC cấu hình v9: nó đúng 44/119, v9 đúng 49/119, và hai
+    bên chỉ ra cùng đáp án ở 59/119. Nên phần "cho `best` đi qua thì được/mất bao
+    nhiêu" là so ô `best` của run cũ với tính đúng/sai của submission truyền vào,
+    một phép so lệch cấu hình. Đọc nó như dấu hiệu về hướng và độ lớn, đừng đọc như
+    con số chính xác.
+  - Ngược lại, cổng phạm vi ("needs exactly one ticker and one year") chỉ phụ thuộc
+    `len(tickers)` và `len(years)`, và kết luận chặn/không chặn của state LLM trong
+    run khớp `questions_enriched.jsonl` (rule-based, tất định) ở 119/119 câu. Phần
+    đó không phụ thuộc phiên bản run.
 
 Dùng:
     PYTHONPATH=src:scripts .venv_bge/bin/python scripts/gate_cell_locator_funnel.py \
@@ -43,48 +37,38 @@ from __future__ import annotations
 
 import json
 import sys
+from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from finance_qa.core.paths import QUESTION_METADATA_PATH, RAW_QUESTIONS_PATH  # noqa: E402
-from finance_qa.modules.solve.solvers.cell_locator import (  # noqa: E402
-    build_request,
-    locate_single_cell,
-)
+from finance_qa.modules.data.table_store import load_frame  # noqa: E402
+from finance_qa.modules.tools.numeric import parse_number  # noqa: E402
 
 from gate_type_split import level  # noqa: E402
 from score_clean_eval import as_float, correct, load_labels, load_submission  # noqa: E402
 
-# Thứ tự đúng như code, để in phễu theo cùng thứ tự build_request/locate_single_cell
-# kiểm. "reason" là chuỗi y hệt cell_locator.py trả về, không viết lại.
-STEPS: list[tuple[str, str]] = [
-    ("P1", "needs exactly one ticker and one year"),
-    ("P2", "multi-axis question"),
-    ("P3", "derived or comparison marker"),
-    ("P4", "not a lookup-shaped question"),
-    ("P5", "no metric phrase"),
-    ("S6", "no candidate tables"),
-    ("S7", "no located numeric cell"),
-    ("S8", "below confidence threshold"),
-    ("S9", "ambiguous located cells"),
-]
-STEP_LABEL = {
-    "P1": "P1 đúng 1 mã + 1 năm (proxy)",
-    "P2": "P2 không multi-axis (proxy)",
-    "P3": "P3 không có dấu hiệu derived/so sánh",
-    "P4": "P4 lookup-shaped (ép qua, không đo được)",
-    "P5": "P5 có cụm từ chỉ tiêu",
-    "S6": "S6 có bảng ứng viên",
-    "S7": "S7 tìm được cell số",
-    "S8": "S8 vượt ngưỡng tin cậy 0.78",
-    "S9": "S9 không mơ hồ (ambiguous)",
+RUN = Path("artifacts/runs/cell_locator_1012.jsonl")
+LEVELS = ["L1", "L2", "L3", "L4", "L5", "L6"]
+
+# Chuỗi `reason` y hệt cell_locator.py trả về, không viết lại. Thứ tự đúng thứ tự code.
+STEP_LABEL: dict[str, str] = {
+    "needs exactly one ticker and one year": "P1 đúng 1 mã + 1 năm",
+    "multi-axis question": "P2 không multi-axis",
+    "derived or comparison marker": "P3 không có dấu hiệu derived/so sánh",
+    "not a lookup-shaped question": "P4 lookup-shaped",
+    "no metric phrase": "P5 có cụm từ chỉ tiêu",
+    "no candidate tables": "S6 có bảng ứng viên",
+    "no located numeric cell": "S7 tìm được ô số",
+    "below confidence threshold": "S8 vượt ngưỡng tin cậy 0.78",
+    "ambiguous located cells": "S9 không mơ hồ (ambiguous)",
 }
 
 
-def load_enriched() -> dict[int, dict]:
+def load_jsonl(path: Path) -> dict[int, dict]:
     out: dict[int, dict] = {}
-    with QUESTION_METADATA_PATH.open(encoding="utf-8") as fh:
+    with path.open(encoding="utf-8") as fh:
         for line in fh:
             if line.strip():
                 rec = json.loads(line)
@@ -92,121 +76,108 @@ def load_enriched() -> dict[int, dict]:
     return out
 
 
-def load_questions() -> dict[int, str]:
-    out: dict[int, str] = {}
-    with RAW_QUESTIONS_PATH.open(encoding="utf-8") as fh:
-        for line in fh:
-            if line.strip():
-                rec = json.loads(line)
-                out[rec["id"]] = rec["question"]
-    return out
-
-
-def build_state(qid: int, question: str, enriched: dict[int, dict]) -> dict:
-    """State xấp xỉ cho một câu hỏi, xem giới hạn ở docstring đầu file."""
-    e = enriched.get(qid, {})
-    return {
-        "question": question,
-        "tickers": e.get("tickers") or [],
-        "years": e.get("years") or [],
-        "multi_year": bool(e.get("multi_year")),
-        "multi_company": bool(e.get("multi_company")),
-        "operation": "",  # ép qua P4, xem docstring
-        "answer_shape": e.get("answer_shape") or "single_cell",
-        "metric": "",
-        "doc_type": e.get("doc_type") or "unknown",
-        "unit_hint": e.get("unit_hint") or "",
-    }
-
-
-def run_gate(qid: int, question: str, table_ids: list[str], enriched: dict[int, dict]) -> str:
-    """Trả về tên bước mà câu hỏi này dừng lại, hoặc "claimed"."""
-    state = build_state(qid, question, enriched)
-    request, reason = build_request(state)
-    if request is None:
-        return {v: k for k, v in STEPS}.get(reason, f"P?:{reason}")
+def cell_value(best: dict) -> float | None:
+    """Giá trị thô của ô `best`, hoặc None nếu không đọc được."""
     try:
-        hit, diag = locate_single_cell(state, table_ids=table_ids, shortlist=[])
-    except Exception as exc:  # noqa: BLE001 - ghi lại lỗi thay vì làm sập script đo
-        return f"lỗi: {type(exc).__name__}: {exc}"
-    if diag.get("done"):
-        return "claimed"
-    return {v: k for k, v in STEPS}.get(diag.get("reason", ""), f"S?:{diag.get('reason')}")
+        frame = load_frame(str(best["table_id"]))
+        return parse_number(str(frame.iloc[int(best["row_position"])][best["column"]]))
+    except Exception:  # noqa: BLE001 - ô không đọc được thì tính là không khớp
+        return None
+
+
+def matches_gold(best: dict, gold: float | None) -> bool:
+    """Ô `best` có ra đúng đáp án, xét mọi luỹ thừa 10.
+
+    `best` là ô trước khâu đổi đơn vị, nên so thẳng với gold sẽ trượt mọi câu hỏi
+    "bao nhiêu tỷ đồng". Quét 10^k là cách tách "sai ô" khỏi "đúng ô, sai đơn vị";
+    nó nới rộng về phía có lợi cho cell_locator, nên kết luận âm ở đây là kết luận chắc.
+    """
+    value = cell_value(best)
+    if value is None or gold is None:
+        return False
+    return any(correct(value / 10**k, gold) for k in range(-3, 13))
 
 
 def main() -> None:
     if len(sys.argv) < 2:
         raise SystemExit(__doc__)
-    sub_path = sys.argv[1]
     labels = load_labels()
-    questions = load_questions()
-    enriched = load_enriched()
-    sub = load_submission(sub_path)
+    sub = load_submission(sys.argv[1])
+    name = Path(sys.argv[1]).parent.name
+    questions = {q: r["question"] for q, r in load_jsonl(RAW_QUESTIONS_PATH).items()}
+    enriched = load_jsonl(QUESTION_METADATA_PATH)
+    run = load_jsonl(RUN)
 
-    l1_ids = sorted(
-        qid for qid, lab in labels.items()
-        if as_float(lab.get("answer")) is not None and level(questions[qid]) == "L1"
-    )
-    print(f"L1 trong tập eval sạch: {len(l1_ids)} câu\n")
+    ids = sorted(q for q, lab in labels.items() if as_float(lab.get("answer")) is not None)
+    print(f"tập eval sạch: {len(ids)} câu chấm được. phễu đọc từ {RUN}\n")
 
-    stop_at: dict[int, str] = {}
-    for qid in l1_ids:
-        table_ids = list((sub.get(qid) or {}).get("relevant_tables") or [])
-        stop_at[qid] = run_gate(qid, questions[qid], table_ids, enriched)
+    def diag(qid: int) -> dict:
+        return ((run.get(qid) or {}).get("diag") or {}).get("cell_locator") or {}
 
-    # Phễu: đếm số câu còn sống sau từng bước, theo đúng thứ tự code.
-    order = [s for s, _ in STEPS]
-    alive = set(l1_ids)
-    print("phễu (đúng thứ tự code, xem docstring cho các bước không đo được):")
-    print(f"  bắt đầu                                    {len(alive):>3}")
-    rejected_by_step: dict[str, list[int]] = {}
-    for step in order:
-        rejected = [q for q in alive if stop_at[q] == step]
-        rejected_by_step[step] = rejected
-        alive -= set(rejected)
-        print(f"  sau {STEP_LABEL[step]:<38}{len(alive):>3}   (loại {len(rejected)})")
-    # Câu lỗi (ngoại lệ khi chạy locate_single_cell), nếu có.
-    errored = [q for q in alive if str(stop_at[q]).startswith("lỗi:")]
-    if errored:
-        alive -= set(errored)
-        print(f"  lỗi khi chạy locate_single_cell            {len(alive):>3}   (lỗi {len(errored)})")
-    claimed = sorted(q for q in alive if stop_at[q] == "claimed")
-    print(f"  claimed                                    {len(claimed):>3}\n")
+    def ok(qid: int) -> bool:
+        return correct(sub.get(qid, {}).get("answer"), labels[qid].get("answer"))
 
-    worst = max(rejected_by_step, key=lambda s: len(rejected_by_step[s]))
-    print(f"bước loại nhiều nhất: {STEP_LABEL[worst]} ({len(rejected_by_step[worst])} câu)\n")
+    # Phễu: câu dừng ở bước nào, và trong đó bao nhiêu câu submission đang trả đúng.
+    print(f"phễu (đúng thứ tự code; 'đang đúng' tính theo {name}):")
+    alive = len(ids)
+    stopped: dict[str, list[int]] = {}
+    for reason, label in STEP_LABEL.items():
+        hit = [q for q in ids if diag(q).get("reason") == reason]
+        stopped[reason] = hit
+        alive -= len(hit)
+        note = f"(loại {len(hit)}, trong đó {sum(1 for q in hit if ok(q))} đang đúng)"
+        print(f"  sau {label:<38}{alive:>4}   {note}")
+    claimed = [q for q in ids if diag(q).get("done")]
+    missing = [q for q in ids if not diag(q)]
+    print(f"  cell_locator nhận (done=True)              {len(claimed):>4}   "
+          f"(trong đó {sum(1 for q in claimed if ok(q))} đang đúng)")
+    if missing:
+        print(f"  không có diag trong run                    {len(missing):>4}")
 
-    print("id bị loại theo từng bước:")
-    for step in order:
-        ids = rejected_by_step[step]
-        if ids:
-            print(f"  {step}: {ids}")
-    if errored:
-        print(f"  lỗi: {errored} -> {[stop_at[q] for q in errored]}")
-    print(f"\nclaimed: {claimed}")
+    worst = max(stopped, key=lambda r: len(stopped[r]))
+    print(f"\nbước loại nhiều nhất: {STEP_LABEL[worst]} ({len(stopped[worst])} câu)")
 
-    # Câu 3: trong số L1 sai mà bảng gold đã có trong relevant_tables đã nộp,
-    # cổng cell_locator claim được bao nhiêu.
-    wrong_with_report_in_shortlist: list[int] = []
-    for qid in l1_ids:
-        lab = labels[qid]
-        gold = as_float(lab.get("answer"))
-        got = as_float((sub.get(qid) or {}).get("answer"))
-        if correct(got, gold):
+    # Cổng phạm vi chặn nhiều nhất, nên tách nó ra theo bậc: đây là chỗ quyết định
+    # có nên cho cell_locator đọc nhiều ô hay không.
+    blocked = stopped["needs exactly one ticker and one year"]
+    print(f"\ncổng phạm vi, tách theo bậc ({len(blocked)} câu):")
+    print(f"  {'bậc':<5}{'chặn':>6}{'đang đúng':>11}{'đang sai':>10}")
+    for lvl in LEVELS:
+        part = [q for q in blocked if level(questions[q]) == lvl]
+        if part:
+            good = sum(1 for q in part if ok(q))
+            print(f"  {lvl:<5}{len(part):>6}{good:>11}{len(part) - good:>10}")
+
+    # Tách theo số mã / số năm: "0 hoặc nhiều" là hai bài toán khác nhau, và số ô
+    # cần đọc quyết định chi phí. Dùng enriched vì nó tất định (khớp run 119/119).
+    print("\ncổng phạm vi, tách theo số mã / số năm (enriched, tất định):")
+    print(f"  {'mã/năm':<12}{'số ô cần':>10}{'đang đúng':>11}{'đang sai':>10}")
+    split: dict[tuple[int, int], list[int]] = defaultdict(list)
+    for q in blocked:
+        e = enriched.get(q, {})
+        split[(len(e.get("tickers") or []), len(e.get("years") or []))].append(q)
+    for (nt, ny), part in sorted(split.items(), key=lambda kv: (kv[0][0] * kv[0][1], kv[0])):
+        good = sum(1 for q in part if ok(q))
+        print(f"  {f'{nt} mã / {ny} năm':<12}{max(nt, 1) * max(ny, 1):>10}{good:>11}{len(part) - good:>10}")
+
+    # Câu hỏi quyết định của việc nới ngưỡng: những câu cell_locator đã tính được ô
+    # `best` rồi mới từ chối, nếu cho đi qua thì đổi được bao nhiêu câu.
+    print(f"\nnới ngưỡng: cho mọi ô `best` bị từ chối đi qua (so với {name}):")
+    print(f"  {'id':<7}{'đang':>6}  {'lý do từ chối':<30}{'conf':>8}{'best khớp gold':>16}")
+    tally: Counter[str] = Counter()
+    for q in ids:
+        d = diag(q)
+        best = d.get("best")
+        if d.get("done") or not best:
             continue
-        report = str(lab.get("report_id") or "")
-        shortlist_str = " ".join(str(t) for t in (sub.get(qid) or {}).get("relevant_tables") or [])
-        if report and report in shortlist_str:
-            wrong_with_report_in_shortlist.append(qid)
-
-    claimed_of_wrong = [q for q in wrong_with_report_in_shortlist if stop_at[q] == "claimed"]
-    print(
-        f"\nL1 sai, gold report đã có trong relevant_tables đã nộp: "
-        f"{len(wrong_with_report_in_shortlist)} câu -> {wrong_with_report_in_shortlist}"
-    )
-    print(
-        f"trong số đó, cổng cell_locator claim: {len(claimed_of_wrong)} câu -> {claimed_of_wrong}"
-    )
+        good, hit = ok(q), matches_gold(best, as_float(labels[q].get("answer")))
+        tally["được" if (hit and not good) else "mất" if (good and not hit) else "không đổi"] += 1
+        print(f"  q{q:<6}{'đúng' if good else 'sai':>6}  {str(d.get('reason')):<30}"
+              f"{best.get('confidence'):>8}{('khớp' if hit else 'lệch'):>16}")
+    print(f"\n  được {tally['được']}, mất {tally['mất']}, không đổi {tally['không đổi']}"
+          f"  ->  ròng {tally['được'] - tally['mất']:+d} câu")
+    print("  (lệch cấu hình: `best` từ run 16/08, đúng/sai từ submission truyền vào. "
+          "xem docstring.)")
 
 
 if __name__ == "__main__":
