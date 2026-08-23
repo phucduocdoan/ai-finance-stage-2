@@ -64,6 +64,13 @@ lớn hơn gần như mọi đường trong hàng đợi quét.
 Nguồn nhiễu, cả ba đều đã kiểm: temperature là 0.0 ở mọi caller nhưng vLLM với continuous
 batching không xác định theo bit; `REPAIR_TEMPERATURE` là 0.3; workers=24 đổi thứ tự.
 
+**Chỉ dấu sớm, và nó lớn hơn 2 câu nhiều.** Trên 89 câu có nhãn đã xong của lần chạy HEAD so
+với v9: HEAD 36 đúng, v9 38, tức ròng −2, nhưng **churn là 3 được + 5 mất = 8 trên 89 = 9%**,
+tức khoảng 91 câu trên 1012. Cảnh báo phải đi kèm: HEAD so v9 **không phải** hai lần chạy
+giống nhau (v9 là commit khác cộng hai lần vá tay), nên 8 câu đó lẫn cả thay đổi thật lẫn
+nhiễu, và nó là **cận trên**. Chỉ `head_b` tách được. Nếu 9% là thật thì SE của hiệu ròng là
+`sqrt(91)` ≈ 9.5 câu ≈ 0.94pp, và đó chính là con số làm nên bảng z ở mục Việc số 1.
+
 Bỏ qua chuyện này là lặp lại đúng cái đã giết chín đường trước, chỉ đổi sàn từ 5.4 câu sang
 21 câu. Và nó đo được **miễn phí, không tốn lượt nộp nào và không cần nhãn**: chạy lại đúng
 cấu hình mặc định rồi đếm câu đổi đáp án. Nên dòng đầu hàng đợi không phải một đường mới.
@@ -82,8 +89,8 @@ Mọi delta của hàng đợi phải so với con số đó, không so với 0.
   cái thắng 3 câu, nhưng nó bắt được một cái tụt lớn hơn 1 sigma, và tốn vài giây.
 - **Leaderboard làm cửa quyết định.**
 
-Nên mỗi giả thuyết: chạy 1.7 giờ, chấm trên 119 miễn phí, nếu không tụt rõ thì nộp, đọc con
-số chính xác.
+Nên mỗi giả thuyết: chạy ~3.1 giờ ở một process (ít hơn nếu 4 shard đạt gần 4x), chấm trên
+119 miễn phí, nếu không tụt rõ thì nộp, đọc con số chính xác.
 
 ## Việc số 0, đang chạy: baseline ở HEAD
 
@@ -113,40 +120,70 @@ kiểm: luật dấu ở `apply_units` (`execute.py:296`), và `round(...,2)` l�
 artifacts/runs/full1012_head.jsonl   commit 18a8b89, workers=24, không env override
 ```
 
-## Việc số 1: hàng đợi quét, 14 cấu hình
+## Việc số 1: hàng đợi quét, một arm bật hết cờ
 
-`scripts/sweep_queue.sh`, chạy nối đuôi, có `--resume` nên một lần bị ngắt không mất 1.7 giờ.
-Tổng khoảng 24 giờ wall clock. Đã nối sau lần chạy baseline nên GPU không nghỉ.
+`scripts/sweep_queue.sh`, chạy nối đuôi, `SHARDS=4`, có `--resume` nên một lần bị ngắt
+không mất cả lần chạy.
 
-| # | cấu hình | số đã đo trước | nguồn |
+### Vì sao không phải 13 arm đơn lẻ
+
+Bảng 14 cấu hình của bản trước sai về thiết kế, không chỉ sai về thời gian. So sánh theo
+cặp: nếu churn run-to-run là `C` câu thì SE của hiệu ròng là ~`sqrt(C)`. Quy tắc §11.2 nói
+một đường điển hình đáng **+8 câu trên 1012** (+3/119 trên eval sạch đã đọc ra +0.79pp).
+
+| | hiệu ròng | SE | z |
 |---|---|---|---|
-| 1 | `head_b`, **không đổi gì** | sàn nhiễu, chưa có | mục trên |
-| 2 | `SOLVE_METRIC_HINTS=1` | chưa từng đo | `config.py:282` |
-| 3 | `SOLVE_TABLE_PROFILES=1` | chưa từng đo | `config.py:290` |
-| 4 | `SOLVE_METRIC_LOOKUP=1` | chưa từng đo | `config.py:313` |
-| 5 | `SOLVE_REPAIR_HISTORY=1` | chưa từng đo | `config.py:418` |
-| 6 | `SOLVE_RAW_TABLE_LINKER_RATIO_GROUPS=1` | chưa từng đo | `config.py:177` |
-| 7 | `SOLVE_MAX_TABLES_MULTI_COMPANY=12` | 4/38, phủ đủ 310/310 | `config.py:260` |
-| 8 | `SOLVE_SUB_TABLES=12` | chưa từng đo | `config.py:400` |
-| 9 | `SOLVE_SCREENING=1` | 2/29 so với baseline 4/29 | `answer_signatures` §cuối |
-| 10 | `SOLVE_STRUCTURED_FACTS=1` | 4/29, mốc chốt trước 8/29 | `gate_screening_structured.out` |
-| 11 | `SOLVE_DECOMPOSE=1` | 3/34 | `config.py:388` |
-| 12 | `SOLVE_RAW_TABLE_LINKER_PLANNER_THINKING=1` | chưa từng đo | `config.py:171` |
-| 13 | `SOLVE_VERIFY_ANSWER=0` | arm đối chứng | `config.py:422` |
-| 14 | `SOLVE_TOOL_TURNS=3` | 43 so với 42/42 trên 94, sàn 2 câu | `config.py:334` |
+| một cờ đơn lẻ | +8 câu | ~9.9 | **0.8** |
+| bật hết cờ | +40 câu trở lên | ~11.4 | **3.5** |
 
-Xếp `TOOL_TURNS` cuối vì nó đắt gấp 3 độ trễ (13s → 40s một câu), tức khoảng 5 giờ một lần
-chạy. Nhưng nó là cái đáng tò mò nhất trong nhóm: **nó là núm duy nhất đổi thứ mô hình được
-nhìn thấy**, tức đúng chỗ `docs/evidence_reachable_2026-08-23.md` chỉ ra là trần thật. Ghi chú
-`config.py` nói cơ chế không nhúc nhích (đọc đúng bảng gold 43 so với 46/43, đúng dòng gold 33
-so với 33/30) và tool tự nó chạy được (72% của 143 lượt tra trả về dòng); thất bại là 30 trong
-46 câu tiêu hết ngân sách thuộc lớp argmax/median, tìm tỉ số dẫn xuất không phải nhãn dòng ở
-bất kỳ bảng nào.
+13 arm đơn lẻ tốn 41 giờ rồi vẫn ở 0.8 sigma, tức lặp lại đúng cái đã giết chín đường
+trước, chỉ đổi thước đo từ 5.4 câu sang 10 câu.
 
-Giới hạn phải nói trước với `SOLVE_SCREENING`: nó có lập luận **cấu trúc** chống lại nó, không
-chỉ con số nhỏ. Truy vấn sàng lọc đọc 6 tới 12 ô, mỗi ô phải đúng dòng, đúng cột, đúng đơn vị;
-ở tỉ lệ đọc đúng một ô 51% thì `0.51^8` ≈ 0.5%. Lập luận đó không phụ thuộc n nên khả năng cao
-nó vẫn chết. Vẫn đáng một lần chạy vì giá bây giờ là 1.7 giờ, không phải một tuần.
+### Và các "tiên nghiệm âm" không sống nổi qua chính lập luận đó
+
+Bản trước loại `metric_hints`, `structured_facts`, `decompose` khỏi chồng vì đã đo và thấp.
+Nhưng `metric_hints` 38 so với 42 là chênh **4 câu trên 94**, `screening` 2/29 so với 4/29
+là chênh **2 câu**. Đó đúng cỡ mẫu mà mục trên vừa nói không phân giải nổi ±8. Chúng là
+nhiễu, không phải bằng chứng âm.
+
+Ngoại lệ duy nhất là `screening`, vì lập luận của nó **cấu trúc** và độc lập với n: truy
+vấn sàng lọc đọc 6-12 ô, mỗi ô cần đúng dòng, đúng cột, đúng đơn vị, nên ở 51% một ô thì
+`0.51^8` ~ 0.5%. Nó vẫn được một arm riêng vì giá bây giờ chỉ là một lần chạy.
+
+### Hàng đợi
+
+| # | arm | vai trò |
+|---|---|---|
+| 1 | `head_b`, không đổi gì | **sàn nhiễu**, cửa phải qua trước mọi dòng dưới |
+| 2 | `all_on`, 11 núm | arm tín hiệu mạnh nhất |
+| 3-4 | `all_on_a` / `all_on_b` | bisect, chỉ chạy nếu arm 2 lệch khỏi sàn |
+| 5 | `no_verify` | đối chứng, đứng riêng vì nó TẮT một bước |
+| 6 | `screening` | lập luận cấu trúc nói nó chết, vẫn đo |
+
+Bisect chia theo **tầng**, không chia bừa: `all_on_a` đổi thứ prompt được nhìn thấy
+(`metric_hints`, `metric_lookup`, `table_profiles`, `profile_validate`, `multi_company=12`,
+`sub_tables=12`, `tool_turns=3`), `all_on_b` đổi cách giải (`ratio_groups`,
+`repair_history`, `structured_facts`, `decompose`).
+
+`SOLVE_PROFILE_VALIDATE` là một núm chưa từng xuất hiện trong bảng nào trước đây.
+
+### Ba núm thinking vỡ sẵn, đọc được từ code
+
+Không cần probe. Mọi chỗ gọi truyền `thinking=` qua mà **không nâng** ngân sách token:
+
+| chỗ gọi | `max_tokens` |
+|---|---|
+| `raw_table_linker.py:1601`, `:1633`, `:1827` | 768 |
+| `raw_table_linker.py:1670` | 1024 |
+| `formula_facts.py:433` | 768 |
+| `structured_facts.py:1553-1554` | **8192** khi thinking bật |
+
+Chỉ chỗ cuối nâng. Và bằng chứng đã ghi: structured_facts bản thinking chết bằng
+`LengthFinishReasonError` ở 2048 token trên cả 12 câu, cần 8192 mới parse được, rồi vẫn ra
+selection plan sai; `codegen_thinking` để False vì reply rỗng ở mọi ngân sách. Nên
+`SOLVE_RAW_TABLE_LINKER_PLANNER_THINKING` và `SOLVE_FORMULA_FACTS_PLANNER_THINKING` lỗi
+mọi lần gọi. Chúng **vỡ sẵn**, không phải chưa đo. Hai dòng nâng `max_tokens` là sửa được,
+nhưng đó là thay đổi code chứ không phải bật cờ.
 
 ## Việc số 2: trọng tài PoT/CoT
 
