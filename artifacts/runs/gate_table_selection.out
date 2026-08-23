@@ -1,0 +1,23 @@
+119 câu chấm được
+
+Có dòng mà câu hỏi gọi tên, và một ô của dòng đó ra gold:
+
+             n    bảng đã đọc    shortlist   còn lại của bc
+v9 sai      70       6     9%     8    11%        32    46%
+v9 đúng     49      20    41%     8    16%        17    35%
+
+Số bảng ứng viên trung bình mỗi câu (rổ to hơn thì trúng ngẫu nhiên nhiều hơn):
+            đã đọc   shortlist    còn lại
+v9 sai         1.5        34.9      511.7
+v9 đúng        1.7        18.0      270.9
+
+Tỉ lệ trúng trên mỗi bảng ứng viên, tức đã chuẩn hóa theo cỡ rổ:
+  v9 sai       read: 0.0571
+  v9 sai  shortlist: 0.0033
+  v9 sai     report: 0.0009
+  v9 đúng      read: 0.2381
+  v9 đúng shortlist: 0.0090
+  v9 đúng    report: 0.0013
+
+Cột 'shortlist' là khoảng trống chọn bảng; cột 'còn lại' là khoảng trống shortlist.
+So hai dòng với nhau, không đọc con số tuyệt đối: dòng 'v9 đúng' là sàn nhiễu.
