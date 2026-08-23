@@ -9,7 +9,7 @@ the grader re-executes it and must reproduce the submitted answer.
 from __future__ import annotations
 
 import re
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 import pandas as pd
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -210,14 +210,25 @@ async def arun_with_repair(
     *,
     max_repairs: int = MAX_REPAIRS,
     repair_history: bool = False,
+    validate: Callable[[PandasSolution, float], str | None] | None = None,
 ) -> tuple[PandasSolution, float | None, list[str]]:
     """Execute ``solution.pandas_query``, repairing on error.
 
     Returns ``(solution, raw_value, errors)`` where ``solution`` is the last one
     attempted and ``raw_value`` is the cell value *before* unit conversion, or
     None if every attempt failed.
+
+    ``validate`` sees each value that *did* execute and returns a complaint to
+    feed the repair loop, or None to accept. A query can run cleanly and still be
+    provably wrong: a ratio question answered with 1e12 (`docs/answer_type_2026-08-23.md`).
+    If every attempt is rejected on validation rather than on an exception, the
+    last executed value is still returned. Returning None there would submit 0.0
+    instead of a wrong-but-nonzero answer, which loses the execution objective and
+    gains nothing, and would break the property this lever rests on: a rejected
+    answer is already wrong, so the loop must never be able to make things worse.
     """
     errors: list[str] = []
+    rejected: tuple[PandasSolution, float] | None = None
     # Every (query, failure) the loop has spent, which is not what the run record
     # keeps: the column dump is a few hundred chars per attempt and belongs in the
     # prompt, not in the JSONL. Accumulated rather than overwritten so the repair
@@ -230,10 +241,17 @@ async def arun_with_repair(
             attempts.append((query, "Truy vấn rỗng — hãy viết một biểu thức pandas."))
         else:
             try:
-                return solution, float(run_query(query, dict(frames))), errors
+                value = float(run_query(query, dict(frames)))
             except Exception as exc:  # noqa: BLE001 - the repair loop's input
                 errors.append(f"execute[{attempt}]: {type(exc).__name__}: {exc}")
                 attempts.append((query, describe_error(exc, query, frames, solution)))
+            else:
+                complaint = validate(solution, value) if validate else None
+                if complaint is None:
+                    return solution, value, errors
+                errors.append(f"validate[{attempt}]: {complaint}")
+                attempts.append((query, complaint))
+                rejected = (solution, value)
         if attempt == max_repairs:
             break
         try:
@@ -241,6 +259,8 @@ async def arun_with_repair(
         except Exception as exc:  # noqa: BLE001 - repair itself can fail
             errors.append(f"repair[{attempt}]: {exc}")
             break
+    if rejected is not None:
+        return rejected[0], rejected[1], errors
     return solution, None, errors
 
 
@@ -489,6 +509,35 @@ def apply_units(
     }
 
 
+# A ratio question answered with a raw balance. Measured in
+# `docs/answer_type_2026-08-23.md`: 51/1012 submitted answers, 7 of the 119 scorable
+# ones, and none of the 49 that are right. Unlike every other lever priced this week
+# this one needs no gold to know it is wrong, so its size was counted on all 1,012
+# rather than inferred from the 119-question eval and its 5.4-question noise floor.
+RATIO_QUESTION = re.compile(r"phan tram|ty le|ty trong|he so|bao nhieu %")
+RATIO_UNIT_HINTS = ("percent", "%", "ratio")
+
+# Deliberately three orders of magnitude above any legitimate ratio. The count is
+# flat from 1e3 to 1e6 (7 questions) so nothing here rests on the constant; at 1e2
+# it rises to 11, and those four could be real ratios above 100%. Catching one
+# right answer would cost the provable-wrongness property that the whole lever
+# rests on, so the threshold errs by a wide margin.
+RATIO_LIMIT = 1e3
+
+RATIO_COMPLAINT = (
+    "Truy vấn chạy được nhưng đáp án {value:,.0f} không thể là một tỉ lệ. Câu hỏi "
+    "yêu cầu một tỉ lệ, tỉ trọng hoặc hệ số, nên đáp án phải là một tỉ số giữa hai "
+    "đại lượng, không phải một số dư tuyệt đối. Hãy viết lại truy vấn sao cho nó "
+    "chia tử cho mẫu."
+)
+
+
+def is_ratio_question(question: str, unit_hint: str = "") -> bool:
+    return bool(RATIO_QUESTION.search(intent_norm(question))) or (
+        unit_hint or ""
+    ).strip().lower() in RATIO_UNIT_HINTS
+
+
 async def aexecute(
     solution: PandasSolution,
     prompt: str,
@@ -502,8 +551,28 @@ async def aexecute(
     repair_history: bool = False,
 ) -> dict:
     """Full execute-and-repair step. Returns the answer, final query and diag."""
+
+    def reject_non_ratio(candidate: PandasSolution, raw_value: float) -> str | None:
+        """Đáp án ngoài khoảng cho một câu hỏi tỉ lệ: sai chắc chắn, không cần gold."""
+        if not is_ratio_question(question, unit_hint):
+            return None
+        # Phải xét giá trị *sau* quy đổi đơn vị, vì `apply_units` chạy sau vòng
+        # repair: một số thô 1e12 có thể là tỉ lệ hợp lệ sau khi chia tỉ.
+        try:
+            scaled, _ = apply_units(
+                candidate, frames, question=question, unit_hint=unit_hint,
+                names=names, tickers=tickers,
+            )
+            value = float(run_query(scaled, dict(frames)))
+        except Exception:  # noqa: BLE001 - quy đổi lỗi thì xét số thô, không chặn
+            value = raw_value
+        if abs(value) <= RATIO_LIMIT:
+            return None
+        return RATIO_COMPLAINT.format(value=value)
+
     solution, raw, errors = await arun_with_repair(
-        solution, prompt, frames, max_repairs=max_repairs, repair_history=repair_history
+        solution, prompt, frames, max_repairs=max_repairs,
+        repair_history=repair_history, validate=reject_non_ratio,
     )
     if raw is None:
         # 0.0 with the last query attached: the query is still worth submitting
