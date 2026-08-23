@@ -1,0 +1,82 @@
+=== L3: 16 câu (5 đúng / 11 sai) ===
+
+  L3 -- nguyên nhân câu sai:
+    3a. đúng báo cáo, sai ô trong bảng     5
+    5. lệch luỹ thừa mười                  2
+    2. đúng số ô, sai báo cáo/năm          1
+    1. sai số lượng ô/bảng                 1
+    không phân giải được                   1
+    6. mọi thứ đều đúng, vẫn sai           1
+    TỔNG                                  11
+
+       id  nguyên nhân                       chú thích
+      544  2. đúng số ô, sai báo cáo/năm     đọc từ ['DCM_financial_statements_2022_consolidated'], nhãn cần một trong ['DCM_financial_statements_2021_consolidated']
+      629  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([-262534406527.0, -384655311583.0]): [(('df4', 3, 'Số cuối năm'), -151761704973.0, 'Dự phòng phải thu ngắn hạn khó đòi'), (('df5', 3, 
+      641  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([66271208557.0, 64112708746.0]): [(('df2', 2, 'Số phải nộp trong kỳ'), 92679909569.0, 'Thuế thu nhập doanh nghiệp'), (('df3', 2, 'Số p
+      649  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([49633658164.0, 9202.0, 43136294408.0]): [(('df1', 35, 'Tại ngày'), 263182839004.0, 'Chi phí trả trước dài hạn'), (('df5', 0, '30/9/20
+      727  1. sai số lượng ô/bảng            query đọc 1 ô phân biệt, nhãn gợi ý cần tối thiểu 2
+      735  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([893405000000.0, 716434488995.0]): [(('df1', 12, '31/12/2017'), 1870263592815.0, 'II. Nợ dài hạn'), (('df1', 18, '31/12/2017'), 420354
+      748  5. lệch luỹ thừa mười             đã nộp/nhãn = 10^6
+      755  không phân giải được              pandas_query không có ô dfN.iloc[...] nào (hằng số hoặc công thức dạng khác)
+      764  6. mọi thứ đều đúng, vẫn sai      
+      769  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([36648986835.0, 5355027273.0]): [(('df2', 18, '31/12/2015 VND'), 2224012209300.0, 'TỔNG TÀI SẢN (270 = 100 + 200)'), (('df3', 8, '31/1
+      772  5. lệch luỹ thừa mười             đã nộp/nhãn = 10^-3
+
+  L3 -- kiểm định trên câu ĐÚNG (báo sai oan?):
+    đúng                                   4
+    2. đúng số ô, sai báo cáo/năm          1
+    TỔNG                                   5
+
+    câu ĐÚNG mà bị gắn cờ có lỗi (báo sai oan): 1/5
+      q623: 2. đúng số ô, sai báo cáo/năm  -- đọc từ ['PC1_financial_statements_2022_consolidated'], nhãn cần một trong ['PC1_financial_statements_2023_consolidated']
+
+=== L5: 39 câu (12 đúng / 27 sai) ===
+
+  L5 -- nguyên nhân câu sai:
+    3a. đúng báo cáo, sai ô trong bảng     8
+    2. đúng số ô, sai báo cáo/năm          7
+    1. sai số lượng ô/bảng                 6
+    không phân giải được                   3
+    6. mọi thứ đều đúng, vẫn sai           3
+    TỔNG                                  27
+
+       id  nguyên nhân                       chú thích
+      214  không phân giải được              pandas_query không có ô dfN.iloc[...] nào (hằng số hoặc công thức dạng khác)
+      336  1. sai số lượng ô/bảng            query đọc 1 ô phân biệt, nhãn gợi ý cần tối thiểu 3
+      375  không phân giải được              pandas_query không có ô dfN.iloc[...] nào (hằng số hoặc công thức dạng khác)
+      408  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([-11640078007663.0, 13573523231898.0, -4924408550657.0, 5640685734268.0]): [(('df2', 2, 'Năm trước'), 5198785295390.0, '3. Doanh thu t
+      433  2. đúng số ô, sai báo cáo/năm     đọc từ ['KHG_financial_statements_2023_consolidated'], nhãn cần một trong ['NVL_financial_statements_2023_consolidated']
+      446  2. đúng số ô, sai báo cáo/năm     đọc từ ['MCH_financial_statements_2024_consolidated'], nhãn cần một trong ['DBC_financial_statements_2024_consolidated', 'QNS_financial_statements_2024_consolid
+      452  1. sai số lượng ô/bảng            query đọc 2 ô phân biệt, nhãn gợi ý cần tối thiểu 5
+      478  2. đúng số ô, sai báo cáo/năm     đọc từ ['NKG_financial_statements_2022_consolidated', 'NKG_financial_statements_2023_consolidated'], nhãn cần một trong ['HPG_financial_statements_2023_consolid
+      483  2. đúng số ô, sai báo cáo/năm     đọc từ ['DPM_financial_statements_2019_consolidated', 'PRT_financial_statements_2020_consolidated'], nhãn cần một trong ['DCM_financial_statements_2020_consolid
+      496  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([25696077735282.0, 10688138631456.0, 5901250000000.0]): [(('df2', 13, 'Số cuối năm'), -362053661404.0, '2. Dự phòng giảm giá hàng tồn 
+      523  2. đúng số ô, sai báo cáo/năm     đọc từ ['DCM_financial_statements_2019_separate', 'DCM_financial_statements_2022_separate', 'DCM_financial_statements_2024_separate', 'DCM_financial_statements_
+      527  1. sai số lượng ô/bảng            query đọc 1 ô phân biệt, nhãn gợi ý cần tối thiểu 2
+      528  1. sai số lượng ô/bảng            query đọc 1 ô phân biệt, nhãn gợi ý cần tối thiểu 2
+      552  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([118953027893654.0, 31650660956650.0]): [(('df3', 1, 'Bất động sản VND'), 640886405115.0, 'Doanh thu thuần ra bên ngoài'), (('df3', 1,
+      557  2. đúng số ô, sai báo cáo/năm     đọc từ ['GVR_financial_statements_2021_consolidated'], nhãn cần một trong ['DCM_financial_statements_2022_consolidated', 'DPM_financial_statements_2022_consolid
+      559  1. sai số lượng ô/bảng            query đọc 1 ô phân biệt, nhãn gợi ý cần tối thiểu 3
+      588  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([581910908609.0, 473301340532.0]): [(('df1', 11, '31/12/2023 VND'), 1157385248400.0, 'Phải thu ngắn hạn khác'), (('df5', 10, '31/12/20
+      596  6. mọi thứ đều đúng, vẫn sai      
+      821  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([4423443894553.0, 48182976683825.0, 6268194676278.0, 89237886166154.0, 28851442834099.0, 170844469638663.0, 38045493326685.0, 19876494
+      835  không phân giải được              pandas_query không có ô dfN.iloc[...] nào (hằng số hoặc công thức dạng khác)
+      836  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([2761917100.0, 280535703178.0, 6121138679.0, 6608661779.0]): [(('df4', 0, 'Số cuối năm'), 1432086165968.0, 'B. TÀI SẢN DÀI HẠN'), (('d
+      853  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([6382558876724.0, 8256582932950.0, 4308097469512.0, 7017287244652.0, 27880543773286.0, 46106801970338.0]): [(('df3', 11, 'Vốn góp của 
+      919  6. mọi thứ đều đúng, vẫn sai      
+      934  3a. đúng báo cáo, sai ô trong bảngô không khớp số gold nào ([137494544508.0, 28419210108.0, 512339245984.0]): [(('df3', 27, 'Năm nay'), 255095869456.0, '7. Tiền thu lãi cho vay, cổ tức và lợi nh
+      947  2. đúng số ô, sai báo cáo/năm     đọc từ ['IJC_financial_statements_2020_separate'], nhãn cần một trong ['IJC_financial_statements_2016_consolidated', 'IJC_financial_statements_2017_consolidated
+     1004  1. sai số lượng ô/bảng            query đọc 1 ô phân biệt, nhãn gợi ý cần tối thiểu 2
+     1009  6. mọi thứ đều đúng, vẫn sai      
+
+  L5 -- kiểm định trên câu ĐÚNG (báo sai oan?):
+    đúng                                   8
+    2. đúng số ô, sai báo cáo/năm          4
+    TỔNG                                  12
+
+    câu ĐÚNG mà bị gắn cờ có lỗi (báo sai oan): 4/12
+      q903: 2. đúng số ô, sai báo cáo/năm  -- đọc từ ['MPC_financial_statements_2017_consolidated', 'MPC_financial_statements_2018_consolidated', 'MPC_financial_statements_2022_consolidated'], nhãn cần một trong ['MPC_financial_statements_2020_consolidated']
+      q911: 2. đúng số ô, sai báo cáo/năm  -- đọc từ ['VIF_financial_statements_2020_separate', 'VIF_financial_statements_2021_separate', 'VIF_financial_statements_2022_separate', 'VIF_financial_statements_2024_separate'], nhãn cần một trong ['VIF_financial_statements_2017_separate']
+      q914: 2. đúng số ô, sai báo cáo/năm  -- đọc từ ['SJG_financial_statements_2019_consolidated', 'SJG_financial_statements_2020_consolidated', 'SJG_financial_statements_2021_consolidated', 'SJG_financial_statements_2023_consolidated'], nhãn cần một trong ['SJG_financial_statements_2022_consolidated']
+      q968: 2. đúng số ô, sai báo cáo/năm  -- đọc từ ['POW_financial_statements_2019_separate', 'POW_financial_statements_2022_separate', 'POW_financial_statements_2023_separate', 'POW_financial_statements_2024_separate'], nhãn cần một trong ['POW_financial_statements_2017_separate']
+

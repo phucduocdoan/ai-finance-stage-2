@@ -53,6 +53,22 @@ YEAR = re.compile(r"\b(?:19|20)\d\d\b")
 # Một `report_id` có thể kể nhiều báo cáo, phân cách bằng ";", "/" hoặc kèm chú thích
 # trong ngoặc. Đây là mẫu bắt từng cái một.
 REPORT_ID = re.compile(r"[A-Z0-9]{2,6}_[A-Za-z0-9_]+")
+# Dạng rút gọn thứ hai: "IJC_financial_statements_{2016,2017,2020,2024}_consolidated".
+# 3 trong 119 nhãn eval sạch viết kiểu này, và `REPORT_ID` một mình chỉ lấy được khúc
+# "IJC_financial_statements_" nên không báo cáo nào khớp và câu bị quy oan cho retriever.
+BRACE_LIST = re.compile(r"([A-Z0-9]{2,6}_[A-Za-z0-9_]*?)\{([^}]*)\}([A-Za-z0-9_]*)")
+
+
+def report_ids(raw: object) -> set[str]:
+    """Mọi report_id nhãn gọi tên, bung cả dạng ngoặc nhọn."""
+    text = str(raw or "")
+    out: set[str] = set()
+    rest = text
+    for m in BRACE_LIST.finditer(text):
+        prefix, years, suffix = m.groups()
+        out |= {f"{prefix}{y.strip()}{suffix}" for y in years.split(",")}
+        rest = rest.replace(m.group(0), " ")   # đừng để lại khúc cụt cho REPORT_ID nhặt
+    return out | set(REPORT_ID.findall(rest))
 
 
 def missing_reports(label: dict, item: dict) -> bool:
@@ -62,9 +78,9 @@ def missing_reports(label: dict, item: dict) -> bool:
     `table_id`, không so bằng substring trên cả chuỗi shortlist. Bản đầu của hàm này
     kiểm `report_id in " ".join(table_ids)`, nên mọi câu nhiều nguồn ("A; B") đều bị
     tính là thiếu và số "một nửa câu sai là do truy xuất" là số ảo: đo lại cho đúng
-    thì 66 trong 70 câu sai của v9 đã có đủ mọi báo cáo gold trong tay.
+    thì 68 trong 70 câu sai của v9 đã có đủ mọi báo cáo gold trong tay.
     """
-    needed = set(REPORT_ID.findall(str(label.get("report_id") or "")))
+    needed = report_ids(label.get("report_id"))
     if not needed:
         return False   # nhãn không ghi nguồn thì không quy oan cho retriever
     have = {str(t).split("|")[0] for t in (item.get("relevant_tables") or [])}
