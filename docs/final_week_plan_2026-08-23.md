@@ -11,16 +11,39 @@ bằng 5.4 câu, và đó là lý do duy nhất chín đường vừa rồi khô
 đáng 2-3 câu. Leaderboard chạy trên 1012 câu và chính xác tới 1 câu cho một submission cho
 trước. v8 → v9 đọc ra +0.0079 = đúng 8 câu.
 
-**Một lần chạy 1012 câu mất khoảng 1.7 giờ.** Đo trên 16 câu cùng bộ id, rồi xác nhận lại
-trên lần chạy thật:
+**Một lần chạy 1012 câu mất khoảng 3.1 giờ ở một process, và nút thắt là một core CPU.**
+Con số 1.7 giờ trong bản trước sai, vì nó suy từ 16 câu đầu bộ id, mà bộ đề được nhóm theo
+loại câu: id 0-399 lẫn nhiều `single_cell` (trung vị ~125s) còn id 400 trở lên là 100%
+`derived` (trung vị 292-524s). Nên phép đo mồi chỉ thấy phần rẻ.
 
-| workers | wall / 16 câu | trừ ~120s nạp index | suy ra 1012 |
-|---|---|---|---|
-| 8 | 317s | 197s | 3.5 giờ |
-| 24 | 214s | 94s | **1.7 giờ** |
+Số thật, đọc từ trường `seconds` của từng bản ghi trên 722 câu của lần chạy HEAD:
 
-Trên lần chạy đủ, thông lượng ổn định đo được 9 tới 12.6 câu/phút, tức 1.4 tới 1.9 giờ. v7
-chạy 30 giờ ở workers=1; vLLM chưa bão hoà ở workers=8, chưa thử quá 24.
+| | |
+|---|---|
+| trung vị / trung bình / p90 / max mỗi câu | 163s / 263s / 617s / 1162s |
+| đồng thời thực tế | **23.7 / 24 slot** đều bận |
+| CPU thread chính | **98% của MỘT core**, liên tục cả 2.2 giờ |
+| CPU mỗi câu | 10.8s → trần một core = **5.5 câu/phút** |
+| thông lượng quan sát | **5.4 câu/phút** |
+
+Ba dòng cuối khớp nhau, nên chẩn đoán chốt: 24 worker đều bận nhưng **xếp hàng sau một core**,
+còn GPU rảnh (0% qua nhiều mẫu) và vLLM trả một request tầm thường trong 0.146s. Đã loại:
+pool HTTP (`core/http.py:30` cho `max_connections=256`), cache `load_frame` (9 lượt gọi trên
+9 bảng khác nhau, 0% wall), và rò rỉ bộ nhớ (RSS phẳng ở 5.1 GiB).
+
+Hệ quả: `--workers` cao hơn không chữa được, phải **chia process**. `scripts/sweep_queue.sh`
+giờ chạy `SHARDS=4` process song song, chia so le theo `id % 4` để không lệch tải giữa khối
+rẻ và khối đắt, mỗi shard vẫn giữ workers=24 vì tỉ lệ wall:CPU là 24:1. Ràng buộc: 32 core
+(thừa), RAM còn 60 GB ở 5.1 GB/process (vừa ~8), nhưng **VRAM chỉ còn 5 GB** trên 81.5 vì
+vLLM giữ 56.9 GB và 15.5 GB là của process người khác, nên shard thứ hai trở đi sẽ tự hạ BGE
+về CPU theo `dense.py:48-51`. Đó là lý do chọn 4 chứ không phải 8.
+
+Chưa đo: 4 shard có đạt gần 4x hay không. Và 10.8s CPU/câu chưa biết nằm ở hàm nào, vì
+`py-spy` cần sudo (`ptrace_scope=1`); nếu tìm được hotspot thì nó rẻ hơn chia shard và có
+lợi cho mọi cấu hình.
+
+Kích cỡ hàng đợi theo con số này: 13 cấu hình × 3.1 giờ = **41 giờ ở một process**, xuống
+khoảng 10-12 giờ nếu 4 shard đạt 3.5-4x. v7 chạy 30 giờ ở workers=1.
 
 **Model giữ nguyên Qwen3.5-9B local.** Đã cân nhắc đổi sang model lớn qua DeepInfra và **đã
 bỏ** theo quyết định của người dùng. Hệ quả tốt: mỗi lần chạy miễn phí về tiền và chỉ tốn GPU
