@@ -72,6 +72,9 @@ def main() -> int:
         return g.get("answer") if isinstance(g, dict) else g
 
     labeled = [q for q in shared if q in gold and as_float(gold_of(q)) is not None]
+    if not labeled:
+        print("\nkhông câu nào trong tập nhãn sạch; chỉ đọc được cột 'đổi đáp án' ở trên")
+        return 0
     ra = [q for q in labeled if correct(a[q], gold_of(q))]
     rb = [q for q in labeled if correct(b[q], gold_of(q))]
     won = sorted(set(rb) - set(ra))
