@@ -54,6 +54,71 @@ Lập luận cho việc đổi model vẫn ghi lại ở đây vì nó có thể
 lệ đọc đúng một ô 51% là con số về dung lượng model, và nó chặn cả hai khối cùng lúc, lớp tra
 một ô ở 51% và lớp sàng lọc ở `0.51^8` ≈ 0.5%. Lên 70% thì lớp sàng lọc thành `0.70^8` = 5.8%.
 
+## v10: tập 119 câu chỉ HƯỚNG SAI, không chỉ sai độ lớn
+
+Đo được ngày 2026-08-23, và nó đổi thiết kế quét nên đứng trước mọi mục dưới.
+
+`full1012_head.jsonl` là lần chạy đầu tiên ở HEAD sau 13 commit chưa từng được đo trên đề
+thật. Hai thước đo nói ngược nhau:
+
+| | v9 | v10 | đổi |
+|---|---|---|---|
+| eval sạch 119 câu | 49/119 | 46/119 | **−3 câu** |
+| ANSWER_ACCURACY (1012 câu) | 0.334 = 338 câu | 0.3478 = 352 câu | **+14 câu** |
+| EXECUTION_ACCURACY | 0.332 = 336 câu | 0.3478 = 352 câu | **+16 câu** |
+
+Tập 119 câu không chỉ thiếu độ phân giải. Nó **chỉ sai hướng** trên một thay đổi đáng +14 câu.
+Tôi đã suýt kết luận 13 commit là vô ích dựa trên nó, và churn 11 câu với z = 0.9 lúc đó đúng
+là lý do phải treo kết luận, nhưng lần này thì "treo" vẫn chưa đủ: dấu của nó cũng không tin được.
+
+Lời giải thích thì tầm thường, và tôi đã đoán sai nó một lần trước khi tính: giả thuyết đầu của
+tôi là tập eval lấy mẫu dày ở hai lớp yếu. **Sai.** `multi_company` chiếm 32% tập nhãn so với 31%
+trên 1012, tỉ lệ 1.1, không có chệch nào đáng kể.
+
+Nguyên nhân thật chỉ là số học của cỡ mẫu. +14 câu trên 1012 là +1.4%, tức kỳ vọng trên 119 câu
+là **+1.7 câu**. Sàn nhiễu churn đo được là 11 câu, nên SE của hiệu ròng là `sqrt(11)` = 3.3.
+Quan sát −3 nằm cách kỳ vọng 1.4 SE. Không hề bất thường, và **hoàn toàn có thể đổi dấu**, vì
+tín hiệu 1.7 nhỏ hơn nhiễu 3.3.
+
+Đó là phát biểu định lượng thay cho quy tắc §11.2 ("eval sạch phóng đại delta ~3 lần, chia cho 3").
+Quy tắc đó chỉ dùng được khi thay đổi đủ lớn để vượt nhiễu: cần hơn ~7 câu trên 119, tức hơn
+**~55 câu trên 1012**. Không đường nào trong hàng đợi có cỡ đó. Nên với mọi thứ tuần này định
+làm, eval sạch không đọc được, kể cả dấu.
+
+Chi tiết ăn khớp: lớp tra một ô đứng y nguyên 43/82 ở cả hai bản, toàn bộ −3 nằm ở sàng lọc
+nhiều công ty (1/25 → 0/25) và hai tài liệu (5/12 → 3/12), tức 37 câu làm nền cho cả hiệu số.
+
+### Hệ quả: bỏ hẳn cửa phủ quyết 119 câu, nộp thẳng từng arm
+
+Thiết kế cũ là chạy arm rồi chấm 119 câu để quyết có nộp hay không. Cửa đó giờ có hại: nó vừa
+suýt chặn một bản đáng +14 câu. Thay bằng:
+
+> Chạy arm trên 1012 câu, nộp, đọc leaderboard. Không lọc bằng eval sạch.
+
+Lượt nộp thoải mái nên cửa lọc không mua được gì mà chỉ thêm một nguồn sai hướng. Eval sạch còn
+đúng một việc: **kiểm tra format và câu thiếu** trước khi nộp, tức `build_submission.py` báo đủ
+1012 câu và schema hợp lệ. Không dùng con số của nó để quyết định nữa.
+
+Việc này cũng làm hàng đợi quét đơn giản hơn hẳn. `head_b` vẫn cần vì sàn nhiễu run-to-run là
+thật và đo được không tốn gì, nhưng bisect theo tầng (`all_on_a`, `all_on_b`) không còn phải chờ
+`all_on` thắng mới chạy: nộp cả ba rồi đọc ba con số.
+
+### `EXECUTION_ACCURACY` khớp `ANSWER_ACCURACY` lần đầu
+
+v7, v8, v9 đều thấp hơn đúng 2 câu. v10 bằng nhau. Nghĩa là mọi truy vấn đã nộp chạy lại ra
+đúng số đã nộp. Khớp với phép đo độc lập ở mục "việc số 3": 36/36 câu codegen tái tạo được đáp
+án khi chạy lại `pandas_query` trên cùng bảng.
+
+Còn hai câu vẫn rơi về hằng số, và lần này có thông báo lỗi rõ:
+
+```
+#408, #411: pandas_query literal fallback
+            (TypeError: type numpy.bool doesn't define __round__ method)
+```
+
+Truy vấn trả về `numpy.bool` rồi `round_final` vỡ. Cả hai câu đều nằm trong rổ chắc chắn sai.
+Đây là lỗi thật và sửa được bằng một dòng, nhưng nó chỉ đáng 2 câu nên không chen lên trước.
+
 ## Sàn nhiễu run-to-run: cửa phải qua trước mọi việc quét
 
 Leaderboard chính xác cho **một submission**, nhưng lần chạy sinh ra nó thì không xác định.
