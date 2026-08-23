@@ -1,0 +1,26 @@
+1012 câu đã nộp, 119 câu chấm được
+
+=== 1. chạy lại 1012 truy vấn trên chính bảng bằng chứng của nó ===
+  chạy được: 964
+  KeyError: 36
+  IndexError: 11
+  TypeError: 1
+  tổng lỗi: 48 = 4.7%
+
+=== 2. hình dạng lỗi ===
+  gõ một chuỗi không phải tên cột thật: 38/48
+    trong đó tầng ngoài khớp >1 cột con: 27 (so chuỗi không giải được)
+  chỉ số iloc ngoài phạm vi (bảng đơn):  6/48
+  fuzzy sửa được rồi chạy được:          4/48
+  trong đó tái tạo đúng đáp án đã nộp:   0/4
+
+=== 3. chấm bản sửa trên tập eval sạch ===
+  câu chấm được mà truy vấn lỗi: 8
+  trong đó fuzzy sửa chạy được:  0
+  thắng: 0   thua: 0   sửa xong vẫn sai: 0
+
+  → mốc đã chốt: >=10 thắng / <=2 thua. Kết quả: 0 thắng / 0 thua.
+
+=== 4. cột khác của chính hàng đã đọc có cho gold không ===
+  v9 sai : 1/23 = 4%
+  v9 đúng: 2/27 = 7%
