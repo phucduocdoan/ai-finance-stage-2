@@ -204,6 +204,101 @@ thì được +1 `ANSWER` và 0 `EXECUTION`, vì câu đó vốn sai cả hai. G
 
 Có ràng buộc đó thì thắng và thua cùng giá, và mốc trở lại McNemar 10 thắng / 2 thua.
 
+## Việc số 3: rổ "chắc chắn sai", cược duy nhất một chiều của tuần
+
+Đo trên 888 câu đầu của lần chạy HEAD. Hai tiêu chí, cả hai không cần nhãn:
+
+| tiêu chí | n trên 888 |
+|---|---|
+| đáp án `0.0` — mặc định bỏ cuộc ở `graph.py:1174` (`"answer": 0.0, "pandas_query": "0.0"`) | 44 |
+| vượt biên độ suy ra từ `unit_hint`: `phần trăm`/`lần`/`nghìn tỷ` > 1e4, `tỷ` > 1e7, `triệu` > 1e10, `đồng` > 1e15 | 34 |
+| **tổng** | **78 = 8.8% → ~89 câu trên 1012** |
+
+Trên 16 câu của rổ có nhãn sạch: **báo oan 0**. Con số đó không phải phát biểu thống kê trên
+n=16, nó gần như định nghĩa — một đáp án `unit_hint = phần trăm` bằng 2.3e13 không thể đúng,
+và `0.0` là hằng số chương trình ghi ra khi mọi solver đã từ chối.
+
+71 trong 78 câu là `codegen`. Đây là lý do trực giác "codegen vô dụng" vừa đúng vừa sai:
+codegen mang **1/3 tổng số câu đúng** (13 trên 40 câu đúng của 106 câu có nhãn) và là fallback
+cuối `SOLVER_CHAIN` nên tắt nó là 441 câu không có đáp án nào — nhưng **91% số đáp án chắc chắn
+sai nằm trên nó**.
+
+Vì sao nó xếp trên hàng đợi quét dù chưa đo: mọi arm cờ có thể **thua**, nên phải so với sàn
+nhiễu `sqrt(C)` và cần z. Rổ này thì thay một đáp án chắc chắn sai bằng bất cứ gì đều không mất
+điểm, nên nó không có mặt âm và **không cần sàn nhiễu để đọc**. Giá là ~25 phút với 24 worker
+(trung vị 461s/câu, 10.1 giờ tuần tự).
+
+Chỗ không được nói quá: **không lỗ không có nghĩa là sẽ lãi.** Lãi chỉ đến từ số câu sửa được
+thật, và tỉ lệ đó CHƯA ĐO. Mọi con số kiểu "+18 câu" là giả định 20%, không phải phép đo. Đây
+đúng chỗ đường thứ chín đã chết: phát hiện 7/7, chuyển đổi 0/7.
+
+Và lần này có bằng chứng nói chuyển đổi sẽ khó: tỉ lệ lệch của 6 câu vượt biên độ có nhãn là
+2.6e11, 3.4e13, 7.8e11, 3.65e11, 1.85e12, 8.5e9 — **không phải lũy thừa 10**. Nên nhân chia lại
+thang không cứu được; model đã tổng hợp sai thứ, không chỉ sai đơn vị. Đường sửa duy nhất còn
+lại là giải lại bằng cấu hình khác, không phải hậu xử lý số học.
+
+Mốc đăng ký trước, trên ~16 câu của rổ nằm trong tập nhãn: **≥ 3 câu chuyển sai → đúng** thì
+giữ, dưới mức đó thì rổ này cũng đóng như đường thứ chín. Ràng buộc giữ đáp án mới: chỉ thay
+khi đáp án mới khác 0 **và** nằm trong biên độ đơn vị, và nó phải kèm `pandas_query` chạy ra
+đúng số đó, vì `EXECUTION_ACCURACY` chạy lại truy vấn.
+
+### Nhóm sai thang mà rổ này KHÔNG bắt được
+
+14/108 câu có nhãn sai vì thang chứ không vì ô. Bốn câu trong đó **cùng mantissa, chỉ lệch lũy
+thừa 10** — tức đã tìm đúng ô rồi quy đổi đơn vị sai:
+
+| id | gold | nộp | tỉ lệ | unit_hint | solver |
+|---|---|---|---|---|---|
+| q139 | 3.1766e9 | 3.1766e6 | 1e-3 | đồng | cell_locator |
+| q284 | 1.747e7 | 17.47 | 1e-6 | triệu | cell_locator |
+| q748 | 913.29 | 9.1329e8 | 1e6 | triệu | raw_table_linker |
+| q772 | 86.25 | 0.086253 | 1e-3 | tỷ | raw_table_linker |
+
+Luật biên độ **không** bắt được chúng, vì biên của `triệu`/`đồng` rộng tới 1e10/1e15. Đây là
+nhóm rẻ nhất trong cả dự án về mặt cơ chế — đúng chữ số, sai số mũ — nhưng nó nằm ở solver hẹp
+chứ không ở codegen, và phát hiện nó cần biết thang đúng của bảng nguồn, không chỉ `unit_hint`.
+Chưa định giá.
+
+Hai câu nữa (q842 gold 2022, q866 gold 2018) có gold là **một năm** mà nộp 1.5e12 và −1.37e11.
+Sai kiểu đáp án, không sai thang.
+
+### Chốt luôn một món nợ: giữ bản sửa của verify là net dương
+
+`VERIFY_NARROW_SOLVERS_OBSERVE_ONLY = True` nên verify+revise chỉ chạy thật trên đường codegen,
+tức toàn bộ chi phí của nó nằm trong 67.8% thời gian mà codegen chiếm. Nó nói "sai" trên 312/416
+câu, và nhóm đó đúng 3/36 so với 10/12 của nhóm nó nói "đúng" — nhưng **hai số đó không đọc
+được thành tác dụng của việc sửa**, chúng đo độ khó của câu.
+
+Phép đo sạch không cần LLM: `diag.verify.before` lưu truy vấn gốc, chạy lại nó trên cùng bảng.
+Map `dfN` → bảng không được lưu nên mỗi câu tự kiểm chứng — chỉ nhận map nào chạy lại truy vấn
+**đã giữ** ra đúng con số đã nộp. 36/36 câu tái tạo được, không câu nào bỏ (nhân đây cũng là
+bằng chứng `EXECUTION_ACCURACY` không mất điểm trên đường này).
+
+Trên cùng 36 câu đó: **bản sửa đúng 3, bản gốc đúng 0**, và không câu nào bản gốc đúng mà bản
+sửa làm sai. Nên nợ "`graph.py` giữ `arevise` chỉ vì nó chạy được, trái docstring" giờ có số:
+tiêu chí giữ ấy lỏng nhưng **đáng giá tiền của nó**, không phải lỗi cần sửa. Kéo theo: arm
+`no_verify` trong hàng đợi bây giờ được dự đoán **thua**, nên nó tụt xuống cuối.
+
+Chi phí theo solver, cùng lần chạy 888 câu, để không quay lại tranh luận này:
+
+| solver | n | trung vị | p90 | % thời gian | đúng/nhãn `derived` | đúng/nhãn `single_cell` |
+|---|---|---|---|---|---|---|
+| codegen | 441 | 362s | 882s | 67.8% | 12/52 | 1/2 |
+| raw_table_linker | 201 | 150s | 597s | 18.6% | 8/23 | 3/7 |
+| cell_locator | 131 | 99s | 147s | 4.6% | 2/3 | 12/15 |
+| selection_facts | 43 | 197s | 593s | 4.1% | 1/5 | — |
+| formula_facts | 54 | 130s | 453s | 3.3% | — | 1/1 |
+| raw_selection_linker | 7 | 699s | 1288s | 1.7% | — | — |
+
+23% so với 35% trên `derived` là chênh 12 điểm với SE 11.5 điểm, z = 1.0 — **không đọc được**.
+Và 24% tổng của codegen phần lớn là vì nó nhận câu khó: 383/441 câu của nó là `derived`, còn
+cell_locator có 101/131 là `single_cell`. Đúng confound đã giết trục chọn bảng.
+
+Khe hở routing trên `single_cell` thì **đóng**: 58 câu `single_cell` rơi xuống codegen đều đã
+được cell_locator xem thật và từ chối có căn cứ (26 dưới ngưỡng tin cậy, 15 ô nhập nhằng, 12
+không thấy ô số). Lever ngưỡng đã định giá và loại ở `c461313`: trên 7 câu bị từ chối vì ngưỡng,
+ô định trả về lệch ở 6, chỉ q360 đúng — hạ ngưỡng mua 1 mất 6.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.
