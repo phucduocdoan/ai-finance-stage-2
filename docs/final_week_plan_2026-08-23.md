@@ -834,6 +834,57 @@ tiên nghiệm, nhiệt độ thấp nhiễu ít hơn nên arm giữ được ch
 phiếu khác, **không** vì 11/15 hơn 10/15. Chênh một câu trên 15 là nhiễu thuần, và chọn theo nó
 đúng là cái bẫy mà mục `head` = 46 với `head_b` = 50 ở trên đã cảnh báo.
 
+### Mốc `Net ≥ √D` của tôi quá lỏng, và chứng cứ đối chứng bắt được nó hai lần
+
+Tôi đã đăng ký `Net ≥ √D` cho so sánh cặp. Nó sai. Dưới giả thuyết không, mỗi cặp bất đồng là
+một lần tung đồng xu, nên `Net ~ Binomial(D; 0,5)` với SD đúng bằng `√D`. `Net ≥ √D` là mốc
+1 SD, tức p ≈ 0,16 một phía. **Mốc đúng là `Net ≥ 2√D`.**
+
+Cái bắt được lỗi này là đối chứng cùng cấu hình. `head → head_b` khác nhau chỉ ở seed, nên
+mọi hiệu số của nó là nhiễu định nghĩa. Nó qua mốc lỏng hai lần: trên 385 câu (D=3, Net=+3) và
+trên đủ 1012 câu (D=8, Net=+4). Ở mốc `2√D` thì đối chứng bị loại đúng như phải loại (p=0,145),
+còn `head → fix` qua (D=11, Net=+7, p=0,033).
+
+Chạy đối chứng cùng cấu hình là việc rẻ nhất trong tuần này và là việc duy nhất phát hiện được
+một mốc hỏng. Mốc nào không loại được đối chứng thì không phải mốc.
+
+### Arm header-fix đủ 1012 câu: arm đơn tốt nhất từng đo
+
+| arm | nhãn/119 | chắc chắn sai | lỗi cứng |
+|---|---|---|---|
+| `head` | 46 | 123 | 56 |
+| `head_b` | 50 | — | 40 |
+| `all_on_a` | 51 | — | — |
+| `fix` (header-fix) | **53** | 113 | 41 |
+
+`fix` hơn `head` ở p=0,033, nhưng **không** tách được khỏi `head_b` (p=0,227) hay `all_on_a`
+(p=0,412). Đọc đúng: bản sửa header không hại, và bằng chứng thật cho nó là nhân quả cộng
+leaderboard (4 ô nó chạm ở v15 ăn 2), không phải tập nhãn.
+
+### v16: nền bầu chọn 8 phiếu, chồng hai lever hậu kỳ
+
+| ứng viên | nhãn/119 | chắc chắn sai | ô đổi so v15 |
+|---|---|---|---|
+| v15 (đang trên bảng, 402) | 56 | 7 | 0 |
+| `fix` thô | 53 | 113 | 386 |
+| bầu 8 arm thô | 54 | 124 | 266 |
+| `fix` + thang + lấp | 58 | 9 | 332 |
+| **bầu 8 arm + thang + lấp** | **59** | 9 | **206** |
+
+Hai lever hậu kỳ đều sạch trên nền bầu chọn: thang lại 37 ô (2 sai→đúng, 0 đúng→sai), rồi lấp
+một phía (3 sai→đúng, 0 đúng→sai, 12 sai→sai).
+
+Nộp bản bầu chọn, **không** vì 59 hơn 56. Chênh 3 câu là D=3 Net=+3 p=0,125, dưới mốc `2√D`,
+tức tập nhãn không phán được. Lý do là tiên nghiệm, đúng lý do v13 đã dùng: nền bầu chọn không
+cược vào một arm nhiễu, mà `head` với `head_b` cùng cấu hình đã lệch nhau 4 câu trên nhãn. Thêm
+một dấu hiệu cùng chiều: số query phải literalize khi đóng gói rơi từ 105 (v15) xuống 41, vì
+bầu chọn chọn được bản ghi có query chạy được.
+
+206 ô đổi mà chỉ 3 ô có nhãn. Đây là lượt nộp hai phía, khác hẳn v15 (4 ô đổi, đọc được sạch).
+Nếu v16 tụt thì bằng chứng chỉ tay vào nền bầu chọn 8 arm, và đường lùi là `fix + thang + lấp`.
+
+Arm t=0.6 (`full1012_t06.jsonl`) vẫn đang chạy. Xong thì bầu lại 9 phiếu, không chờ nó để nộp.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.
