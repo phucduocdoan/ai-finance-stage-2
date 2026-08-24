@@ -930,6 +930,36 @@ không thể có. **Mốc đăng ký trước:** 38 ô đổi nên `D ≤ 38` v�
 hiệu 2 SD theo chiều của nó; `|Δ| ≤ 7` là không phân giải được và khi đó tiêu chí nhân quả này
 coi như hết đường, không nới ngưỡng để cứu.
 
+### Arm t=0.6 chạy xong: một arm ngang `fix`, dùng làm nguồn cấp đáp án
+
+| arm | nhãn/119 | pool chắc chắn sai |
+|---|---|---|
+| `head` | 46 | 123 |
+| `head_b` | 50 | 123 |
+| `all_on_a` | 51 | 127 |
+| `fix` | 53 | 113 |
+| `t06` | 52 | **109** |
+
+`t06` không tách được khỏi `fix` (D=7, Net=−1, p=0,773) và cũng không khỏi `head_b` hay
+`all_on_a`. Nó là arm ngang chất lượng, không phải arm tốt hơn. Nhưng pool chắc chắn sai của nó
+nhỏ nhất từng đo, nên giá trị thật của nó là làm nguồn cấp đáp án cho các lever một phía. Kế
+hoạch cũ, bầu 9 phiếu, bỏ theo bài học v16: bầu lại trên nền đã vá là pha loãng.
+
+Hai lever nó mở ra, cả hai không giao với 38 ô của v17:
+
+**Lever A, một phía thật, 2 ô.** v15 còn 7 ô chắc chắn sai mà không arm nào cứu: 251, 398, 481,
+555, 719, 773, 826. `t06` cứu 2 trong đó (q555 `0.0 → 1,3079`, q773 `3,498e10 → 1975,07`). Vì
+đáp án đang có chắc chắn sai theo tiêu chí không nhãn, thay vào không mất điểm nào được. Kỳ vọng
+0 đến +2.
+
+**Lever B, hai phía, 8 ô.** 14 ô trong S2 bị v17 loại vì số của `fix` tự nó chắc chắn sai; `t06`
+cho số hợp lệ ở 8 ô (453, 499, 541, 544, 556, 559, 582, 828). Đáp án v15 ở đó không bị tiêu chí
+bắt, nên đây là cược hai phía trên mẫu số 8, tức không đọc được riêng. Chỉ chồng khi đã có nền
+thắng, và chồng cùng lượt với Lever A thì mất khả năng đọc cả hai.
+
+Thứ tự: chờ số của v17 trước. v17 là phép thử 38 ô có mốc đăng ký; chồng thêm bây giờ là làm
+nhiễu chính phép thử đó.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.
