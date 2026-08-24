@@ -603,6 +603,27 @@ def _has_component_ratio_intent(norm_question: str) -> bool:
     return bool(_RATIO.search(norm_question) or _MULTIPLIER_RATIO.search(norm_question))
 
 
+def _is_cross_company_sum(norm_question: str, tickers: Sequence[str]) -> bool:
+    """`Tổng <chỉ tiêu> của A, B và C` is a sum even when `SUM_CUE` misses the metric.
+
+    `SUM_CUE` is a whitelist of metric phrases (`tong gia tri`, `tong doanh thu`, ...),
+    so `Tổng chi phí tài chính của` five named companies falls out of it and the whole
+    request is refused with `outside raw-table fixed-scope operations`. That refusal
+    sends the question to codegen, which then writes a query over whichever single
+    table it was handed: q862 asks about five companies and shipped one CSV.
+
+    The guard is three or more tickers, not two. With two, `tickers` picks up name
+    variants of one company (q651 resolves `CTCP Masan MeatLife` to two codes) and the
+    question is a growth rate, not a sum, so `tong` there belongs to the line item
+    name. Three named companies plus a bare `tong` has no such reading. Measured over
+    all 1,012 questions this changes exactly six: 848, 862, 915, 922, 964, 1003.
+
+    `_AVG` and `_DIFF` are tested before this, so `trung binh`/`chenh lech` phrasings
+    keep their own operation.
+    """
+    return len(tickers) >= 3 and bool(re.search(r"\btong\b", norm_question))
+
+
 def _infer_operation(question: str, tickers: Sequence[str], years: Sequence[int]) -> RawOperation | None:
     norm = _intent_norm(question)
     if _SELECTION.search(norm) or _CONDITIONAL_FILTER.search(norm):
@@ -613,7 +634,7 @@ def _infer_operation(question: str, tickers: Sequence[str], years: Sequence[int]
         return "avg"
     if _DIFF.search(norm):
         return "diff"
-    if _SUM.search(norm):
+    if _SUM.search(norm) or _is_cross_company_sum(norm, tickers):
         return "sum"
     if _RATIO.search(norm):
         return "ratio"
