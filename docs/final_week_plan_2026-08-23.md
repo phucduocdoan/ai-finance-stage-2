@@ -148,6 +148,24 @@ cấu hình mặc định rồi đếm câu đổi đáp án. Nên dòng đầu 
 
 Mọi delta của hàng đợi phải so với con số đó, không so với 0.
 
+### Đo thật bằng `head_b`, và nó gần đúng con số đã dùng
+
+`head_b` là lần chạy lại y nguyên cấu hình của `head`. Đây là lần đầu tuần này có một cặp
+cùng cấu hình thật, nên sàn nhiễu không còn là suy diễn:
+
+| | |
+|---|---|
+| đổi đáp án trên 1012 câu | 341 = **34%** |
+| đổi ĐIỂM trên tập nhãn | **8/119 = 6.7%** |
+| suy ra trên 1012 | ~68 câu |
+| SE của hiệu ròng = `sqrt(68)` | **~8 câu = 0.81pp** |
+
+34% là cận trên và nó vô dụng, vì phần lớn là sai → sai-khác-số, không đổi điểm. Con số phải
+dùng là 6.7%, và nó nằm sát 0.94pp đã dùng để tính bảng z cả tuần, nên không kết luận nào
+phải đảo. Hai hệ quả cụ thể: v10 hơn v9 **+14 câu** ở `z = 1.7`, tức vẫn chưa chứng minh; và
+cùng một cấu hình cho 46 rồi 50 trên tập nhãn, nên ±5 câu ở đó là nhiễu thuần (SE ≈ 2.8).
+Việc bỏ cửa phủ quyết 119 câu ở mục v10 vì thế được xác nhận từ hướng khác.
+
 ## Vòng lặp hai tầng cho mỗi giả thuyết
 
 - **Tập 119 câu làm cửa phủ quyết, không làm cửa quyết định.** Nó không chứng minh được một
@@ -450,6 +468,83 @@ nhiễu ~1.0pp, mà tốn gấp 3 wall clock cho mọi arm sau đó. Không làm
 
 Con số này cũng nói lại một chuyện đã biết theo cách mạnh hơn: 9% churn **không phải** tài
 nguyên chờ khai thác, nó là toàn bộ phần ngẫu nhiên và nó nhỏ.
+
+## v11 lên bảng: đổi thang đáng +4 câu
+
+| | ANSWER | EXECUTION |
+|---|---|---|
+| v10 | 0.3478 (352 câu) | 0.3478 (352) |
+| v11 | **0.3518 (356)** | 0.3498 (354) |
+
++4 câu, và lần này không cần đọc qua sàn nhiễu: v11 dùng lại đúng lần chạy sinh ra v10 và chỉ
+nhân hệ số cho 34 câu dưới sàn, nên **978/1012 câu giống v10 từng byte** và toàn bộ delta
+thuộc về 34 câu đó. Tỉ lệ ăn 4/34 = 12%, khớp với 2/3 đo được trên tập nhãn ở mục trên.
+
+Khe 2 câu giữa EXECUTION và ANSWER quay lại sau khi v10 đã đóng nó. **Không phải do bọc
+query.** Tự chấm lại bằng chính `run_query` của repo (`modules/tools/python_exec.py:171`, đúng
+hàm `build_submission.py` dùng để gác) trên cả v11 và v12: 0 câu không chạy được, 0 câu query
+không tái tạo đáp án. Tôi từng báo v11 có 1 câu lệch và 6 câu gãy; con số đó sai, nó đến từ
+một evaluator viết tay chặn builtins mà `SAFE_GLOBALS` cho phép và bỏ `_coerce_cell`. Nên khe
+2 câu là chuyện của grader, không đọc được từ đây, và nó nhỏ hơn sàn nhiễu.
+
+## Bảng điểm sáu arm của hàng đợi
+
+Đọc trên tập nhãn 119 câu, nhớ SE ≈ 2.8 nên chỉ cột cuối là tín hiệu chắc:
+
+| arm | nhãn /119 | đáp án 0.0 | rổ chắc chắn sai |
+|---|---|---|---|
+| `head` | 46 | 50 | 85 |
+| `head_b` (chạy lại y nguyên) | 50 | 48 | 84 |
+| `all_on` | 46 | **26** | **49** |
+| `all_on_a` | 51 | 36 | 89 |
+| `all_on_b` | 41 | 34 | 57 |
+| `no_verify` | 43 | 47 | 109 |
+| `qwen35` (cũ, để so) | 37 | 98 | 149 |
+
+Không arm cờ nào tách khỏi nhiễu ở cột nhãn: cả bảy nằm trong ±2 SE của nhau trừ `qwen35`.
+Cột "rổ chắc chắn sai" thì tách được, và `all_on` thắng rõ ở đó (49 so với 85). Đó là lý do
+nó đứng thứ hai trong thứ tự ưu tiên của việc số 5.
+
+## Việc số 5: lấp chéo giữa các arm (`scripts/fill_from_arms.py`)
+
+Hàng đợi quét để lại **6 lần chạy đủ 1012 câu, tức 6 đáp án độc lập cho mỗi câu, đã trả tiền
+GPU rồi**. Logic rổ chắc chắn sai tổng quát hóa sang đây với 0 GPU thêm: mỗi ô chắc chắn sai
+của `head` lấy đáp án đầu tiên KHÔNG chắc chắn sai từ các arm khác, theo thứ tự ưu tiên
+`retry` → `all_on` → `head_b` → `all_on_a` → `all_on_b` → `no_verify` (hai cái cuối xuống chót
+vì cả hai đo được là tụt trên tập nhãn).
+
+Ba tiêu chí "chắc chắn sai" giờ gộp lại một chỗ, cả ba không cần nhãn:
+
+| tiêu chí | nguồn |
+|---|---|
+| `== 0.0` | hằng số bỏ cuộc, `graph.py:1174` |
+| vượt trần đơn vị | `retry_pool.BAND` |
+| dưới sàn đơn vị | `rescale_below_floor.FLOOR` |
+
+Vì sao một chiều, lập luận không đổi: thay một đáp án chắc chắn sai bằng một đáp án sai khác
+thì điểm y nguyên, nên arm này không có mặt âm và không phải so với `sqrt(C)`.
+
+**v12 = đổi thang rồi lấp chéo.** Đo được:
+
+| | |
+|---|---|
+| ô chắc chắn sai còn lại của `head_rescaled` | 89/1012 |
+| lấp được | **77** (12 câu không arm nào cứu) |
+| nguồn | retry 57, `all_on` 16, `all_on_b` 2, `head_b` 1, `all_on_a` 1 |
+| trên các câu có nhãn | **3 sai→đúng, 0 đúng→sai**, 13 sai→sai |
+| tổng câu đổi so với v11 | 77 |
+| tập nhãn | **51/119** so với 46 của `head` |
+
+Cộng 34 câu đổi thang của v11 là 111 câu bị chạm, với 5 thắng 0 thua trên 19 câu có nhãn
+trong đó. Ngoại suy hai tỉ lệ ấy ra 111 câu cho khoảng +20 tới +25 câu, tức trên hẳn sàn
+0.81pp. Mốc đăng ký trước: `đúng→sai` phải bằng 0, có câu nào tụt là tiêu chí báo oan.
+
+Thứ tự có đảo được: lấp-trước-rồi-đổi-thang cũng cho đúng 51/119. Chọn đổi-thang-trước vì lập
+luận nhân quả mạnh hơn, nó hoàn tác đúng một hệ số cụ thể trong một query đã đọc, thay vì đổi
+sang đáp án của solver khác.
+
+Số 0.0 còn lại tụt từ 50 xuống **7**, rổ chắc chắn sai từ 85 xuống **12**. Đường này gần như
+đã cạn: muốn lấp thêm phải có arm mới, hoặc tiêu chí mới.
 
 ## Việc không làm, và lý do
 
