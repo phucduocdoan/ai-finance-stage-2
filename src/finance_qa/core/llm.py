@@ -40,6 +40,15 @@ ENDPOINT = os.environ.get("LLM_ENDPOINT", "http://127.0.0.1:8990/v1/chat/complet
 MODEL = os.environ.get("LLM_MODEL", "Qwen/Qwen3.5-9B")
 API_KEY = os.environ.get("LLM_API_KEY", "")
 
+# Sampling knobs for the voting arms, off unless set. Every caller passes
+# temperature=0.0 today, so a run is one deterministic sample and re-running the
+# same config only moves ~10% of answers. Voting across configs was worth +20
+# questions on the leaderboard (v12 -> v13), so decorrelated samples are the
+# cheapest remaining input to it. `LLM_TEMPERATURE` only overrides callers that
+# asked for 0.0: `REPAIR_TEMPERATURE=0.3` is a deliberate choice, not a default.
+TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", "-1"))
+SEED = int(os.environ["LLM_SEED"]) if os.environ.get("LLM_SEED") else None
+
 
 def _request(
     messages: list[dict[str, str]],
@@ -53,6 +62,8 @@ def _request(
     Qwen3 has thinking on by default and disables it with a ``/no_think`` prefix on
     the last user turn.
     """
+    if temperature == 0.0 and TEMPERATURE >= 0.0:
+        temperature = TEMPERATURE
     if API_KEY:
         msgs = messages
         if not thinking:
@@ -76,6 +87,8 @@ def _request(
         "temperature": temperature,
         "chat_template_kwargs": {"enable_thinking": thinking},
     }
+    if SEED is not None:
+        body["seed"] = SEED
     return body, {}
 
 
@@ -133,6 +146,8 @@ def get_chat_model(
     ``temperature`` defaults to 0.0 (deterministic) for every existing caller; the
     REPL solver raises it so its tool-calling loop can escape a repeated dead end.
     """
+    if temperature == 0.0 and TEMPERATURE >= 0.0:
+        temperature = TEMPERATURE
     key = ("chat_model", model, thinking, max_tokens, timeout, temperature)
     cache = pool()
     if key not in cache:
@@ -147,6 +162,9 @@ def get_chat_model(
             "timeout": timeout,
         }
         if "Qwen" in model:
-            kwargs["extra_body"] = {"chat_template_kwargs": {"enable_thinking": thinking}}
+            extra: dict[str, Any] = {"chat_template_kwargs": {"enable_thinking": thinking}}
+            if SEED is not None:
+                extra["seed"] = SEED
+            kwargs["extra_body"] = extra
         cache[key] = ChatOpenAI(**kwargs)
     return cache[key]
