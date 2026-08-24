@@ -546,6 +546,63 @@ sang đáp án của solver khác.
 Số 0.0 còn lại tụt từ 50 xuống **7**, rổ chắc chắn sai từ 85 xuống **12**. Đường này gần như
 đã cạn: muốn lấp thêm phải có arm mới, hoặc tiêu chí mới.
 
+## v12 lên bảng, và trần của MỌI cách chọn giữa các arm
+
+| | ANSWER | EXECUTION |
+|---|---|---|
+| v11 | 0.3518 (356 câu) | 0.3498 (354) |
+| v12 | **0.3696 (374)** | **0.3676 (372)** |
+
+**+18 câu**, và như v11 nó không cần đọc qua sàn nhiễu: 935/1012 câu giống v11 từng byte nên
++18 thuộc hết về 77 câu đã lấp. Tỉ lệ ăn 23%, dự đoán trước là +20 tới +25.
+
+Rồi đo trần của cả hướng này, miễn phí, chỉ đọc lại các lần chạy đã có:
+
+| | tập nhãn 119 |
+|---|---|
+| v12 | 51 |
+| **ít nhất một arm đúng (oracle)** | **63** |
+
+Chọn hoàn hảo giữa 7 arm chỉ còn +12 câu. Nên hướng chọn gần cạn, và hai phép đo dưới đây
+xác nhận theo hai đường khác nhau.
+
+**Bộ chọn theo phiếu: chết.** Thay đáp án của v12 khi nó lẻ loi và có cụm arm đông hơn:
+
+| ngưỡng cụm | câu có nhãn bị chạm | sai→đúng | đúng→sai | ròng |
+|---|---|---|---|---|
+| ≥2 arm | 19 | 3 | 2 | **+1** |
+| ≥3 arm | 6 | 1 | 2 | −1 |
+| ≥4 arm | 3 | 0 | 1 | −1 |
+| ≥5 arm | 2 | 0 | 1 | −1 |
+
+Ngưỡng càng chặt càng tệ, tức "đông arm đồng ý" không mang thông tin về đúng sai. Khớp với
+`d = 0.51` đã đo: đáp án sai dồn cục.
+
+**Chồng đổi-thang + lấp-chéo lên từng arm nền.** Cột phải là cái quan trọng:
+
+| nền | thô /119 | +thang +lấp |
+|---|---|---|
+| `head` | 46 | 51 (= v12) |
+| `all_on` | 46 | 47 |
+| `all_on_a` | 51 | **55** |
+| `head_b` | 50 | 53 |
+| `all_on_b` | 41 | 45 |
+| `no_verify` | 43 | 47 |
+| `voted` (đa số 7 arm) | 53 | **55** |
+
+Hai kết luận. Một, hai lever cộng vào **mọi** nền, +1 tới +5, trung bình +3.3, nên chúng không
+phụ thuộc nền. Hai, bỏ phiếu **không** hơn arm nền tốt nhất: cả hai đúng 55. Nên +4 của v13 so
+với v12 là chuyện đổi nền, không phải chuyện bỏ phiếu, và mục "bỏ phiếu tự nhất quán" ở trên
+vẫn đúng cả với bỏ phiếu giữa các cấu hình khác nhau, không chỉ giữa các lần chạy lại.
+
+Và chú ý cái bẫy: `head` = 46 với `head_b` = 50 là **cùng một cấu hình**. Chênh 4 câu ở cột
+"thô" là nhiễu thuần. Nên không được chọn nền bằng tập 119 câu. v13 nộp với nền `voted` vì nó
+bằng điểm mà tiên nghiệm tốt hơn: nó không cược vào một arm nhiễu. Leaderboard quyết.
+
+**v13** = bỏ phiếu → đổi thang (28 câu) → lấp chéo (23/34 ô). Đổi 258/1012 câu so với v12, và
+trên 28 câu có nhãn bị chạm thì 5 sai→đúng, 1 đúng→sai. Đây là arm **hai chiều** đầu tiên từ
+v10, nên nó có thể tụt, khác v11 và v12.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.
