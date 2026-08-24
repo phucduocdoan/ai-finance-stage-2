@@ -603,6 +603,78 @@ bằng điểm mà tiên nghiệm tốt hơn: nó không cược vào một arm 
 trên 28 câu có nhãn bị chạm thì 5 sai→đúng, 1 đúng→sai. Đây là arm **hai chiều** đầu tiên từ
 v10, nên nó có thể tụt, khác v11 và v12.
 
+## v13 lên bảng, và hai chỗ tôi đọc sai phải sửa
+
+| | ANSWER | EXECUTION |
+|---|---|---|
+| v12 | 0.3696 (374 câu) | 0.3676 (372) |
+| v13 | **0.3893 (394)** | **0.3874 (392)** |
+
+**+20 câu** từ một arm hai chiều. Hai sửa lại:
+
+**Bỏ phiếu giữa các cấu hình khác nhau CÓ tác dụng**, đáng +20 trên 258 câu bị đổi. Tập 119
+câu chỉ thấy +4 (z = 1.4) nên tôi đã gọi nó là chưa chứng minh được. Mục "bỏ phiếu tự nhất
+quán: đóng" ở trên vẫn đúng cho cái nó nói tới, chạy lại **cùng** cấu hình, nhưng không được
+suy sang bỏ phiếu giữa các cấu hình khác nhau. Hai chuyện khác nhau: cái đầu chỉ chạm 10% câu
+không tất định, cái sau chạm mọi câu mà các cấu hình có ý kiến khác nhau.
+
+**Trần oracle 63/119 là trần trên TẬP NHÃN, không phải trên đề.** Tập nhãn dễ hơn đề thật:
+v12 ăn 42.9% ở đó so với 37.0% trên bảng. Quy tỉ lệ về 1012 câu thì oracle rơi vào khoảng 46%,
+tức **còn khoảng 65 câu** đầu bàn cho hướng chọn, không phải 12. Câu "hướng chọn gần cạn" là
+sai.
+
+Bài học về dụng cụ đo, và nó là bài học đắt nhất tuần: **tập 119 câu không lái được hướng
+chọn.** Ba lần nộp gần nhất đọc +4, +18, +20 trên bảng, trong khi tập nhãn lần lượt đọc +2,
++5, +4. Cùng dấu nhưng bé hơn một bậc về độ tin cậy. Cách dùng nó đúng là **so cặp** giữa hai
+biến thể gần nhau, vì lúc đó SE là `sqrt(số câu lệch)` chứ không phải 2.8.
+
+### Trọng số theo solver: đo được, không dùng được
+
+Gộp 7 arm cho 833 cặp arm-câu, đủ N để xếp hạng solver:
+
+| solver | đúng/nhãn | tỉ lệ | lượt trên mọi arm |
+|---|---|---|---|
+| `formula_facts` | 6/6 | 100% | 319 |
+| `raw_selection_linker` | 3/3 | 100% | 170 |
+| `cell_locator` | 78/103 | **75.7%** | 788 |
+| `raw_table_linker` | 75/211 | 35.5% | 1373 |
+| `codegen` | 111/352 | 31.5% | 2962 |
+| `selection_facts` | 6/30 | 20.0% | 302 |
+| `structured_facts` | **0/25** | **0.0%** | 243 |
+
+Bốn luật chọn có trọng số, so cặp với v13:
+
+| luật | nhãn /119 | đổi so v13 | thắng | thua |
+|---|---|---|---|---|
+| cụm đông nhất, đại diện theo ưu tiên arm (= v13) | 53 | 0 | - | - |
+| cụm đông nhất, đại diện là solver tốt nhất trong cụm | 53 | 8 | 0 | 0 |
+| bỏ cụm, lấy thẳng solver tốt nhất | 49 | 243 | 1 | **5** |
+| trọng số cụm = tổng điểm solver | 51 | 84 | 0 | **2** |
+
+**Cỡ cụm áp đảo chất lượng solver.** Đóng nhánh trọng số. Cảnh báo phải kèm: bảng xếp hạng
+solver đo trên đúng tập dùng để chấm, nên điểm nhãn của ba luật dưới là **thiên vị lên**, mà
+chúng vẫn thua.
+
+## Việc số 6: `structured_facts` làm tiêu chí chắc chắn sai (v14)
+
+0/25 với N = 25 là chặn trên 11% ở mức 95%. Solver này sinh **79 câu** trong v13. Thay chúng
+bằng arm khác (trung bình ~35%) là EV dương rõ, và nó gần một chiều theo đúng nghĩa của các
+lever v11/v12: nền gần như chắc chắn sai.
+
+| | |
+|---|---|
+| ô `structured_facts` trong v13 | 79 |
+| lấp được từ arm khác | **64** |
+| trên các câu có nhãn | 6 câu bị chạm, **0 đúng→sai**, 0 sai→đúng |
+| v14 đổi so với v13 | 63/1012 |
+
+Nhãn không nói được gì ở đây (0/6 thắng, mà 35% × 6 kỳ vọng 2, nên `p = 0.075`: yếu). Lập
+luận là EV, không phải phép đo. Thêm `selection_facts` (20%) vào tiêu chí không đổi gì, cùng
+64 ô, nên giữ luật đơn giản.
+
+Sau v14 thì rổ chắc chắn sai còn **11 ô** và không arm nào cứu được. Đổi thang còn 0 câu.
+Đường hậu kỳ trên 7 arm hiện có đã cạn thật; muốn tiếp phải có **arm mới**.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.
