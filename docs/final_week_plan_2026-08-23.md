@@ -885,6 +885,51 @@ Nếu v16 tụt thì bằng chứng chỉ tay vào nền bầu chọn 8 arm, và
 
 Arm t=0.6 (`full1012_t06.jsonl`) vẫn đang chạy. Xong thì bầu lại 9 phiếu, không chờ nó để nộp.
 
+### v16 mất 16 câu, và tập nhãn chỉ sai hướng
+
+| bản | ANSWER | câu | nhãn/119 | ô đổi so bản trước |
+|---|---|---|---|---|
+| v15 | 0,3972 | 402 | 56 | 4 |
+| v16 | 0,3814 | 386 | 59 | 206 |
+
+**Tập nhãn đọc +3, leaderboard đọc −16.** +3 trên mẫu 11,8% ngoại suy ra +25 trên đủ bài. Sai
+41 câu, và sai cả dấu. Đây không phải "nhãn nhiễu", đây là nhãn dẫn ngược. Từ đây bỏ hẳn việc
+trích con số `nhãn/119` khi chọn nền; nó chỉ còn dùng được để so cặp giữa hai bản gần trùng
+nhau, và ngay cả đó thì phải qua mốc `2√D`.
+
+Độ chắc của chính con số −16: D không biết, chặn được `16 ≤ D ≤ 206`. Với hai bản cùng độ chính
+xác ~39% thì tỉ lệ bất đồng trên các ô đã đổi vào khoảng 0,4, tức D ≈ 85 và |Net|/SD ≈ 1,7
+(p ≈ 0,045). Nên: gần như chắc là thật, chưa phải chắc chắn. Kết luận hành động không đổi, vì
+kể cả D = 206 thì bằng chứng cũng không nghiêng về phía v16.
+
+**Tiên nghiệm "nền bầu chọn không cược vào một arm nhiễu" sai ở đây.** Nó đúng ở v13 vì nền
+lúc đó là một arm đơn. Ở v16 nền bị thay là bản đã bầu rồi và đã vá ba lượt (`nostruct`, thang
+lại, lấp). Bầu lại trên tập arm không cùng chất lượng thì phiếu của arm kém có trọng số bằng
+phiếu của arm tốt, nên nó pha loãng cái đã tích được. Bầu chọn là công cụ khởi đầu, không phải
+công cụ tinh chỉnh.
+
+### v17: chỉ 38 ô, chọn theo dấu hiệu nhân quả bắt buộc
+
+Về nền v15, và chỉ thay những ô có chứng cứ tại chỗ rằng v15 đọc sai cột. Tiêu chí không dùng
+nhãn, và cụ thể là: `pandas_query` của v15 gọi đúng tên một cột mà bản sửa header xoá tên đó đi,
+nghĩa là cái tên ấy không xác định được kỳ. Thực tế nó gọi `Tại ngày`, `Năm kết thúc ngày`,
+`Đơn vị tính: triệu VND`, và cả `Unnamed: 4`.
+
+| bước sàng | còn |
+|---|---|
+| arm `fix` khác v15 | 382 |
+| trong đó query đọc bảng mà bản sửa thực sự đổi | 63 |
+| trong đó v15 gọi đúng cột bị đổi tên (S2) | 52 |
+| trong đó đáp án mới không tự nó chắc chắn sai | **38** |
+
+Bước cuối làm cho phép thay thành một phía: 14 ô bị loại vì số mới bằng 0 hay vượt biên độ, tức
+thay vào thì chắc chắn sai. Số query phải literalize khi đóng gói rơi 105 → 67.
+
+Trên nhãn: 56 so với 56, D=2, một đổi mỗi chiều. Không có tin gì, và ở mẫu số 38 thì đúng là
+không thể có. **Mốc đăng ký trước:** 38 ô đổi nên `D ≤ 38` và `SD ≤ 6,2`. Đọc `|Δ| ≥ 8` là tín
+hiệu 2 SD theo chiều của nó; `|Δ| ≤ 7` là không phân giải được và khi đó tiêu chí nhân quả này
+coi như hết đường, không nới ngưỡng để cứu.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.
