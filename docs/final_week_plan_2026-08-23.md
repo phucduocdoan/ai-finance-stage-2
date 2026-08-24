@@ -675,6 +675,76 @@ luận là EV, không phải phép đo. Thêm `selection_facts` (20%) vào tiêu
 Sau v14 thì rổ chắc chắn sai còn **11 ô** và không arm nào cứu được. Đổi thang còn 0 câu.
 Đường hậu kỳ trên 7 arm hiện có đã cạn thật; muốn tiếp phải có **arm mới**.
 
+## Header lệch cột: con số cũ của tôi sai gấp 6 lần
+
+Tôi từng viết 187 câu bị lỗi lệch header. Sai. Bộ dò đó đọc CSV thô, nên nó đếm cả những
+bảng repo đã sửa xong và đếm cột nhãn dòng `Unnamed: 0` bình thường như một khuyết tật.
+
+Đo lại sau `load_frame`, tức là đúng chỗ mô hình nhìn thấy:
+
+- Dấu hiệu cứng, câu hỏi tên một cột số mà nhận về chữ: **31/1012 câu**.
+- Dấu hiệu cơ học, còn một cột `Unnamed:` ở vị trí > 0 vẫn mang dữ liệu: **145/1012 câu**,
+  rải trên **171/1365 bảng** mà lượt v13 thực sự truy vấn.
+- Trên tập nhãn, nhóm trích các bảng đó đúng 7/21 = 33%, phần còn lại 48/98 = 49%.
+  Khoảng cách 16pp nhưng n = 21 nên sai số rất rộng.
+
+171 bảng đó có hai hình dạng khác nhau, và mỗi hình cần một hàm riêng.
+
+**Dòng 0 là hàng header thứ hai, các leaf dồn sát trái** (144 bảng, 117 câu).
+`repair_shifted_multilevel_header` bỏ qua vì phép tìm biên nhóm của nó đòi leaf đầu lặp lại
+đúng một lần cho mỗi cột có tên, tức là mọi cột có tên phải là một nhóm. Layout bất đối xứng
+phổ biến lại là ba cột đơn cộng một nhóm. `repair_group_leaf_header` xử lý ca này.
+
+**Dòng 0 là dữ liệu thật, mọi dòng lệch phải một ô** (26 bảng, 30 câu, hình của q214).
+`repair_right_shifted_columns` xử lý ca này.
+
+Chốt an toàn cho phép gán leaf theo vị trí: **đúng một cột có tên được nằm trong vùng leaf**.
+Hai cột trở lên nghĩa là các nhóm có bề rộng, và vị trí không còn nói được leaf nào thuộc nhóm
+nào. `ACB_financial_statements_2019_separate|97` là phản ví dụ đã buộc tôi thêm chốt này: dòng
+0 mang `Quá hạn`, `Trong hạn` và chú thích đơn vị `Đơn vị: Triệu VND`, còn `Quá hạn` thật ra
+trải hai trong tám dải kỳ hạn. Không có chốt, nó sinh ra tên `Đơn vị: Triệu VND | Đến 1 tháng`.
+
+An toàn kiểm ba đường. Hai hàm mới chỉ chạy sau khi hai hàm cũ từ chối, và cả hai đòi một cột
+mang dữ liệu vẫn còn thiếu tên, nên bảng đang được sửa đúng thì không đổi. Đo trên cả 1365
+bảng: 115 bảng đổi, và **không bảng nào** trong đó trước đây đã có tên cho mọi cột mang dữ
+liệu. `scripts/build_submission.py:227` tự đóng gói `load_frame(tid).to_csv(...)` vào bài nộp,
+nên người chấm chạy query trên đúng bảng đã sửa, đổi tên cột không thể gây `KeyError` lúc chấm.
+
+Kiểm end to end trên q214: ô từng trả về chuỗi `'VI.1'` giờ trả `1.283930e+13`, và
+`1.283930e+13 / 1e11 = 128.39` khớp gold đúng từng chữ số.
+
+Hai test đổi kết quả nhưng là cải thiện, không phải hồi quy, và tôi đã kiểm bằng `git stash`
+trước khi sửa test. Trên `NVL_financial_statements_2022_consolidated|8` cột so sánh từ
+`Unnamed: 4` thành `Tại ngày 31 tháng 12 năm | 2021 VND`, nên `column_years` thôi suy năm
+(nó cố ý trả `{}` khi mọi cột tiền đã tự mang năm) và `build_candidates` chỉ còn trả kỳ được
+hỏi. Dòng header rác rời khỏi vị trí 0 nên chỉ số dòng lùi một.
+
+Khuyết còn lại, ghi vào commit chứ không sửa: bản sửa của tôi kích hoạt trên
+`FTS_financial_statements_2018|22` và gán tiền tố nhóm `Số đầu năm` cho 4 cột nó không sở hữu
+(9 cột dữ liệu trên 5 tên header). Cả trạng thái cũ và mới đều không thỏa check đang fail sẵn ở
+đó, nên đây không phải hồi quy, nhưng cũng chưa phải đúng.
+
+Commit `73c1516`. Tham số nhiệt độ và seed (`LLM_TEMPERATURE`, `LLM_SEED`) commit `ed49141`.
+
+### Phạm vi chạy lại, và mốc đăng ký trước khi xem số
+
+Prompt hiển thị bản xem trước bảng dựng từ `load_frame`, nên mọi câu **truy xuất** một bảng đã
+đổi đều có thể đổi đáp án, không chỉ 103 câu trích dẫn một bảng. Phạm vi thật là **385 câu**.
+
+Chạy lại với env rỗng, tức đúng cấu hình của arm `head`, để so cặp sạch với
+`full1012_head.jsonl`. Trên 385 câu đó: v13 có 5 ô đáp 0.0 và 8 ô chắc chắn sai, 55 câu có
+nhãn, v13 đúng 21/55 (38%) và `head` đúng 17/55 (31%).
+
+Mốc đăng ký trước, gọi D là số câu có nhãn mà tính đúng sai khác nhau giữa hai lượt, Net là
+(sai thành đúng) trừ (đúng thành sai):
+
+- Nhận đổi hai chiều toàn bộ 385 đáp án chỉ khi **Net ≥ √D**.
+- Không đạt thì dùng một chiều qua `fill_from_arms.py`, chỉ lấp ô chắc chắn sai, cộng thêm
+  lượt này làm một phiếu nữa trong bầu chọn đã sinh ra v13.
+- Cửa không cần nhãn, hướng cứng: số câu có `errors` chứa `could not convert string to float`
+  hoặc `KeyError` **không được tăng**. Tăng là bằng chứng bản sửa làm hỏng đường đọc bảng, bất
+  kể điểm nhãn nói gì.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.
@@ -697,8 +767,9 @@ vào đường đi mặc định trước khi nó đo được điểm.
 
 ## Việc còn nợ, không nằm trong đường tới điểm
 
-- `docs/l5_screening_cause_2026-08-23.md` chưa viết. 27 id lớp L5 đã có; tôi đã cảnh báo q214
-  và q336 trông như câu tra một công ty bị heuristic phân tier theo text gán sai.
+- `docs/l5_screening_cause_2026-08-23.md` chưa viết. 27 id lớp L5 đã có. Tôi từng đoán q214 và
+  q336 bị heuristic phân tier theo text gán sai; với q214 thì đoán đó sai, nguyên nhân thật là
+  header lệch phải một ô, đã sửa ở `73c1516`. 26 id còn lại chưa truy nguyên.
 - `tests/test_query_execution.py` có 2 lỗi có sẵn, chưa đối chiếu với `ebbe531`. Đã xác nhận
   giống nhau từng byte trước và sau công việc phiên này.
 - `docs/CELL_LOCATOR_STATUS.md` còn khuyến nghị "giữ cờ OFF", lạc hậu từ `119729d`.
