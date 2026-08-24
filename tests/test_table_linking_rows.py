@@ -40,13 +40,15 @@ check("identical leaf labels are told apart by path", profiles[5].path_text != p
 check("value rows are not section headers", not profiles[13].is_section_header and profiles[13].has_value)
 check("section header keeps only its own ancestors", profiles[11].path_text.endswith("> Giá trị còn lại:"))
 
-# A flat balance sheet must be left alone: every row is its own leaf, and the
-# spilled `2021 VND` header row names no section.
+# A flat balance sheet must be left alone: every row is its own leaf. The spilled
+# `2021 VND` header row used to sit here as row 0 and shift every index by one;
+# `repair_group_leaf_header` now folds it into the column names, so the first row
+# of this frame is real data.
 NVL_BALANCE_SHEET = "NVL_financial_statements_2022_consolidated|8"
 flat = build_row_profiles(NVL_BALANCE_SHEET)
 check("flat statement gets no section headers", not any(p.is_section_header for p in flat.values()))
 check("flat statement rows carry no path", all(not p.path for p in flat.values()))
-check("flat statement leaf label is unchanged", flat[18].path_text == "Chi phí xây dựng cơ bản dở dang")
+check("flat statement leaf label is unchanged", flat[17].path_text == "Chi phí xây dựng cơ bản dở dang")
 
 
 def profiles_from(rows: list[list[object]], columns: list[str]) -> dict[int, LinkedRowProfile]:

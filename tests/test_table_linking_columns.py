@@ -38,17 +38,21 @@ check(
 )
 
 # A balance sheet whose value column lost its year at the OCR line break, next to
-# two numeric identifier columns.
+# two numeric identifier columns. `repair_group_leaf_header` puts the year back from
+# the spilled header row, so both periods are named and `column_years` has nothing
+# left to infer -- that is why `resolved_year` is None here now.
 NVL_BALANCE_SHEET = "NVL_financial_statements_2022_consolidated|8"
+NVL_CURRENT = "Tại ngày 31 tháng 12 năm | 2022 VND"
+NVL_PRIOR = "Tại ngày 31 tháng 12 năm | 2021 VND"
 nvl = {profile.name: profile for profile in build_column_profiles(NVL_BALANCE_SHEET)}
 check("Mã số column is an identifier", nvl["Mã số"].is_identifier)
 check("Thuyết minh column is an identifier", nvl["Thuyết minh"].is_identifier)
-check("value column is not an identifier", not nvl["Tại ngày 31 tháng 12 năm"].is_identifier)
+check("value column is not an identifier", not nvl[NVL_CURRENT].is_identifier)
+check("both periods are named, so neither needs a guessed year", set(nvl) >= {NVL_CURRENT, NVL_PRIOR})
 check(
-    "value column recovers the report year from its period wording",
-    nvl["Tại ngày 31 tháng 12 năm"].resolved_year == 2022,
+    "a named year is not repeated as a resolved one",
+    nvl[NVL_CURRENT].resolved_year is None and nvl[NVL_PRIOR].resolved_year is None,
 )
-check("comparative column keeps no guessed year", nvl["Unnamed: 4"].resolved_year is None)
 
 # OCR drops the space in these headers often enough to matter.
 nvl_2020 = {profile.name: profile for profile in build_column_profiles("NVL_financial_statements_2020_consolidated|7")}
@@ -79,10 +83,11 @@ check(
 )
 cip = [cell for cell in nvl_rows if "xây dựng cơ bản dở dang" in cell.row_label]
 check("construction-in-progress row still yields candidates", bool(cip))
+# Both periods carrying their own year is stronger than outranking: the comparative
+# column no longer reaches the candidate list for a `current` request at all.
 check(
-    "the year-resolved column outranks its comparative sibling",
-    max(cell.column_score for cell in cip if cell.column == "Tại ngày 31 tháng 12 năm")
-    > max(cell.column_score for cell in cip if cell.column == "Unnamed: 4"),
+    "only the asked-for period becomes a candidate",
+    {cell.column for cell in cip} == {NVL_CURRENT},
 )
 
 groups = build_column_group_candidates(

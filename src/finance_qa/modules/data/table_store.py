@@ -10,6 +10,8 @@ import pandas as pd
 from finance_qa.core.paths import TABLES_DIR
 from finance_qa.modules.tools.dataframe import (
     normalize_frame,
+    repair_group_leaf_header,
+    repair_right_shifted_columns,
     repair_shifted_bank_header,
     repair_shifted_multilevel_header,
 )
@@ -33,6 +35,10 @@ class CsvTableStore:
         raw = pd.read_csv(self.source_csv(table_id), dtype=str, keep_default_na=False)
         repaired = repair_shifted_bank_header(raw)
         repaired = repair_shifted_multilevel_header(repaired)
+        # Both fallbacks require the header to still be missing a name for a column
+        # that carries data, so they cannot fire on a frame the two above rebuilt.
+        repaired = repair_group_leaf_header(repaired)
+        repaired = repair_right_shifted_columns(repaired)
         min_ratio = 0.25 if len(repaired) <= 5 else 0.6
         return normalize_frame(repaired, min_ratio=min_ratio)
 

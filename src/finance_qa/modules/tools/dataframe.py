@@ -172,8 +172,113 @@ def repair_shifted_multilevel_header(df: pd.DataFrame) -> pd.DataFrame:
     out.columns = repaired
     return out
 
+def repair_group_leaf_header(df: pd.DataFrame) -> pd.DataFrame:
+    """Name the trailing columns from a leaf header row when only the last group spans.
+
+    ``repair_shifted_multilevel_header`` requires every named column to be a group with
+    at least one leaf, which is the symmetric layout. The common asymmetric one is
+    ``STT | Chỉ tiêu | Thuyết minh | Tại ngày`` where only `Tại ngày` spans two periods:
+    its leaves (`31.12.2018Triệu VND`, `31.12.2017Triệu VND`) sit flush left in row 0,
+    so the period columns come out ``Unnamed: n`` and a query for `Tại ngày` silently
+    reads whichever period happened to land there. 144 of the 1,365 tables the v13 run
+    actually queried are shaped that way, and on the labelled set the questions citing
+    them score 33% against 49% for the rest.
+
+    The leaves fill the rightmost ``len(leaves)`` columns, and each takes the nearest
+    name at or left of its own position as a group prefix, so the symmetric layout comes
+    out the same way the older function builds it. This runs only after that function
+    declined, so tables it already handles are untouched.
+    """
+    if df.empty or len(df.columns) < 3:
+        return df
+    cols = [str(col) for col in df.columns]
+    leaves = _shifted_leaves(df)
+    if leaves is None or not 1 <= len(leaves) < len(cols):
+        return df
+    start = len(cols) - len(leaves)
+    body = df.iloc[1:]
+    # Only worth doing when a data-carrying column has no name, and every such column
+    # has to fall inside the span the leaves cover; otherwise the shortfall is
+    # something else and renaming would just relabel the wrong columns.
+    unnamed_data = [
+        i
+        for i, col in enumerate(cols)
+        if i > 0 and col.startswith("Unnamed:") and not _filled(body.iloc[:, i]).empty
+    ]
+    if not unnamed_data or min(unnamed_data) < start:
+        return df
+    # Exactly one group, so a leaf can take the name at its own position. Two or more
+    # named columns inside the span means the groups have widths, and positions no
+    # longer say which leaf belongs to which group: in
+    # `ACB_financial_statements_2019_separate|97` the row-0 labels are `Quá hạn`,
+    # `Trong hạn` and the unit annotation `Đơn vị: Triệu VND`, while `Quá hạn` really
+    # spans the first two of eight maturity buckets. That layout is what the boundary
+    # search in `repair_shifted_multilevel_header` is for; leave it there.
+    if sum(1 for col in cols[start:] if not col.startswith("Unnamed:")) != 1:
+        return df
+
+    repaired = list(cols[:start])
+    for offset, leaf in enumerate(leaves):
+        i = start + offset
+        group = next(
+            (cols[j] for j in range(i, -1, -1) if not cols[j].startswith("Unnamed:")), ""
+        )
+        repaired.append(f"{group} | {leaf}" if group else leaf)
+    if len({name.casefold() for name in repaired}) != len(repaired):
+        return df
+    out = body.reset_index(drop=True).copy()
+    out.columns = repaired
+    return out
+
+
+# Names a label column can carry. Used to find the one column whose content decides
+# whether the whole frame is shifted: it is the only column whose expected content
+# (long free text) is unmistakable from its name.
+_LABEL_NAMES = ("chỉ tiêu", "khoản mục", "nội dung", "diễn giải", "danh mục", "tài sản")
+
+
+def repair_right_shifted_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Shift every column name one place right when the header lost its stub cell.
+
+    ``DTK_financial_statements_2024_consolidated|9`` has the header
+    ``CHỈ TIÊU,Mã số,Thuyết minh,Số năm nay,Số năm trước,`` -- five names and a trailing
+    empty -- over rows carrying six values, the first of which is an unheaded ordinal.
+    Every name therefore sits one column left of its data: `Số năm nay` holds the note
+    reference `VI.1` and the figure asked for is under `Số năm trước`. q214 fails on
+    exactly that, with ``could not convert string to float: 'VI.1'`` in its errors.
+
+    ``repair_shifted_bank_header`` covers this only when column 0 is `Unnamed:` or the
+    header opens with the literal `STT | Chỉ tiêu | Thuyết minh` triple, and neither
+    holds here because the label name landed in column 0.
+
+    The evidence for the shift is the label column: a column named `Chỉ tiêu` that holds
+    no free text while the column to its right does can only be misaligned. Combined
+    with a single trailing unnamed column that carries data, the correction is forced.
+    """
+    cols = [str(col) for col in df.columns]
+    if df.empty or len(cols) < 4:
+        return df
+    if not cols[-1].startswith("Unnamed:") or _filled(df.iloc[:, -1]).empty:
+        return df
+    if any(col.startswith("Unnamed:") for col in cols[:-1]):
+        return df  # more than one name missing: not a one-cell shift
+    shifted = any(
+        any(key in col.casefold() for key in _LABEL_NAMES)
+        and _long_text_ratio(df.iloc[:, i]) < 0.25
+        and _long_text_ratio(df.iloc[:, i + 1]) >= 0.5
+        for i, col in enumerate(cols[:-1])
+    )
+    if not shifted:
+        return df
+    out = df.copy()
+    out.columns = ["STT", *cols[:-1]]
+    return out
+
+
 __all__ = [
     "normalize_frame",
+    "repair_group_leaf_header",
+    "repair_right_shifted_columns",
     "repair_shifted_bank_header",
     "repair_shifted_multilevel_header",
 ]

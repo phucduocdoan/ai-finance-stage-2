@@ -12,7 +12,11 @@ import io
 
 import pandas as pd
 
-from finance_qa.modules.tools.dataframe import repair_shifted_multilevel_header
+from finance_qa.modules.tools.dataframe import (
+    repair_group_leaf_header,
+    repair_right_shifted_columns,
+    repair_shifted_multilevel_header,
+)
 
 
 def frame(csv: str) -> pd.DataFrame:
@@ -122,3 +126,78 @@ Giá trị ghi số,694.761,Giá trị ghi số,519.751,
 Tiền mặt,694.761,694.761,519.751,519.751
 """
     assert repair_shifted_multilevel_header(frame(csv)).equals(frame(csv))
+
+
+def test_chi_nhom_cuoi_co_leaf():
+    """ACB_financial_statements_2018_consolidated|2.
+
+    Ba cột đầu là cột đơn, chỉ `Tại ngày` trải hai kỳ, nên leaf đầu không lặp lại và
+    `repair_shifted_multilevel_header` bỏ qua. Kỳ 2017 khi đó tên là `Unnamed:`, và hỏi
+    `Tại ngày` trả về 2018 mà không báo lỗi gì.
+    """
+    df = repair_group_leaf_header(
+        frame(
+            """
+STT,Chỉ tiêu,Thuyết minh,Tại ngày,
+31.12.2018Triệu VND,31.12.2017Triệu VND,,,
+A,TÀI SẢN,,,
+I,"Tiền mặt, vàng bạc, đá quý",4,6.129.169,4.851.710
+"""
+        )
+    )
+    assert list(df.columns) == [
+        "STT",
+        "Chỉ tiêu",
+        "Thuyết minh",
+        "Tại ngày | 31.12.2018Triệu VND",
+        "Tại ngày | 31.12.2017Triệu VND",
+    ]
+    assert df.iloc[1]["Tại ngày | 31.12.2017Triệu VND"] == "4.851.710"
+    assert len(df) == 2
+
+
+def test_bo_qua_khi_moi_cot_du_lieu_da_co_ten():
+    """Không cột nào mang dữ liệu mà thiếu tên thì không có gì phải sửa."""
+    csv = """
+STT,Chỉ tiêu,Số cuối năm,Số đầu năm
+Ghi chú,,,
+I,Tiền mặt,694.761,519.751
+"""
+    assert repair_group_leaf_header(frame(csv)).equals(frame(csv))
+
+
+def test_dich_ten_cot_sang_phai_khi_header_thieu_o_goc():
+    """DTK_financial_statements_2024_consolidated|9, câu 214.
+
+    Header có 5 tên và một ô rỗng cuối, dữ liệu có 6 giá trị, giá trị đầu là số thứ tự
+    không có tên. `Số năm nay` vì thế mang mã thuyết minh `VI.1` và câu 214 chết với
+    `could not convert string to float: 'VI.1'`.
+    """
+    df = repair_right_shifted_columns(
+        frame(
+            """
+CHỈ TIÊU,Mã số,Thuyết minh,Số năm nay,Số năm trước,
+1.,Doanh thu bán hàng và cung cấp dịch vụ,01,VI.1,12.839.301.284.671,11.830.033.488.478
+2.,Các khoản giảm trừ doanh thu,02,,-,-
+"""
+        )
+    )
+    assert list(df.columns) == [
+        "STT",
+        "CHỈ TIÊU",
+        "Mã số",
+        "Thuyết minh",
+        "Số năm nay",
+        "Số năm trước",
+    ]
+    assert df.iloc[0]["Số năm nay"] == "12.839.301.284.671"
+
+
+def test_bo_qua_khi_cot_nhan_dung_cho():
+    """Cột `Chỉ tiêu` đang mang chữ thật thì bảng không lệch, dù cột cuối vô danh."""
+    csv = """
+Chỉ tiêu,Mã số,Số năm nay,Số năm trước,
+Doanh thu bán hàng và cung cấp dịch vụ,01,12.839.301.284.671,11.830.033.488.478,
+Giá vốn hàng bán và dịch vụ đã cung cấp,11,11.611.330.946.505,10.592.634.223.554,
+"""
+    assert repair_right_shifted_columns(frame(csv)).equals(frame(csv))
