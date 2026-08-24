@@ -813,6 +813,27 @@ Cửa dùng một chiều, đây là cách duy nhất tập 119 câu hợp lệ:
 `head` từ 6 câu trở lên** (khoảng 2 SE của hiệu số cặp). Không loại thì cho vào bầu chọn, và
 không đọc cửa này như bằng chứng arm đó tốt hơn. Hai arm: t=0.6 seed 11, t=0.9 seed 23.
 
+**Cửa chạy xong và không quyết được gì, vì `--measure` không phải 119 câu mà là 15.** Nó đọc
+`data/eval/planner_answers.json`, 15 id, và 15 id đó không giao với tập nhãn 119 câu chút nào.
+Tôi đã nói "cửa 119 câu" mà không kiểm.
+
+| trên 15 câu của `--measure` | |
+|---|---|
+| `head` | 10/15 |
+| `head_b` | 9/15 |
+| `all_on_a` | 10/15 |
+| t=0.6 seed 11 | 11/15 |
+| t=0.9 seed 23 | 10/15 |
+
+Cả năm nằm trong một câu của nhau. Không arm nào bị loại theo mốc, nhưng cũng không arm nào
+được chứng minh, và ở n = 15 thì không thể khác. Cửa này chỉ dùng được để phát hiện thảm họa,
+kiểu arm rơi xuống 3/15.
+
+Nên chạy thẳng một arm đủ 1012 câu ở t=0.6, để leaderboard quyết. Chọn 0.6 chứ không 0.9 vì
+tiên nghiệm, nhiệt độ thấp nhiễu ít hơn nên arm giữ được chất lượng gần greedy mà vẫn là một
+phiếu khác, **không** vì 11/15 hơn 10/15. Chênh một câu trên 15 là nhiễu thuần, và chọn theo nó
+đúng là cái bẫy mà mục `head` = 46 với `head_b` = 50 ở trên đã cảnh báo.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.
