@@ -745,6 +745,41 @@ Mốc đăng ký trước, gọi D là số câu có nhãn mà tính đúng sai 
   hoặc `KeyError` **không được tăng**. Tăng là bằng chứng bản sửa làm hỏng đường đọc bảng, bất
   kể điểm nhãn nói gì.
 
+### Lượt chạy lại đã xong, và cả hai cửa của tôi đều hỏng
+
+385 câu, env rỗng, commit `73c1516`, xong trong 42 phút. Đọc theo đúng mốc đã đăng ký thì nó
+qua cả hai: 4 sai→đúng, 0 đúng→sai, D = 4, Net = 4 ≥ √4; lỗi cứng 35 → 24.
+
+Rồi tôi chạy đối chứng, và đối chứng phá cả hai cửa.
+
+| trên 385 câu | đổi số | lỗi cứng | nhãn /55 | Net so `head` |
+|---|---|---|---|---|
+| `head` → `head_b`, **cùng cấu hình** | 178 (46%) | 35 → 22 | 17 → 20 | +3, D = 3 |
+| `head` → `shiftfix` | 195 (51%) | 35 → 24 | 17 → 21 | +4, D = 4 |
+
+Một lượt chạy lại **cùng cấu hình** cũng "qua" cả hai cửa, và còn giảm lỗi cứng nhiều hơn bản
+sửa. So `shiftfix` với `head_b` thay vì với `head` thì Net = +1 trên D = 5 (3 sai→đúng: 87,
+109, 214; 2 đúng→sai: 821, 853), không đạt √5 = 2,24. Trên tập nhãn, `shiftfix` được 21/55,
+đúng bằng `all_on_a` sẵn có.
+
+Thiết kế đo sai ở đâu: tôi chọn đúng 385 câu **churn nhất** (chúng truy xuất các bảng hay bị
+sửa), nên nền nhiễu ở nhóm này là 46%, không phải 6,7% của toàn bộ 1012. Và tôi so với một
+lượt nền duy nhất thay vì với cả hai lượt cùng cấu hình đang có. Mốc `Net ≥ √D` đúng về hình
+thức nhưng vô nghĩa khi D chỉ bằng 4: nó không phân biệt được bản sửa với việc bốc lại thăm.
+
+Theo đúng nhánh dự phòng đã đăng ký: **không đổi hai chiều**. Dùng `shiftfix` một chiều qua
+`fill_from_arms.py` và làm một phiếu.
+
+Nhưng bản sửa vẫn giữ trong code, và lý do không phải statistics mà là nhân quả. q214 kiểm
+được từng bước: ô đó từng trả về chuỗi `'VI.1'`, giờ trả `1.283930e+13`, và chia `1e11` ra
+128,39 khớp gold đúng từng chữ số. Nó chuyển sai→đúng so với **cả hai** lượt nền. Và trên 115
+bảng đổi, không bảng nào trước đó đã đặt tên đủ cho mọi cột mang dữ liệu, nên đây là cải thiện
+đơn điệu ở lớp đặt tên cột, bất kể điểm nhãn nói gì ở n = 55.
+
+Việc đang chạy: một arm đủ 1012 câu với bản sửa (`full1012_fix.jsonl`), tái dùng 385 câu đã có
+và chạy 627 câu còn lại. Đó mới là phép so 1012 với 1012, nơi nền nhiễu là 6,7% chứ không phải
+46%, và nó cũng là phiếu thứ tám cho v15.
+
 ### Arm nhiệt độ, và cửa phủ quyết đăng ký trước
 
 `ed49141` mở `LLM_TEMPERATURE` và `LLM_SEED`. Lý do muốn dùng: bầu chọn giữa các arm khác cấu
