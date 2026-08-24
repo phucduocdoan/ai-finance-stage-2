@@ -745,6 +745,19 @@ Mốc đăng ký trước, gọi D là số câu có nhãn mà tính đúng sai 
   hoặc `KeyError` **không được tăng**. Tăng là bằng chứng bản sửa làm hỏng đường đọc bảng, bất
   kể điểm nhãn nói gì.
 
+### Arm nhiệt độ, và cửa phủ quyết đăng ký trước
+
+`ed49141` mở `LLM_TEMPERATURE` và `LLM_SEED`. Lý do muốn dùng: bầu chọn giữa các arm khác cấu
+hình đã sinh +20 điểm (v12 → v13), còn bầu chọn giữa các lượt cùng cấu hình thì không, vì lượt
+chạy gần như tất định (~90%). Nhiệt độ > 0 là cách rẻ nhất để có phiếu thật sự khác nhau.
+
+Rủi ro đối xứng: với đáp án số chính xác, lấy mẫu ngẫu nhiên thường kém greedy. Nên chạy cửa
+119 câu trước, mỗi arm ~15 phút, thay vì trả 80 phút cho một arm đầy.
+
+Cửa dùng một chiều, đây là cách duy nhất tập 119 câu hợp lệ: **loại arm nếu điểm nhãn thấp hơn
+`head` từ 6 câu trở lên** (khoảng 2 SE của hiệu số cặp). Không loại thì cho vào bầu chọn, và
+không đọc cửa này như bằng chứng arm đó tốt hơn. Hai arm: t=0.6 seed 11, t=0.9 seed 23.
+
 ## Việc không làm, và lý do
 
 **Đổi model:** bỏ theo quyết định người dùng, giữ Qwen3.5-9B local. Lập luận giữ ở mục trên.
