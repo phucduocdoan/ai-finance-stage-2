@@ -780,6 +780,26 @@ Việc đang chạy: một arm đủ 1012 câu với bản sửa (`full1012_fix.
 và chạy 627 câu còn lại. Đó mới là phép so 1012 với 1012, nơi nền nhiễu là 6,7% chứ không phải
 46%, và nó cũng là phiếu thứ tám cho v15.
 
+### v15 lên bảng: 4 ô đổi, ăn 2
+
+| | ANSWER | EXECUTION |
+|---|---|---|
+| v14 | 0.3953 (400 câu) | 0.3933 (398) |
+| v15 | **0.3972 (402)** | **0.3953 (400)** |
+
+v15 = v14 + lấp một chiều từ `shiftfix` vào 4 trong 11 ô chắc chắn sai còn lại (q182, q214,
+q428, q576). Đúng 4 câu bị đổi trên toàn bài, nên **+2 thuộc hết về 4 ô đó**, tỉ lệ ăn 50%.
+Đây là phép đo sạch nhất trong tuần: mẫu số bằng 4, không có chỗ cho nhiễu trốn vào.
+
+Và nó xác nhận thứ tập nhãn không thấy được. Bản sửa header, đo trên 385 câu, cho Net = +1 so
+`head_b`, tức "không có tín hiệu". Đo trên 4 ô nó thực sự chạm, cho 2/4. Hai con số không mâu
+thuẫn: n = 55 với nền nhiễu 46% thì không nhìn ra được 2 câu.
+
+`EXECUTION` vẫn kém `ANSWER` đúng 2 câu như mọi lần. Kiểm trước khi nộp một rủi ro tôi tự tạo:
+query của v14 gọi tên cột cũ còn CSV đóng gói giờ là bản đã đổi tên, nên lớp bảo vệ trong
+`build_submission.py` phải thay query bằng hằng số. Số lượt phải thay **giảm** 108 → 105, nên
+đổi tên cột không làm mất điểm `EXECUTION` nào.
+
 ### Arm nhiệt độ, và cửa phủ quyết đăng ký trước
 
 `ed49141` mở `LLM_TEMPERATURE` và `LLM_SEED`. Lý do muốn dùng: bầu chọn giữa các arm khác cấu
