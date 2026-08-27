@@ -45,6 +45,20 @@ def build_solution(
             names[var] = candidate.table_id
             frames[var] = frame_loader(candidate.table_id)
     terms = [candidate.query(table_to_var[candidate.table_id], request.value_transform) for candidate in chosen]
+    first = chosen[0]
+    source_unit = first.source_unit
+    if request.operation in {"diff", "sum", "avg"}:
+        source_units = [candidate.source_unit for candidate in chosen]
+        if (
+            source_unit in MONEY_SCALE
+            and all(unit in MONEY_SCALE for unit in source_units)
+            and len(set(source_units)) > 1
+        ):
+            # Put additive terms in one money unit before executor-level scaling.
+            terms = [
+                scale_expression_func(term, candidate.source_unit, source_unit)
+                for term, candidate in zip(terms, chosen, strict=True)
+            ]
     if request.operation == "direct":
         query = terms[0]
     elif request.operation == "diff":
@@ -58,12 +72,11 @@ def build_solution(
     else:  # pragma: no cover - Literal keeps this unreachable
         raise RawTableLinkError(f"unsupported operation {request.operation}")
 
-    first = chosen[0]
     solution = PandasSolution(
         table_variable=table_to_var[first.table_id],
         target_row=str(first.row_position),
         target_column=first.column,
-        source_unit=first.source_unit,
+        source_unit=source_unit,
         target_unit=decision.target_unit if decision.target_unit != "unknown" else request.target_unit,
         pandas_query=query,
     )

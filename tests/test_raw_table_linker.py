@@ -116,6 +116,28 @@ FRAMES = {
         "NGUỒN VỐN": ["8. Vay ngắn hạn", "3. Vay dài hạn"],
         "Số cuối năm": [1958725949.0, 3581600405.0],
     }),
+    "HNG_financial_statements_2019_consolidated|6": pd.DataFrame({
+        "NGUỒN VỐN": ["C. NỢ PHẢI TRẢ", "I. Nợ ngắn hạn", "1. Phải trả người bán ngắn hạn"],
+        "Số cuối năm": [13542536476.0, 7912947521.0, 984872754.0],
+        "Ngàn VND Số đầu năm": [19855671686.0, 8513547223.0, 413725650.0],
+    }),
+    "HAG_financial_statements_2019_consolidated|34": pd.DataFrame({
+        "": [
+            "Phải trả người bán hàng hóa và dịch vụ",
+            "- Công ty Cổ phần Sản xuất Chế biến và Phân phối Nông nghiệp Thadi",
+            "- Khác",
+            "Phải trả nhà thầu xây dựng",
+            "Phải trả người bán khác",
+            "TỔNG CỘNG",
+        ],
+        "Số cuối năm": [991975634.0, 207569777.0, 784405857.0, 19491735.0, 3526393.0, 1014993762.0],
+        "Ngàn VND Số đầu năm": [463476493.0, 0.0, 463476493.0, 10293479.0, 138626.0, 473908598.0],
+    }),
+    "MPC_financial_statements_2019_consolidated|4": pd.DataFrame({
+        "": ["NGUỒN VỐN", "NỢ PHẢI TRẢ (300 = 310 + 330)", "Nợ ngắn hạn", "Phải trả người bán"],
+        "31/12/2019 VND": [None, 3042476711349.0, 2985424030572.0, 160789544795.0],
+        "1/1/2019 VND": [None, 5367904149095.0, 4119261773165.0, 412563976912.0],
+    }),
 }
 
 META = {
@@ -407,6 +429,74 @@ decision = raw.RawLinkerDecision(
 solution, frames, names, _ = raw.build_solution(request, decision, candidates)
 result = asyncio.run(aexecute(solution, "", frames, question=Q_AVG, names=names, max_repairs=0))
 check("avg executes and scales undeclared VND to million VND", abs(result["answer"] - 101.86) < 1e-9)
+
+Q_MIXED_AVG = (
+    "Hãy tính trung bình số dư khoản phải trả người bán ngắn hạn cuối năm 2019 "
+    "của CTCP Nông nghiệp Quốc tế Hoàng Anh Gia Lai, CTCP Hoàng Anh Gia Lai "
+    "và CTCP Tập đoàn Thủy sản Minh Phú theo đơn vị triệu đồng."
+)
+mixed_request = raw.RawLinkRequest(
+    operation="avg",
+    slots=[
+        raw.RawScopeSlot(ticker="HNG", year=2019),
+        raw.RawScopeSlot(ticker="HAG", year=2019),
+        raw.RawScopeSlot(ticker="MPC", year=2019),
+    ],
+    target_unit="million_vnd",
+)
+mixed_candidates = [
+    raw.RawCellCandidate(
+        id="c1",
+        slot_key="HNG:2019",
+        table_id="HNG_financial_statements_2019_consolidated|6",
+        ticker="HNG",
+        year=2019,
+        row_position=2,
+        row_label="1. Phải trả người bán ngắn hạn",
+        column="Số cuối năm",
+        value=984872754.0,
+        source_unit="thousand_vnd",
+        score=0.95,
+    ),
+    raw.RawCellCandidate(
+        id="c2",
+        slot_key="HAG:2019",
+        table_id="HAG_financial_statements_2019_consolidated|34",
+        ticker="HAG",
+        year=2019,
+        row_position=5,
+        row_label="TỔNG CỘNG",
+        column="Số cuối năm",
+        value=1014993762.0,
+        source_unit="thousand_vnd",
+        is_total_row=True,
+        score=0.95,
+    ),
+    raw.RawCellCandidate(
+        id="c3",
+        slot_key="MPC:2019",
+        table_id="MPC_financial_statements_2019_consolidated|4",
+        ticker="MPC",
+        year=2019,
+        row_position=3,
+        row_label="Phải trả người bán",
+        column="31/12/2019 VND",
+        value=160789544795.0,
+        source_unit="vnd",
+        score=0.95,
+    ),
+]
+mixed_decision = raw.RawLinkerDecision(
+    supported=True,
+    operation="avg",
+    candidate_ids=[candidate.id for candidate in mixed_candidates],
+    target_unit="million_vnd",
+    confidence=0.95,
+)
+solution, frames, names, _ = raw.build_solution(mixed_request, mixed_decision, mixed_candidates)
+result = asyncio.run(aexecute(solution, "", frames, question=Q_MIXED_AVG, names=names, max_repairs=0))
+check("mixed-unit avg scales each additive term before averaging", abs(result["answer"] - 720218.686932) < 1e-6)
+check("mixed-unit avg keeps the final executor scale", result["diag"]["source_unit"] == "thousand_vnd")
 
 filtered, reason = raw.build_request({
     **state_avg,

@@ -50,12 +50,23 @@ UNITS = frozenset(MONEY_SCALE) | SCALE_FREE_UNITS
 # bare-VND pattern. Every money pattern requires a currency word after the
 # magnitude word, because a bare `tỷ` matches "tỷ lệ" (= ratio) — that mistake
 # inflated an earlier measurement of billion-unit tables from 0.2% to 19.0%.
+#
+# Thousand has two spellings and only one of them was here. HAG and HNG print
+# every statement with a column named "Ngàn VND Số đầu năm"; `ngh[ìi]n` misses
+# "ngàn", the bare-VND pattern below then claims the column, and the table is
+# read as raw VND. qid139 asks HAG's 2020 net revenue in nghìn đồng and gold is
+# 3.176.645.956 against a submitted 3.176.645,956 — exactly 1000x, from this one
+# missing alternative. The OCR also sometimes renders the same banner as
+# "Ngân VND", which must be treated as the same scale when followed by a currency
+# word. 1,832 tables in the corpus declare "ngàn <currency>" and nothing else,
+# across 50 reports, all of them HAG (1,070), HNG (754) or SNZ (8).
+_THOUSAND = r"(?:ngh[ìi]n|ng[àaâ]n)"
 _MONEY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("trillion_vnd", re.compile(r"ngh[ìi]n\s*t[ỷy]\s*(?:đ[ồô]ng|vnd|vnđ)", re.I)),
+    ("trillion_vnd", re.compile(rf"{_THOUSAND}\s*t[ỷy]\s*(?:đ[ồô]ng|vnd|vnđ)", re.I)),
     ("hundred_billion_vnd", re.compile(r"tr[ăa]m\s*t[ỷy]\s*(?:đ[ồô]ng|vnd|vnđ)", re.I)),
     ("billion_vnd", re.compile(r"t[ỷy]\s*(?:đ[ồô]ng|vnd|vnđ)", re.I)),
     ("million_vnd", re.compile(r"tri[ệê]u\s*(?:đ[ồô]ng|vnd|vnđ)", re.I)),
-    ("thousand_vnd", re.compile(r"ngh[ìi]n\s*(?:đ[ồô]ng|vnd|vnđ)", re.I)),
+    ("thousand_vnd", re.compile(rf"{_THOUSAND}\s*(?:đ[ồô]ng|vnd|vnđ)", re.I)),
     ("vnd", re.compile(r"(?:^|[^\w])(?:vnd|vnđ|đ[ồô]ng)(?:[^\w]|$)", re.I)),
 )
 
@@ -140,6 +151,44 @@ def unit_in_declaration(page_text: str) -> tuple[str | None, str]:
     return None, ""
 
 
+# A scale banner with no "Đơn vị tính:" in front of it. HAG's and HNG's auditor
+# prints the scale as a bare run in the page header — "... kết thúc ngày 31 tháng
+# 12 năm 2019 Ngàn VND Nguyễn Văn Tiên ..." — so `unit_in_declaration` never sees
+# it and the table falls through to the raw-VND default. qid919 averages three
+# payables balances and two of them come from pages like that; gold is 720.218,69
+# triệu đồng against a submitted 54.263,14, because the two ngàn-VND terms were
+# added to a VND term as if all three matched.
+#
+# Thousand only, and that restriction is measured rather than cautious. Extending
+# the same rule to `triệu` and `tỷ` fires on 40 tables in the referenced set and is
+# wrong on all 40, because those scales appear in note prose that this gate cannot
+# tell from a banner: SCR's page says "nắm giữ tỷ lệ ... VND" and OGC's says
+# "... nghìn tỷ đồng", which would rescale a raw-VND table by 1e9 and 1e12. The
+# thousand scale is the one with no other route in: `triệu` and `tỷ` tables
+# overwhelmingly print an "Đơn vị tính:" line or a grid banner, and HAG/HNG print
+# neither.
+#
+# Gated on the preceding token: a magnitude word after an *amount* is prose about
+# one figure, not a declaration about the table. A bare four-digit year does not
+# disqualify it, because the banner sits at the end of a statement title and that
+# title ends in a date: HAG's is "... cho năm tài chính kết thúc ngày 31 tháng 12
+# năm 2019 Ngàn VND". A formatted amount always carries a group separator, which
+# is what tells the two apart.
+_PAGE_BANNER = re.compile(rf"(\S+[ \t]+)?({_THOUSAND}[ \t]*(?:đ[ồô]ng|vnd|vnđ))", re.I)
+_AMOUNT_PREFIX = re.compile(r"(?<!\d)\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?\s*$|\d[\d.,]*[.,]\d+\s*$")
+
+
+def unit_in_page_banner(page_text: str) -> tuple[str | None, str]:
+    """Unit from a bare scale banner in the page text, skipping prose amounts."""
+    for match in _PAGE_BANNER.finditer(page_text or ""):
+        if _AMOUNT_PREFIX.search(match.group(1) or ""):
+            continue
+        unit = unit_in_text(match.group(0))
+        if unit:
+            return unit, f"page banner {match.group(2).strip()[:32]!r}"
+    return None, ""
+
+
 def detect_table_unit(df: pd.DataFrame, page_text: str = "") -> tuple[str | None, str]:
     """Unit declared anywhere in the table's banner rows, header, or page text.
 
@@ -170,7 +219,9 @@ def detect_table_unit(df: pd.DataFrame, page_text: str = "") -> tuple[str | None
     unit, where = unit_in_declaration(page_text)
     if unit:
         return unit, where
-    return weak or (None, "")
+    if weak:
+        return weak
+    return unit_in_page_banner(page_text)
 
 
 def detect_unit(
@@ -294,5 +345,6 @@ __all__ = [
     "strip_scale_factor",
     "unit_from_hint",
     "unit_in_declaration",
+    "unit_in_page_banner",
     "unit_in_text",
 ]

@@ -44,6 +44,8 @@ check("million: 'Đơn vị: triệu đồng'", units.unit_in_text("Đơn vị: 
 check("billion beats bare vnd", units.unit_in_text("tỷ đồng") == "billion_vnd")
 check("trillion beats billion", units.unit_in_text("nghìn tỷ đồng") == "trillion_vnd")
 check("thousand: 'nghìn đồng'", units.unit_in_text("Nghìn đồng") == "thousand_vnd")
+check("thousand: 'ngàn VND'", units.unit_in_text("Ngàn VND") == "thousand_vnd")
+check("thousand OCR: 'ngân VND'", units.unit_in_text("Ngân VND") == "thousand_vnd")
 check("bare vnd", units.unit_in_text("VND") == "vnd")
 # 'tỷ lệ' means "ratio"; matching a bare `tỷ` here inflated an earlier count of
 # billion-unit tables from 0.2% to 19.0%.
@@ -99,6 +101,20 @@ check("page declaration recovers an undeclared table", units.detect_table_unit(s
 check("page text without a declaration is ignored", units.detect_table_unit(silent, "Lãi 5 triệu cổ phiếu")[0] is None)
 check("declaration is read from page text", units.unit_in_declaration(PAGE)[0] == "million_vnd")
 check("no declaration in page text", units.unit_in_declaration("Báo cáo hợp nhất 2019")[0] is None)
+check(
+    "page banner recovers HAG/HNG thousand scale",
+    units.detect_table_unit(silent, "kết thúc ngày 31 tháng 12 năm 2019 Ngàn VND Nguyễn Văn Tiên")[0]
+    == "thousand_vnd",
+)
+check(
+    "page banner recovers OCR'd thousand scale",
+    units.detect_table_unit(silent, "kết thúc ngày 31 tháng 12 năm 2019 Ngân VND Nguyễn Văn Tiên")[0]
+    == "thousand_vnd",
+)
+check(
+    "page banner skips formatted prose amounts",
+    units.unit_in_page_banner("số dư tiền gửi ngân hàng 14.703.000 ngân VND tại BIDV")[0] is None,
+)
 # A declared table ignores the page: the grid is closer to the value than the page is.
 check("grid beats page text", units.detect_table_unit(df45, PAGE)[0] == "million_vnd")
 
@@ -568,5 +584,47 @@ check("the prompt carries the unit the question asked for", "triệu đồng" in
 check("a query reading nothing indexable still produces a prompt",
       "không xác định được" in verify.build_prompt("q", "42.0", 42.0, {}, {}))
 check("the verdict defaults to accepting", verify.Verdict().correct is True)
+
+# A false verdict without a reason is a broken verifier output, not a useful
+# instruction. q919 had a correct mixed-unit query before verify, then the empty
+# objection let revise drift into dropping the HAG/HNG thousand factors.
+from finance_qa.agents.finance import graph as graph_mod  # noqa: E402
+from finance_qa.agents.finance.config import FinanceAgentConfig  # noqa: E402
+
+calls = {"verify": 0, "revise": 0}
+
+
+async def fake_averify(*args, **kwargs):
+    calls["verify"] += 1
+    return verify.Verdict(correct=False, reason=""), "VERIFY_PROMPT"
+
+
+async def fail_arevise(*args, **kwargs):
+    calls["revise"] += 1
+    raise AssertionError("empty-reason verifier verdict should not revise")
+
+
+real_averify, real_arevise = graph_mod.averify, graph_mod.arevise
+graph_mod.averify, graph_mod.arevise = fake_averify, fail_arevise
+try:
+    verify_out = run(
+        graph_mod.make_verify_answer(FinanceAgentConfig(verify_answer=True))(
+            {
+                "question": "q",
+                "pandas_query": 'df1.iloc[0]["Số cuối năm"]',
+                "answer": 1.0,
+                "frames": {"df1": pd.DataFrame({"Số cuối năm": [1.0]})},
+                "names": {"df1": "ABC_financial_statements_2020_consolidated|1"},
+                "codegen_prompt": "PROMPT",
+                "diag": {"units": {}},
+            }
+        )
+    )
+finally:
+    graph_mod.averify, graph_mod.arevise = real_averify, real_arevise
+check("empty-reason verifier calls verify once", calls["verify"] == 1)
+check("empty-reason verifier does not call revise", calls["revise"] == 0)
+check("empty-reason verifier keeps the existing query", "pandas_query" not in verify_out)
+check("empty-reason verifier records why it skipped", verify_out["diag"]["verify"]["skipped"] == "empty_reason")
 
 print("tất cả PASS")

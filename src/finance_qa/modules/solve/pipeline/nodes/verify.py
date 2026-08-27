@@ -139,6 +139,25 @@ def make_verify_answer(
         if verdict.correct:
             return {**drop, "diag": {**(state.get("diag") or {}), "verify": {"correct": True}}}
 
+        if not verdict.reason.strip():
+            # A false verdict without an objection is not actionable. Letting
+            # `arevise` run anyway turns the verifier into a second generator,
+            # and q919 regressed that way: the original mixed-unit average was
+            # correct, while the empty-reason rewrite dropped the per-table
+            # thousand->VND factors.
+            return {
+                **drop,
+                "diag": {
+                    **(state.get("diag") or {}),
+                    "verify": {
+                        "correct": False,
+                        "reason": "",
+                        "skipped": "empty_reason",
+                    },
+                    "verify_kept": False,
+                },
+            }
+
         diag = {"verify": {"correct": False, "reason": verdict.reason, "before": query}}
         try:
             revised = await revise_func(prompt, query, verdict.reason)
