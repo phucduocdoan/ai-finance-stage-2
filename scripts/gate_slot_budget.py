@@ -24,8 +24,8 @@ from dataclasses import replace
 from pathlib import Path
 
 from finance_qa.agents.finance.config import FinanceAgentConfig
-from finance_qa.agents.finance.graph import codegen_budget
 from finance_qa.core.paths import QUESTION_METADATA_PATH
+from finance_qa.modules.solve.pipeline.evidence import codegen_budget
 
 SLOT = re.compile(r"^([A-Z0-9]+)_financial_statements_(20\d\d)")
 

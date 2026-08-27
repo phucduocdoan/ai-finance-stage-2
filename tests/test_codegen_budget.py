@@ -13,11 +13,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from finance_qa.agents.finance.config import FinanceAgentConfig  # noqa: E402
-from finance_qa.agents.finance.graph import codegen_budget  # noqa: E402
 from finance_qa.agents.finance.utils import (  # noqa: E402
     slot_round_robin,
     year_round_robin,
 )
+from finance_qa.modules.solve.pipeline.evidence import codegen_budget  # noqa: E402
 
 
 def check(name: str, condition: bool) -> None:
