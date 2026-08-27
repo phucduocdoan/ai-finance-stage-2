@@ -1,9 +1,0 @@
-
-232 câu đích percent/ratio chạy lại được
-  một/hai công ty    130 câu   có nhãn 5/15    trả > 1e6: 12   có phép chia: 117/130
-  sàng lọc           102 câu   có nhãn 1/16    trả > 1e6: 30   có phép chia: 76/102
-
-lớp sàng lọc trên 1012 câu: 210 câu (21%)
-  trong lớp   4/29
-  ngoài lớp   45/90
-  solver trong lớp: [('codegen', 23), ('selection_facts', 4), ('cell_locator', 1), ('raw_table_linker', 1)]

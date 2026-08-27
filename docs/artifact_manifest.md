@@ -41,11 +41,14 @@ Minimum keep set da ghi trong `docs/refactor_plan.md`:
 - `sofier_AI_FINANCE_snapshot/` (3.1G), `sofier_work/` (3.1G) - quyet dinh giu nguyen, khong dong
   (2026-08-27).
 
+## Da archive
+
+- `artifacts/runs_archive_2026-08-27.tar.gz` (26M, 602 file) - toan bo `artifacts/runs/*` ngoai
+  danh sach "Keep - runs" o tren, nen lai va xoa ban goc ngay 2026-08-27. `artifacts/runs/` con
+  lai 33 file, dung khop "Keep - runs".
+
 ## Ask before deleting
 
-- `artifacts/runs/*` ngoai danh sach "Keep - runs" o tren (~600 file con lai, phan lon la
-  probe/gate cu tu 2026-08-1x den 2026-08-2x) - giu de kip rollback/doi chieu neu can, nhung so
-  luong lon nen archive theo dot thay vi xoa thang.
 - Cac submission dir/zip day du con lai ngoai keep set: `submission_v2` .. `submission_v17` (tru
   `v17_unitfix`), `submission_v8_round2`, `submission_v9_sign`, `submission_v10_head`..`v16`,
   `submission_graph`..`_v5`, `submission_frozen`, `submission_patched`, `submission_solver_v7`,
