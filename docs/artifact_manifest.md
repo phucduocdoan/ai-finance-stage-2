@@ -36,10 +36,13 @@ Minimum keep set da ghi trong `docs/refactor_plan.md`:
 - `__pycache__/` (51 thu muc ngoai `.venv*`) va `.pytest_cache/` (1 thu muc) - build cache, tu sinh
   lai khi chay lai test/import.
 
+## Keep - snapshots
+
+- `sofier_AI_FINANCE_snapshot/` (3.1G), `sofier_work/` (3.1G) - quyet dinh giu nguyen, khong dong
+  (2026-08-27).
+
 ## Ask before deleting
 
-- `sofier_AI_FINANCE_snapshot/` (3.1G), `sofier_work/` (3.1G) - snapshot/tham chieu lon, chua ro
-  con dung de doi chieu hay khong. Can hoi truoc khi dong.
 - `artifacts/runs/*` ngoai danh sach "Keep - runs" o tren (~600 file con lai, phan lon la
   probe/gate cu tu 2026-08-1x den 2026-08-2x) - giu de kip rollback/doi chieu neu can, nhung so
   luong lon nen archive theo dot thay vi xoa thang.
