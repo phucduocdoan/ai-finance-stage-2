@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import ast
 import re
-import unicodedata
 from typing import Any, Literal, Mapping
 
 import pandas as pd
 from pydantic import BaseModel, Field
 
+from finance_qa.modules.solve.common.intent import norm as _norm
 from finance_qa.modules.solve.common.units import MONEY_SCALE, unit_from_hint
 from finance_qa.modules.solve.facts.structured_facts import (
     DERIVED_ALIASES,
@@ -33,7 +33,6 @@ from finance_qa.modules.solve.facts.table_profile import (
 
 Severity = Literal["info", "weak", "strong"]
 
-_NON_WORD = re.compile(r"[^a-z0-9]+")
 _YEAR = re.compile(r"(?:19|20)\d{2}")
 _PRIOR_PERIOD = re.compile(
     r"\b(?:dau nam|dau ky|nam truoc|ky truoc|01 01|1 1)\b"
@@ -86,12 +85,6 @@ _PERIOD_LABEL_TERMS = (
     "01 01",
 )
 _NOTE_REF = re.compile(r"^(?:[ivxlcdm]+|v)\s*\d+[a-z]?$")
-
-
-def _norm(text: object) -> str:
-    decomposed = unicodedata.normalize("NFD", str(text)).lower().replace("đ", "d")
-    without_marks = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
-    return _NON_WORD.sub(" ", without_marks).strip()
 
 
 def _literal_int(node: ast.AST) -> int | None:

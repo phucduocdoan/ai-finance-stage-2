@@ -16,6 +16,14 @@ from finance_qa.modules.solve.pipeline.outcome import done_payload
 _DF_VAR = re.compile(r"\bdf\d+\b")
 
 
+def evidence_for(names: Mapping[str, str]) -> list[dict]:
+    """Build the evidence-dict list `{variable, csv_path}` from a var->table_id map."""
+    return [
+        {"variable": var, "csv_path": f"data/{submission_csv_name(tid)}"}
+        for var, tid in names.items()
+    ]
+
+
 def emit_result(
     state: Mapping[str, Any],
     result: dict,
@@ -31,10 +39,7 @@ def emit_result(
     # already been narrowed to the *previous* query's variables -- a revision that
     # switches to another table would then ship without it (13 of 73 items).
     names = state.get("names") or {}
-    everything = [
-        {"variable": var, "csv_path": f"data/{submission_csv_name(tid)}"}
-        for var, tid in names.items()
-    ] or list(state.get("evidence") or [])
+    everything = evidence_for(names) or list(state.get("evidence") or [])
     # `\bdfN\b`, not `in`: a substring test reads df1 as used by `df10`, which was
     # harmless at 3 variables and is not once `find_rows` can bind more than nine.
     read = set(_DF_VAR.findall(result["pandas_query"]))
@@ -109,4 +114,4 @@ def emit_solver_result(
     }
 
 
-__all__ = ["emit_result", "emit_solver_result"]
+__all__ = ["emit_result", "emit_solver_result", "evidence_for"]

@@ -12,7 +12,7 @@ from finance_qa.modules.data.table_store import load_frame
 from finance_qa.modules.solve.common.columns import column_years
 from finance_qa.modules.solve.common.context import meta_for
 from finance_qa.modules.solve.common.intent import norm as _norm
-from finance_qa.modules.solve.solvers.cell_locator import PeriodIntent
+from finance_qa.modules.solve.solvers.cell_locator import PeriodIntent, _rank_bonus
 from finance_qa.modules.solve.solvers.raw_table_linking.request import _tokens
 from finance_qa.modules.solve.solvers.table_linking.schema import RawLinkRequest
 from finance_qa.modules.tools.numeric import parse_number
@@ -113,18 +113,6 @@ def _semantic_score(
             if phrase in query_norm:
                 score = max(score, value)
     return min(score, 1.0)
-
-
-def _rank_bonus(table_id: str, ranked: Sequence[str]) -> float:
-    try:
-        rank = ranked.index(table_id)
-    except ValueError:
-        return 0.0
-    if rank < 3:
-        return 0.08
-    if rank < 10:
-        return 0.04
-    return 0.0
 
 
 def _scoring_query_for_table(

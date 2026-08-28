@@ -22,7 +22,6 @@ index. Nothing here is persisted, so none of the protected artifacts in
 from __future__ import annotations
 
 import re
-import unicodedata
 from dataclasses import dataclass, field
 from typing import Iterable, Mapping, Sequence
 
@@ -30,6 +29,7 @@ import pandas as pd
 
 from finance_qa.modules.data.table_store import load_frame
 from finance_qa.modules.solve.common.context import meta_for
+from finance_qa.modules.solve.common.intent import norm as _norm
 from finance_qa.modules.solve.common.metric_hints import metric_search_labels
 from finance_qa.modules.solve.common.units import detect_table_unit
 
@@ -43,19 +43,11 @@ MIN_SCORE = 0.5
 # a caller that needs the whole grid asks for the grid instead.
 DEFAULT_LIMIT = 20
 
-_NON_WORD = re.compile(r"[^a-z0-9]+")
 _LABEL_COLUMN = re.compile(
     r"ch[iỉ]\s*ti[eê]u|kho[aả]n\s*m[uụ]c|n[oộ]i\s*dung|di[eễ]n\s*gi[aả]i|t[eê]n",
     re.I,
 )
 _AUX_COLUMN = re.compile(r"^(?:stt|so\s*thu\s*tu|ma\s*so|thuyet\s*minh|tm)$", re.I)
-
-
-def _norm(text: object) -> str:
-    """Lowercase, accent-free, punctuation-free form used for matching."""
-    decomposed = unicodedata.normalize("NFD", str(text)).lower().replace("đ", "d")
-    without_marks = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
-    return _NON_WORD.sub(" ", without_marks).strip()
 
 
 @dataclass(frozen=True)

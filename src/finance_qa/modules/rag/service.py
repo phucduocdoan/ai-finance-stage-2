@@ -10,9 +10,16 @@ from typing import Any
 from finance_qa.core.http import pool as loop_cache
 from finance_qa.core.http import run_sync
 from finance_qa.core.paths import RUNS_DIR
-from finance_qa.modules.rag.candidates import CandidateRetriever
+from finance_qa.modules.rag.candidates import (
+    PRIMARY_STATEMENT_TYPES,
+    CandidateRetriever,
+    add_primary_statements,
+)
 
-_PRIMARY = frozenset({"balance_sheet", "income_statement", "cash_flow", "equity_change"})
+# Alias kept for callers that import this private name directly
+# (artifacts/audits/diag_retrieval_stages.py); the four-value set itself now
+# lives in one place, `candidates.PRIMARY_STATEMENT_TYPES`.
+_PRIMARY = PRIMARY_STATEMENT_TYPES
 _retriever_lock = threading.Lock()
 _frozen: dict[int, list[str]] | None = None
 
@@ -80,14 +87,13 @@ def frozen_table_ids(question_id: int) -> list[str]:
 
 
 def _evidence(retriever: CandidateRetriever, pool, picks: list[str]) -> list[str]:
-    """Judge picks first, then the shortlisted primary statements they missed."""
-    chosen = set(picks)
-    primary = [
-        key
-        for key in pool.ranked
-        if retriever.statement_types.get(key) in _PRIMARY and key not in chosen
-    ]
-    return picks + primary
+    """Judge picks first, then the shortlisted primary statements they missed.
+
+    Same append-what's-missing operation as `add_primary_statements`, just at a
+    later stage: `picks` plays the role of the ranked list there, `pool.ranked`
+    the shortlist it draws unpicked primary statements from.
+    """
+    return add_primary_statements(picks, pool.ranked, retriever.statement_types)
 
 
 async def aretrieve_table_ids(

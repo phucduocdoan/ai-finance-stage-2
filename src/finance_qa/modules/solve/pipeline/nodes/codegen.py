@@ -4,14 +4,13 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from finance_qa.agents.finance.config import FinanceAgentConfig
-from finance_qa.modules.data.table_store import submission_csv_name
 from finance_qa.modules.solve.codegen.legacy import agenerate, build_prompt
 from finance_qa.modules.solve.codegen.execute import aexecute
 from finance_qa.modules.solve.codegen.screening import agenerate_screening
 from finance_qa.modules.solve.common.screening import is_screening
 from finance_qa.modules.solve.common.solution import PandasSolution
 from finance_qa.modules.solve.common.units import unit_from_hint
-from finance_qa.modules.solve.pipeline.emit import emit_result
+from finance_qa.modules.solve.pipeline.emit import emit_result, evidence_for
 from finance_qa.modules.solve.pipeline.evidence import codegen_budget, load_evidence
 from finance_qa.modules.solve.solvers.decompose import degenerate_query
 
@@ -28,10 +27,7 @@ def make_generate_pandas(config: FinanceAgentConfig):
             "evidence_tables": list(names.values()),
             "frames": frames,
             "names": names,
-            "evidence": [
-                {"variable": var, "csv_path": f"data/{submission_csv_name(tid)}"}
-                for var, tid in names.items()
-            ],
+            "evidence": evidence_for(names),
         }
         if not frames:
             return {
@@ -69,10 +65,7 @@ def make_generate_pandas(config: FinanceAgentConfig):
             # surfaced into `names`/`frames`.
             loaded = {**loaded, "names": names, "frames": frames,
                       "evidence_tables": list(names.values()),
-                      "evidence": [
-                          {"variable": var, "csv_path": f"data/{submission_csv_name(tid)}"}
-                          for var, tid in names.items()
-                      ]}
+                      "evidence": evidence_for(names)}
         except Exception as exc:  # noqa: BLE001 - reported, execute node handles the empty query
             # The prompt is handed on even though generation failed: the repair
             # call is the only remaining attempt, and a repair without the grids

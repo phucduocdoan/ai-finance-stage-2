@@ -9,7 +9,6 @@ solver or to codegen.
 from __future__ import annotations
 
 import re
-import unicodedata
 from typing import Any, Literal
 
 import pandas as pd
@@ -18,6 +17,7 @@ from pydantic import BaseModel, Field
 from finance_qa.modules.data.table_store import load_frame
 from finance_qa.modules.solve.common.columns import column_years, money_columns
 from finance_qa.modules.solve.common.context import meta_for, page_text
+from finance_qa.modules.solve.common.intent import norm as _norm
 from finance_qa.modules.solve.common.units import detect_column_unit, detect_table_unit
 from finance_qa.modules.solve.facts.structured_facts import metrics_in_text
 from finance_qa.modules.tools.numeric import NIL_MARKS, parse_number
@@ -25,15 +25,8 @@ from finance_qa.modules.tools.numeric import NIL_MARKS, parse_number
 
 ColumnRole = Literal["label", "code", "numeric", "empty", "text"]
 
-_NON_WORD = re.compile(r"[^a-z0-9]+")
 _MA_SO = re.compile(r"\bm[aã]\s*s[oố]\b|thuy[eế]t\s+minh|code|stt", re.I)
 _UNNAMED = re.compile(r"^unnamed:\s*\d+$", re.I)
-
-
-def _norm(text: object) -> str:
-    decomposed = unicodedata.normalize("NFD", str(text)).lower().replace("đ", "d")
-    without_marks = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
-    return _NON_WORD.sub(" ", without_marks).strip()
 
 
 def _text(value: object) -> str:

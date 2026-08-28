@@ -1,17 +1,9 @@
 """Metric catalog: primitive/derived aliases and text canonicalization."""
 from __future__ import annotations
 
-import re
-import unicodedata
 from dataclasses import dataclass
 
-_NON_WORD = re.compile(r"[^a-z0-9]+")
-
-
-def _norm(text: object) -> str:
-    decomposed = unicodedata.normalize("NFD", str(text)).lower().replace("đ", "d")
-    without_marks = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
-    return _NON_WORD.sub(" ", without_marks).strip()
+from finance_qa.modules.solve.common.intent import norm as _norm
 
 
 def _contains(norm_text: str, norm_alias: str) -> bool:

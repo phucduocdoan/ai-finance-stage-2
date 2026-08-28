@@ -258,18 +258,6 @@ class RawSelectionError(Exception):
     """Unsupported or ambiguous raw-table selection plan."""
 
 
-def _unit_kind(unit: str) -> str:
-    if unit in MONEY_SCALE or unit == "unknown":
-        return "money"
-    return unit
-
-
-def _candidate_table_ids(candidate: RawLinkedCandidate) -> list[str]:
-    if isinstance(candidate, RawGroupCandidate):
-        return candidate.table_ids
-    return [candidate.table_id]
-
-
 def _candidate_first_cell(candidate: RawLinkedCandidate) -> tuple[str, int, str]:
     if isinstance(candidate, RawGroupCandidate):
         first = candidate.cells[0]
@@ -290,17 +278,7 @@ def _ranking_value(candidate: RawLinkedCandidate) -> float:
 
 
 def _same_selector_unit_kind(candidates: Sequence[RawLinkedCandidate]) -> bool:
-    return len({_unit_kind(candidate.source_unit) for candidate in candidates}) <= 1
-
-
-def _candidate_query(
-    candidate: RawLinkedCandidate,
-    table_to_var: Mapping[str, str],
-    transform: str,
-) -> str:
-    if isinstance(candidate, RawGroupCandidate):
-        return candidate.query(table_to_var, transform)  # type: ignore[arg-type]
-    return candidate.query(table_to_var[candidate.table_id], transform)  # type: ignore[arg-type]
+    return len({raw._unit_kind(candidate.source_unit) for candidate in candidates}) <= 1
 
 
 def _phrase_match_score(phrase: str, row_label: str) -> float:
@@ -798,7 +776,7 @@ def build_solution(
     frames: dict[str, pd.DataFrame] = {}
     table_to_var: dict[str, str] = {}
     for candidate in chosen:
-        for table_id in _candidate_table_ids(candidate):
+        for table_id in raw._candidate_table_ids(candidate):
             if table_id in table_to_var:
                 continue
             var = f"df{len(table_to_var) + 1}"
@@ -806,7 +784,7 @@ def build_solution(
             names[var] = table_id
             frames[var] = raw.load_frame(table_id)
 
-    expr = _candidate_query(query_candidate, table_to_var, request.value_transform)
+    expr = raw._candidate_query(query_candidate, table_to_var, request.value_transform)
     if decision.answer_kind == "selected_year":
         expr = f"({expr}) * 0 + {winning_slot.year}"
 
@@ -961,7 +939,7 @@ async def aprepare_raw_selection_linker(
         "solution": solution,
         "frames": frames,
         "names": names,
-        "table_ids": list(dict.fromkeys(table_id for candidate in chosen for table_id in _candidate_table_ids(candidate))),
+        "table_ids": list(dict.fromkeys(table_id for candidate in chosen for table_id in raw._candidate_table_ids(candidate))),
         "diag": {
             "done": True,
             "axis": axis,

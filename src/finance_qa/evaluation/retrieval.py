@@ -40,7 +40,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from finance_qa.core.paths import DENSE_INDEX_PATH, EVALSET_PATH
+from finance_qa.core.paths import EVALSET_PATH
 from finance_qa.modules.rag.candidates import (
     CHANNEL_K,
     RRF_K,
@@ -51,8 +51,6 @@ from finance_qa.modules.rag.candidates import (
 from finance_qa.modules.rag.retrievers.clients import EMBEDDING_BACKENDS, RERANKER_BACKENDS
 
 
-DENSE_PATH = DENSE_INDEX_PATH
-
 KS = (5, 10, 15, 30, 50)
 
 # Competition-metric sweep range for precision/recall/F2 (table tier only).
@@ -61,7 +59,6 @@ PRF_KS = tuple(range(1, 16))
 
 __all__ = [
     "CHANNEL_K",
-    "DENSE_PATH",
     "EVALSET_PATH",
     "KS",
     "PRF_KS",
