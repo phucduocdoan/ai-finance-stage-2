@@ -85,6 +85,19 @@ PRIMITIVES: dict[str, PrimitiveMetric] = {
     ),
 }
 
+# Cross-reference: `finance_qa.modules.solve.common.metric_hints._HINTS` also
+# carries a `.aliases` field of Vietnamese phrases per ratio, but for a
+# different job — matching free-form question text to a formula/row-label
+# hint (`MetricHint.matches`), not labeling structural facts (`METRIC_KEYS`,
+# `_RATIO_METRICS`, `canonical_metric`, `metrics_in_text` below). The two
+# alias lists overlap (many of the same ratios, similar core phrases) but are
+# NOT identical: each has phrasing the other lacks, and neither is a subset
+# of the other. They are kept deliberately separate rather than merged, since
+# unifying them risks changing either the structural-fact matching here or
+# the question-to-hint matching in metric_hints.py in ways that are hard to
+# fully verify without the eval set. When adding a new ratio alias, check
+# both catalogs — this one and `metric_hints._HINTS` — rather than assuming
+# one is canonical.
 DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     "de_ratio": (
         "d/e", "tỷ số nợ trên vốn chủ sở hữu",

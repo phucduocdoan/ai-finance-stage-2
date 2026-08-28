@@ -129,8 +129,7 @@ def build_graph(config: FinanceAgentConfig | None = None) -> StateGraph:
     g.set_entry_point("understand")
     g.add_edge("understand", "retrieve")
     g.add_edge("retrieve", "trace_capabilities")
-    for after in [None, "solve_single_cell", "solve_formula_facts", "solve_raw_table_linker",
-                  "solve_selection_facts", "solve_raw_selection_linker", "solve_structured_facts"]:
+    for after in [None, *(node for _, node, _ in SOLVER_CHAIN)]:
         route, destinations = make_solver_router(config, after)
         g.add_conditional_edges(after or "trace_capabilities", route, destinations)
     g.add_conditional_edges("solve_selection", route_after_selection,

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Mapping
+from typing import Any, Awaitable, Callable, Mapping
 
 from finance_qa.agents.finance.config import FinanceAgentConfig
 from finance_qa.modules.data.table_store import load_frame
@@ -182,44 +182,67 @@ def make_solve_selection(config: FinanceAgentConfig):
     return solve_selection
 
 
+async def _run_fact_solver(
+    state: State,
+    solver_name: str,
+    solve: Callable[[State], Awaitable[dict]],
+    decline_exc: type[Exception],
+) -> dict:
+    """Run a facts solver and translate its outcome into a node state update.
+
+    `make_solve_structured_facts`, `make_solve_selection_facts` and
+    `make_solve_formula_facts` below all share this exact shape: call an
+    `asolve_*` function, decline on its own "this question isn't mine" error,
+    fall back to `errored` on anything else, else report the fact-solver
+    answer. What varies between them is only the solver name, the `asolve_*`
+    call and its decline exception, so those are what callers parameterize.
+
+    This branch never builds dataframe variables or a codegen prompt;
+    `verify_answer` sees the empty prompt and becomes a pass-through.
+    """
+    errors = list(state.get("errors") or [])
+    try:
+        result = await solve(state)
+    except decline_exc as exc:
+        return declined(
+            state, solver_name, str(exc),
+            errors=[f"{solver_name}: {exc}"],
+        )
+    except Exception as exc:  # noqa: BLE001 - fallback is the product behaviour
+        reason = f"{type(exc).__name__}: {exc}"
+        return errored(
+            state, solver_name, reason,
+            errors=[f"{solver_name}: {reason}"],
+        )
+
+    return answered(
+        state,
+        solver_name,
+        answer=result["answer"],
+        pandas_query=result["pandas_query"],
+        evidence=result["evidence"],
+        table_ids=append_unique(list(state.get("table_ids") or []), result["table_ids"]),
+        diag_payload=result["diag"],
+        errors=errors,
+        frames={},
+        names={},
+        evidence_tables=result["table_ids"],
+        codegen_prompt="",
+        solution={},
+    )
+
+
 def make_solve_structured_facts(config: FinanceAgentConfig):
     """Answer from normalized main-statement facts, falling back on any miss."""
 
     async def solve_structured_facts(state: State) -> dict:
-        errors = list(state.get("errors") or [])
-        try:
-            result = await asolve_structured_facts(
-                state,
-                planner_thinking=config.structured_facts_planner_thinking,
-            )
-        except StructuredFactError as exc:
-            return declined(
-                state, "structured_facts", str(exc),
-                errors=[f"structured_facts: {exc}"],
-            )
-        except Exception as exc:  # noqa: BLE001 - fallback is the product behaviour
-            reason = f"{type(exc).__name__}: {exc}"
-            return errored(
-                state, "structured_facts", reason,
-                errors=[f"structured_facts: {reason}"],
-            )
-
-        # This branch does not build dataframe variables or a codegen prompt.
-        # verify_answer sees the empty prompt and becomes a pass-through.
-        return answered(
+        return await _run_fact_solver(
             state,
             "structured_facts",
-            answer=result["answer"],
-            pandas_query=result["pandas_query"],
-            evidence=result["evidence"],
-            table_ids=append_unique(list(state.get("table_ids") or []), result["table_ids"]),
-            diag_payload=result["diag"],
-            errors=errors,
-            frames={},
-            names={},
-            evidence_tables=result["table_ids"],
-            codegen_prompt="",
-            solution={},
+            lambda s: asolve_structured_facts(
+                s, planner_thinking=config.structured_facts_planner_thinking,
+            ),
+            StructuredFactError,
         )
 
     return solve_structured_facts
@@ -229,35 +252,8 @@ def make_solve_selection_facts(config: FinanceAgentConfig):
     """Answer deterministic selection questions from structured facts."""
 
     async def solve_selection_facts(state: State) -> dict:
-        errors = list(state.get("errors") or [])
-        try:
-            result = await asolve_selection_facts(state)
-        except SelectionFactError as exc:
-            return declined(
-                state, "selection_facts", str(exc),
-                errors=[f"selection_facts: {exc}"],
-            )
-        except Exception as exc:  # noqa: BLE001 - fallback is product behaviour
-            reason = f"{type(exc).__name__}: {exc}"
-            return errored(
-                state, "selection_facts", reason,
-                errors=[f"selection_facts: {reason}"],
-            )
-
-        return answered(
-            state,
-            "selection_facts",
-            answer=result["answer"],
-            pandas_query=result["pandas_query"],
-            evidence=result["evidence"],
-            table_ids=append_unique(list(state.get("table_ids") or []), result["table_ids"]),
-            diag_payload=result["diag"],
-            errors=errors,
-            frames={},
-            names={},
-            evidence_tables=result["table_ids"],
-            codegen_prompt="",
-            solution={},
+        return await _run_fact_solver(
+            state, "selection_facts", asolve_selection_facts, SelectionFactError,
         )
 
     return solve_selection_facts
@@ -267,38 +263,13 @@ def make_solve_formula_facts(config: FinanceAgentConfig):
     """Answer simple catalog formulae from normalized facts, else fall back."""
 
     async def solve_formula_facts(state: State) -> dict:
-        errors = list(state.get("errors") or [])
-        try:
-            result = await asolve_formula_facts(
-                state,
-                planner_thinking=config.formula_facts_planner_thinking,
-            )
-        except FormulaFactError as exc:
-            return declined(
-                state, "formula_facts", str(exc),
-                errors=[f"formula_facts: {exc}"],
-            )
-        except Exception as exc:  # noqa: BLE001 - fallback is the product behaviour
-            reason = f"{type(exc).__name__}: {exc}"
-            return errored(
-                state, "formula_facts", reason,
-                errors=[f"formula_facts: {reason}"],
-            )
-
-        return answered(
+        return await _run_fact_solver(
             state,
             "formula_facts",
-            answer=result["answer"],
-            pandas_query=result["pandas_query"],
-            evidence=result["evidence"],
-            table_ids=append_unique(list(state.get("table_ids") or []), result["table_ids"]),
-            diag_payload=result["diag"],
-            errors=errors,
-            frames={},
-            names={},
-            evidence_tables=result["table_ids"],
-            codegen_prompt="",
-            solution={},
+            lambda s: asolve_formula_facts(
+                s, planner_thinking=config.formula_facts_planner_thinking,
+            ),
+            FormulaFactError,
         )
 
     return solve_formula_facts

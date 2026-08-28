@@ -21,7 +21,21 @@ def _contains(norm_text: str, norm_alias: str) -> bool:
 
 @dataclass(frozen=True)
 class MetricHint:
-    """One formula hint, selected by metric key or by text aliases."""
+    """One formula hint, selected by metric key or by text aliases.
+
+    Cross-reference: `finance_qa.modules.solve.facts.metrics.DERIVED_ALIASES`
+    also carries Vietnamese alias phrases per ratio, but for a different job —
+    labeling structural facts and canonicalizing planner/user text to a
+    metric key — not matching a raw question against a formula/row-label
+    hint (see `matches` below). The two alias lists overlap (many of the
+    same ratios, similar core phrases) but are NOT identical: each has
+    phrasing the other lacks, and neither is a subset of the other. They are
+    kept deliberately separate rather than merged, since unifying them risks
+    changing either this question-to-hint matching or the structural-fact
+    matching in metrics.py in ways that are hard to fully verify without the
+    eval set. When adding a new ratio alias, check both catalogs — this one
+    and `metrics.DERIVED_ALIASES` — rather than assuming one is canonical.
+    """
 
     name: str
     keys: tuple[str, ...]

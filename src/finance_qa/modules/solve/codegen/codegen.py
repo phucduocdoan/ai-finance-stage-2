@@ -16,7 +16,7 @@ carries the answer's unit.
 """
 from __future__ import annotations
 
-from typing import Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import pandas as pd
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
@@ -250,6 +250,68 @@ def _run_tool(
     return render_hits(hits, variables)
 
 
+async def _agenerate_with_tools(
+    prompt: str,
+    system: str,
+    tools: Sequence[type],
+    submit_name: str,
+    *,
+    parse_submit: Callable[[dict], Any],
+    run_tool: Callable[[dict], str],
+    thinking: bool,
+    tool_turns: int,
+    nudge: str,
+    empty_result: Any,
+) -> tuple[Any, str, list[dict]]:
+    """Shared turn-loop for a structured-output call that may reach for tools first.
+
+    Factors out only the control flow that `agenerate` and
+    `screening.agenerate_screening` run identically turn by turn: call the model,
+    check whether it submitted `submit_name` or made lookup calls, run those calls
+    and feed the results back, and force a submit on the last turn. Everything
+    that differs between the two callers — the submit schema and its
+    post-parse step (`parse_submit`), the bound tool executor (`run_tool`), the
+    nudge text, and what to return when the model never submits (`empty_result`)
+    — is passed in rather than special-cased here, so this function has no
+    knowledge of `PandasSolution`, `ScreeningSolution`, or `compose`.
+
+    Callers still build their own `system`/`prompt` and still handle the
+    `tool_turns <= 0` fast path themselves: that path never enters this loop at
+    all, which is what keeps its prompt byte-identical to the pre-tool baseline.
+    """
+    model = get_chat_model(thinking=thinking, max_tokens=MAX_TOKENS)
+    messages: list = [SystemMessage(content=system), HumanMessage(content=prompt)]
+    transcript: list[str] = []
+    calls_made: list[dict] = []
+
+    for turn in range(tool_turns + 1):
+        # The last turn cannot be another lookup, so the answer is forced rather
+        # than requested: an unforced model that keeps searching returns nothing.
+        last = turn == tool_turns
+        bound = model.bind_tools(tools, tool_choice=submit_name if last else None)
+        reply = await bound.ainvoke(messages)
+        calls = list(getattr(reply, "tool_calls", None) or [])
+        submit = next((c for c in calls if c["name"] == submit_name), None)
+        if submit is not None:
+            solution = parse_submit(submit.get("args") or {})
+            return solution, "\n\n".join([prompt, *transcript]), calls_made
+        if not calls:
+            # No tool call and no answer. One nudge, then the forced turn.
+            messages += [reply, HumanMessage(content=nudge)]
+            continue
+        messages.append(reply)
+        for call in calls:
+            try:
+                output = run_tool(call)
+            except Exception as exc:  # noqa: BLE001 - a failed lookup is not a failed question
+                output = f"Lỗi khi tra cứu: {exc}"
+            calls_made.append({"name": call["name"], "args": call.get("args") or {}})
+            transcript.append(f"### {call['name']}({call.get('args')})\n{output}")
+            messages.append(ToolMessage(content=output, tool_call_id=call["id"]))
+
+    return empty_result, "\n\n".join([prompt, *transcript]), calls_made
+
+
 async def agenerate(
     question: str,
     frames: dict[str, pd.DataFrame],
@@ -298,7 +360,6 @@ async def agenerate(
             result = PandasSolution.model_validate(result)
         return result, prompt, []
 
-    model = get_chat_model(thinking=thinking, max_tokens=MAX_TOKENS)
     tools = [FindRows, ShowTable, PandasSolution]
     # `submit` renders to "PandasSolution" here, so the prompt string is
     # byte-identical to the pre-parameter version; it exists because
@@ -310,41 +371,17 @@ async def agenerate(
         scope=_SCOPE_WITH_GRIDS if grids else _SCOPE_HEADERS_ONLY,
         submit=PandasSolution.__name__,
     )
-    messages: list = [SystemMessage(content=system), HumanMessage(content=prompt)]
-    transcript: list[str] = []
-    calls_made: list[dict] = []
-
-    for turn in range(tool_turns + 1):
-        # The last turn cannot be another lookup, so the answer is forced rather
-        # than requested: an unforced model that keeps searching returns nothing.
-        last = turn == tool_turns
-        bound = model.bind_tools(
-            tools, tool_choice=PandasSolution.__name__ if last else None
-        )
-        reply = await bound.ainvoke(messages)
-        calls = list(getattr(reply, "tool_calls", None) or [])
-        submit = next((c for c in calls if c["name"] == PandasSolution.__name__), None)
-        if submit is not None:
-            solution = PandasSolution.model_validate(submit.get("args") or {})
-            return solution, "\n\n".join([prompt, *transcript]), calls_made
-        if not calls:
-            # No tool call and no answer. One nudge, then the forced turn.
-            messages += [reply, HumanMessage(content="Hãy gọi find_rows hoặc nộp PandasSolution.")]
-            continue
-        messages.append(reply)
-        for call in calls:
-            try:
-                output = _run_tool(
-                    call, shortlist, frames, names,
-                    metric_lookup=metric_lookup,
-                )
-            except Exception as exc:  # noqa: BLE001 - a failed lookup is not a failed question
-                output = f"Lỗi khi tra cứu: {exc}"
-            calls_made.append({"name": call["name"], "args": call.get("args") or {}})
-            transcript.append(f"### {call['name']}({call.get('args')})\n{output}")
-            messages.append(ToolMessage(content=output, tool_call_id=call["id"]))
-
-    return PandasSolution(), "\n\n".join([prompt, *transcript]), calls_made
+    return await _agenerate_with_tools(
+        prompt, system, tools, PandasSolution.__name__,
+        parse_submit=lambda args: PandasSolution.model_validate(args),
+        run_tool=lambda call: _run_tool(
+            call, shortlist, frames, names, metric_lookup=metric_lookup,
+        ),
+        thinking=thinking,
+        tool_turns=tool_turns,
+        nudge="Hãy gọi find_rows hoặc nộp PandasSolution.",
+        empty_result=PandasSolution(),
+    )
 
 
 __all__ = [

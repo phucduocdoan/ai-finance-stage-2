@@ -23,7 +23,7 @@ import re
 from typing import Sequence
 
 import pandas as pd
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from finance_qa.core.llm import get_chat_model
 from finance_qa.modules.solve.codegen.codegen import (
@@ -34,6 +34,7 @@ from finance_qa.modules.solve.codegen.codegen import (
     _SCOPE_HEADERS_ONLY,
     _SCOPE_WITH_GRIDS,
     _TOOLS_SYSTEM,
+    _agenerate_with_tools,
     _run_tool,
     build_prompt,
 )
@@ -270,10 +271,10 @@ def compose(solution: ScreeningSolution) -> str:
     return f"({ans})[({survivors}).index].{reduce_call}"
 
 
-# Same reasoning as `codegen._TOOLS_SYSTEM`/`_bound_variable`/`_run_tool`: reused
-# verbatim rather than copied, so the tool loop (find_rows / show_table / submit)
-# behaves identically to the plain codegen path and only the submit schema and
-# system prompt differ.
+# Same reasoning as `codegen._TOOLS_SYSTEM`/`_bound_variable`/`_run_tool`/
+# `_agenerate_with_tools`: reused verbatim rather than copied, so the tool loop
+# (find_rows / show_table / submit) behaves identically to the plain codegen path
+# and only the submit schema and system prompt differ.
 async def agenerate_screening(
     question: str,
     frames: dict[str, pd.DataFrame],
@@ -305,46 +306,30 @@ async def agenerate_screening(
         result.pandas_query = compose(result)
         return result, prompt, []
 
-    model = get_chat_model(thinking=thinking, max_tokens=MAX_TOKENS)
     tools = [FindRows, ShowTable, ScreeningSolution]
     system = SCREENING_SYSTEM + _TOOLS_SYSTEM.format(
         turns=tool_turns,
         scope=_SCOPE_WITH_GRIDS if grids else _SCOPE_HEADERS_ONLY,
         submit=ScreeningSolution.__name__,
     )
-    messages: list = [SystemMessage(content=system), HumanMessage(content=prompt)]
-    transcript: list[str] = []
-    calls_made: list[dict] = []
 
-    for turn in range(tool_turns + 1):
-        last = turn == tool_turns
-        bound = model.bind_tools(
-            tools, tool_choice=ScreeningSolution.__name__ if last else None
-        )
-        reply = await bound.ainvoke(messages)
-        calls = list(getattr(reply, "tool_calls", None) or [])
-        submit = next((c for c in calls if c["name"] == ScreeningSolution.__name__), None)
-        if submit is not None:
-            solution = ScreeningSolution.model_validate(submit.get("args") or {})
-            solution.pandas_query = compose(solution)
-            return solution, "\n\n".join([prompt, *transcript]), calls_made
-        if not calls:
-            messages += [reply, HumanMessage(content="Hãy gọi find_rows hoặc nộp ScreeningSolution.")]
-            continue
-        messages.append(reply)
-        for call in calls:
-            try:
-                output = _run_tool(call, shortlist, frames, names)
-            except Exception as exc:  # noqa: BLE001 - a failed lookup is not a failed question
-                output = f"Lỗi khi tra cứu: {exc}"
-            calls_made.append({"name": call["name"], "args": call.get("args") or {}})
-            transcript.append(f"### {call['name']}({call.get('args')})\n{output}")
-            messages.append(ToolMessage(content=output, tool_call_id=call["id"]))
+    def _parse_submit(args: dict) -> ScreeningSolution:
+        solution = ScreeningSolution.model_validate(args)
+        solution.pandas_query = compose(solution)
+        return solution
 
     # Out of turns with no submit. `ScreeningSolution` cannot express "nothing" any
     # more (every field is required and `selector` needs one entry), so the empty
     # answer is the base `PandasSolution()` codegen returns in the same spot.
-    return PandasSolution(), "\n\n".join([prompt, *transcript]), calls_made
+    return await _agenerate_with_tools(
+        prompt, system, tools, ScreeningSolution.__name__,
+        parse_submit=_parse_submit,
+        run_tool=lambda call: _run_tool(call, shortlist, frames, names),
+        thinking=thinking,
+        tool_turns=tool_turns,
+        nudge="Hãy gọi find_rows hoặc nộp ScreeningSolution.",
+        empty_result=PandasSolution(),
+    )
 
 
 __all__ = ["SCREENING_SYSTEM", "agenerate_screening", "compose"]
