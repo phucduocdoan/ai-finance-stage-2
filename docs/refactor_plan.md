@@ -363,6 +363,26 @@ Validation should catch:
 - Query/evidence variable mismatch.
 - Query executes but value does not match submitted answer.
 
+Da thu (POC hep, khong phai full schema rewrite o tren):
+
+- Khong lam SolvePlan/CellRef. Chi them 2 ham post-hoc tren `pandas_query` da
+  sinh: `check_period_mismatch` (cot/table id mang nam khac voi
+  `state["years"]` cua node `understand`) va `check_selection_coverage` (cau
+  hoi "nam co ... lon nhat", gate boi `SELECTION_MARKER`, chi doc dung 1 nam
+  thay vi so sanh du cac nam). Ca hai chi feed vao vong repair da co san, gate
+  sau 1 flag (`SOLVE_VALIDATE_PERIOD_COLUMNS`, mac dinh off).
+- Do tren 75 cau (gold73 subset), flag off vs on: `check_selection_coverage`
+  bat dung ca 7/7 cau thuoc dung nhom loi (argmax-qua-nhieu-nam-roi-tra-loi-
+  metric-khac), 0 false positive tren 68 cau con lai — phan phat hien chinh
+  xac. Nhung repair sau do chi sua dung 1/7 (thanh dung), lam hong 1/7 (dang
+  dung thanh sai), 5/7 con lai khong doi — net wash, nam trong bien nhieu
+  chay-lai-chay (+-2/73) da ghi nhan o Phase 0.
+- Ket luan: co che dung, nhung vong repair khong du tot de bien phat hien
+  thanh diem thuc te. Khong giu code (da revert), chi ghi lai o day — neu lam
+  lai, huong di kha thi hon la cai thien noi dung message repair truoc, chua
+  chac da giai quyet duoc vi day la LLM repair call co san, khong phai logic
+  moi.
+
 ## Phase 6 - Config Cleanup
 
 Muc tieu: config de doc, khong chon giua production va experiment bang comment dai.
