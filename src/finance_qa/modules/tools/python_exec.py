@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import ast
-import contextlib
-import io
 import math
 
 import pandas as pd
@@ -196,32 +194,6 @@ def run_query(query: str, frames: dict[str, pd.DataFrame]) -> float:
     return value
 
 
-def exec_in_namespace(code: str, namespace: dict, include_stdout_on_error: bool = False) -> str:
-    """Execute code in a persistent namespace and return stdout or an error string."""
-    safe_builtins = {
-        **SAFE_GLOBALS["__builtins__"],
-        "print": print, "repr": repr, "type": type, "hasattr": hasattr,
-        "getattr": getattr, "bool": bool, "isinstance": isinstance,
-        "Exception": Exception, "ValueError": ValueError, "TypeError": TypeError,
-        "IndexError": IndexError, "KeyError": KeyError, "AttributeError": AttributeError,
-        "__import__": __import__,
-    }
-    namespace.setdefault("__builtins__", safe_builtins)
-    namespace.setdefault("pd", SAFE_GLOBALS["pd"])
-    buf = io.StringIO()
-    try:
-        with contextlib.redirect_stdout(buf):
-            exec(compile(code, "<repl>", "exec"), namespace)
-        out = buf.getvalue().strip()
-        return out if out else "(no output — use print() to inspect values)"
-    except Exception as exc:  # noqa: BLE001
-        err = f"{type(exc).__name__}: {exc}"
-        if include_stdout_on_error:
-            captured = buf.getvalue().strip()
-            return f"{captured}\n{err}" if captured else err
-        return err
-
-
 def validate(item: dict, rel_tol: float = 1e-6) -> list[str]:
     """Validate submission item consistency."""
     errs: list[str] = []
@@ -301,7 +273,6 @@ def validate(item: dict, rel_tol: float = 1e-6) -> list[str]:
 
 __all__ = [
     "SAFE_GLOBALS",
-    "exec_in_namespace",
     "query_names",
     "run_query",
     "validate",

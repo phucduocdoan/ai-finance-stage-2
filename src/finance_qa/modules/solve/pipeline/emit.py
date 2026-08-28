@@ -1,4 +1,9 @@
-"""Convert executed pandas results into solve-state updates."""
+"""Convert executed pandas results into solve-state updates.
+
+For solvers that don't run a pandas query at all (a plain decline/error, or a
+non-codegen success), use `pipeline.outcome`'s `declined`/`errored`/`answered`
+instead — the builders here are specifically for wrapping an `aexecute` result.
+"""
 from __future__ import annotations
 
 import re

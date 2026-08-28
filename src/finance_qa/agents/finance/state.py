@@ -24,7 +24,7 @@ class FinanceState(TypedDict):
     table_ids: list[str]     # the submitted list, judge picks + primary tail
     shortlist: list[str]     # everything past the hard filter, searchable by find_rows
 
-    # ── load node ───────────────────────────────────────────────────────────
+    # ── loaded evidence ──────────────────────────────────────────────────────
     frames: dict[str, Any]   # var_name → pd.DataFrame
     names: dict[str, str]    # var_name → table_id
 
@@ -32,7 +32,7 @@ class FinanceState(TypedDict):
     answer: float
     pandas_query: str
     evidence: list[dict]
-    solver: str              # "lookup" | "repl" | "formula" | "failed"
+    solver: str              # which solver answered, e.g. "cell_locator" | "raw_table_linker" | "codegen"
 
     # ── debug ───────────────────────────────────────────────────────────────
     errors: list[str]

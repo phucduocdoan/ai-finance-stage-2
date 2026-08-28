@@ -3,21 +3,17 @@
 Graph nodes still return LangGraph state updates, but every solver diag should
 carry the same small contract so routing and debugging do not depend on ad hoc
 shape checks.
+
+For a solver that runs an `aexecute`d pandas query, use `pipeline.emit`'s
+`emit_result`/`emit_solver_result` instead of `answered` here — those also fill
+in the query/evidence/units bookkeeping that `aexecute` produces.
 """
 from __future__ import annotations
 
-from typing import Any, Literal, Mapping, TypedDict
+from typing import Any, Literal, Mapping
 
 
 SolverStatus = Literal["done", "declined", "error"]
-
-
-class SolverOutcome(TypedDict, total=False):
-    """Diagnostic contract stored at ``diag[solver_name]``."""
-
-    status: SolverStatus
-    done: bool
-    reason: str
 
 
 def with_status(
@@ -147,7 +143,6 @@ def answered(
 
 
 __all__ = [
-    "SolverOutcome",
     "SolverStatus",
     "answered",
     "append_unique",

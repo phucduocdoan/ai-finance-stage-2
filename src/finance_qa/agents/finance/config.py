@@ -140,7 +140,7 @@ class FinanceAgentConfig:
     selection_decompose: bool = field(default_factory=lambda: _flag("SOLVE_DECOMPOSE", False))
     # Tables shown per selection_decompose sub-question.
     # docs/config_flags.md#selection_sub_tables
-    selection_sub_tables: int = _count("SOLVE_SUB_TABLES", 6)
+    selection_sub_tables: int = field(default_factory=lambda: _count("SOLVE_SUB_TABLES", 6))
     # Show the repair call every query it has already tried, not just the last one.
     # docs/config_flags.md#repair_history
     repair_history: bool = field(default_factory=lambda: _flag("SOLVE_REPAIR_HISTORY", False))

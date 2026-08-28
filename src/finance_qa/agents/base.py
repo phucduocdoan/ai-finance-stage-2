@@ -1,7 +1,7 @@
 """Minimal base class for LangGraph-backed agents.
 
 Captures only the plumbing that is genuinely common to any agent here: holding a
-lazily-compiled graph and exposing ainvoke/invoke/astream/run over it. Topology and the
+lazily-compiled graph and exposing ainvoke/invoke/astream over it. Topology and the
 input→state mapping are agent-specific, so they stay abstract. There is
 deliberately no ``build_node`` — nodes are unique functions with no generic
 shape; a subclass registers them inside its own ``build_graph``.
@@ -54,5 +54,3 @@ class BaseAgent(ABC, Generic[StateT]):
     async def astream(self, **inputs: Any) -> AsyncIterator[Any]:
         async for step in self.graph.astream(self.initial_state(**inputs)):
             yield step
-
-    run = invoke
