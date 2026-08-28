@@ -454,3 +454,29 @@ Refactor is acceptable when:
 - `run_graph.py --ids ...` still produces JSONL with the same schema.
 - `build_submission.py` still packages top-level `submission.json` and `data/`.
 - For behavior-preserving phases, selected smoke qids have identical solver/answer/query, except only diag gaining new `status` fields.
+
+Verified 2026-08-28 (Phase 0-4/6 + Phase 7 safe/runs cleanup, before the remaining
+old-submission-dirs decision):
+
+- `compileall src scripts tests` OK.
+- Full `tests/test_*.py` suite: 30/32 files pass. The 2 failures
+  (`test_query_execution.py`: "khoi phuc header hai tang bi lech",
+  "so cuoi ky nam dung cot semantic") are the same pre-existing failures noted before this
+  refactor session, unrelated to it.
+- `run_graph.py --ids` smoke over 7 qids (one per solver: codegen, raw_table_linker,
+  cell_locator, formula_facts, selection_facts, structured_facts, raw_selection_linker),
+  diffed against the kept baseline `artifacts/runs/full1012_v17_unitfix.jsonl`:
+  - 5/7 (codegen, raw_table_linker, cell_locator, formula_facts, selection_facts) matched
+    solver/answer/pandas_query exactly.
+  - 2/7 (structured_facts, raw_selection_linker qids) diverged. Root cause is not a
+    refactor regression: `structured_facts`/`selection_decompose` are opt-in experiment
+    flags (default off, see `docs/HANDOFF.md`), and the baseline run had them on while the
+    first smoke rerun did not. Re-running with matching flags (`SOLVE_STRUCTURED_FACTS=1
+    SOLVE_DECOMPOSE=1`) still showed some drift on these two LLM-planner-heavy solvers,
+    consistent with `core/llm.py`'s documented ~10% run-to-run answer movement at
+    temperature 0 on this backend - not something this refactor introduced or can fix.
+  - Repeating the same 2 qids twice with identical code/flags gave identical results both
+    times, ruling out true per-call randomness; the divergence traces to the vLLM backend's
+    non-reproducibility, already documented before this session.
+- `build_submission.py` on the 7-qid smoke run: still emits 1012-record `submission.json` +
+  `data/` + zip, passes its own "format OK" self-check.
