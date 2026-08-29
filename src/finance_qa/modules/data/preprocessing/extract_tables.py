@@ -20,6 +20,7 @@ from finance_qa.core.paths import (
     REPORTS_DIR,
     TABLES_DIR,
 )
+from finance_qa.modules.data.preprocessing.reports import markdown_counter_table
 
 
 TABLE_PATTERN = re.compile(r"<table[\s\S]*?</table>", re.IGNORECASE)
@@ -177,9 +178,6 @@ class TableExtractor:
         reports_with_tables = len(per_report)
         reports_without_tables = num_files - reports_with_tables
 
-        def pct(n: int) -> str:
-            return f"{100.0 * n / total_tables:.1f}%" if total_tables else "0%"
-
         def percentile(sorted_values: list[int], p: float) -> int:
             if not sorted_values:
                 return 0
@@ -199,12 +197,8 @@ class TableExtractor:
             "",
             "## Phân bố trạng thái parse",
             "",
-            "| Trạng thái | Số bảng | Tỉ lệ |",
-            "|---|---:|---:|",
+            *markdown_counter_table(("Trạng thái", "Số bảng", "Tỉ lệ"), status_counts, total=total_tables),
         ]
-        for status, count in status_counts.most_common():
-            lines.append(f"| `{status}` | {count:,} | {pct(count)} |")
-
         lines += [
             "",
             "## Phân bố số bảng / report",

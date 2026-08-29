@@ -20,6 +20,7 @@ from finance_qa.core.paths import (
     TABLE_METADATA_PATH,
     TABLE_METADATA_V1_PATH,
 )
+from finance_qa.modules.data.preprocessing.reports import markdown_counter_table
 
 
 STD_REPORT_RE = re.compile(
@@ -396,10 +397,7 @@ class MetadataEnricher:
         lines.append("")
         lines.append("## industry_segment distribution")
         lines.append("")
-        lines.append("| Segment | Số bảng | Tỉ lệ |")
-        lines.append("|---|---:|---:|")
-        for seg, count in industry_counts.most_common():
-            lines.append(f"| `{seg}` | {count:,} | {count / n_total * 100:.1f}% |")
+        lines += markdown_counter_table(("Segment", "Số bảng", "Tỉ lệ"), industry_counts, total=n_total)
         lines.append("")
         lines.append("## Fields added")
         lines.append("")

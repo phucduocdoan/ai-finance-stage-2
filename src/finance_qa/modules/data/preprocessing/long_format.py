@@ -15,6 +15,7 @@ from pathlib import Path
 import pandas as pd
 
 from finance_qa.core.paths import DATA_DIR, LONG_FORMAT_PATH, REPORTS_DIR, TABLE_METADATA_PATH
+from finance_qa.modules.data.preprocessing.reports import markdown_counter_table
 
 
 TARGET_TYPES = {"balance_sheet", "income_statement", "cash_flow"}
@@ -167,18 +168,14 @@ class LongFormatBuilder:
         lines.append("")
         lines.append("## Rows per statement_type")
         lines.append("")
-        lines.append("| statement_type | rows |")
-        lines.append("|---|---:|")
-        for st, n in df["statement_type"].value_counts().items():
-            lines.append(f"| `{st}` | {n:,} |")
+        lines += markdown_counter_table(
+            ("statement_type", "rows"), Counter(df["statement_type"].value_counts().to_dict())
+        )
         lines.append("")
         if skipped:
             lines.append("## Skipped tables")
             lines.append("")
-            lines.append("| reason | count |")
-            lines.append("|---|---:|")
-            for key, value in skipped.most_common():
-                lines.append(f"| `{key}` | {value:,} |")
+            lines += markdown_counter_table(("reason", "count"), skipped)
             lines.append("")
         self.paths.stats_path.write_text("\n".join(lines), encoding="utf-8")
 
