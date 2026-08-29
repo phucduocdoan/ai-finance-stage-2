@@ -1,8 +1,8 @@
-"""Legacy expression codegen adapter.
+"""Pandas-expression codegen adapter.
 
-This is the current free-form pandas-expression generator. Keeping the import
-behind this module makes it explicit that new plan-based codegen can sit beside
-it without changing the graph contract.
+This is the current, only live codegen path in production — not a legacy
+fallback. It re-exports `codegen.codegen`'s free-form pandas-expression
+generator for the pipeline nodes to import.
 """
 
 from finance_qa.modules.solve.codegen.codegen import (

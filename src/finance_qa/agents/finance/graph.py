@@ -59,7 +59,7 @@ from finance_qa.modules.solve.pipeline.router import (
     selection_route,
 )
 from finance_qa.modules.solve.pipeline.evidence import codegen_budget, load_evidence
-from finance_qa.modules.solve.pipeline.nodes.codegen import (
+from finance_qa.modules.solve.pipeline.nodes.generate import (
     make_execute_and_repair,
     make_generate_pandas,
 )

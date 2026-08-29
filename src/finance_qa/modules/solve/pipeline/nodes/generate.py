@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from finance_qa.agents.finance.config import FinanceAgentConfig
-from finance_qa.modules.solve.codegen.legacy import agenerate, build_prompt
+from finance_qa.modules.solve.codegen.expression_codegen import agenerate, build_prompt
 from finance_qa.modules.solve.codegen.execute import aexecute
 from finance_qa.modules.solve.codegen.screening import agenerate_screening
 from finance_qa.modules.solve.common.screening import is_screening

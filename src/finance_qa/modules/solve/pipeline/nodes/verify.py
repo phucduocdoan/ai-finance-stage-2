@@ -5,7 +5,7 @@ from typing import Any, Mapping
 
 from finance_qa.agents.finance.config import FinanceAgentConfig
 from finance_qa.modules.solve.codegen.execute import aexecute
-from finance_qa.modules.solve.codegen.legacy import build_prompt
+from finance_qa.modules.solve.codegen.expression_codegen import build_prompt
 from finance_qa.modules.solve.codegen.verify import arevise, averify
 from finance_qa.modules.solve.facts.profile_validate import validate_profile_selection
 from finance_qa.modules.solve.pipeline.emit import emit_result

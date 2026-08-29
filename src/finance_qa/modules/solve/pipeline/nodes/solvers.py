@@ -12,7 +12,7 @@ from finance_qa.modules.solve.facts.structured_facts import (
     asolve_structured_facts,
 )
 from finance_qa.modules.solve.pipeline.emit import emit_result, emit_solver_result
-from finance_qa.modules.solve.pipeline.nodes.codegen import asub_value
+from finance_qa.modules.solve.pipeline.nodes.generate import asub_value
 from finance_qa.modules.solve.pipeline.outcome import (
     answered,
     append_unique,

@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from finance_qa.agents.finance.config import FinanceAgentConfig  # noqa: E402
 from finance_qa.modules.solve.common.solution import PandasSolution  # noqa: E402
-from finance_qa.modules.solve.pipeline.nodes import codegen as codegen_nodes  # noqa: E402
+from finance_qa.modules.solve.pipeline.nodes import generate as codegen_nodes  # noqa: E402
 
 
 def check(name: str, condition: bool) -> None:
