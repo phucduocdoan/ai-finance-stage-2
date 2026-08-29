@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import math
+import re
 
 import pandas as pd
 
@@ -138,8 +139,28 @@ class _CellReadCoercer(ast.NodeTransformer):
         return node
 
 
+_DUNDER_ATTR = re.compile(r"^__.*__$")
+
+
+def _reject_unsafe(tree: ast.AST) -> None:
+    """Deny import statements and dunder attribute access.
+
+    SAFE_GLOBALS restricts `__builtins__` to ~20 names, which blocks escapes that
+    go through a builtin (`open`, `getattr`, `__import__`, ...). It does nothing
+    against attribute traversal that never needs a builtin at all, e.g.
+    `(1).__class__.__bases__[0].__subclasses__()` reaches every loaded class with
+    no name lookup outside the expression itself.
+    """
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            raise ValueError("query may not import modules")
+        if isinstance(node, ast.Attribute) and _DUNDER_ATTR.match(node.attr):
+            raise ValueError(f"query may not access dunder attribute {node.attr!r}")
+
+
 def _compile_query(query: str, mode: str):
     tree = ast.parse(query, mode=mode)
+    _reject_unsafe(tree)
     tree = _CellReadCoercer().visit(tree)
     ast.fix_missing_locations(tree)
     return compile(tree, "<query>", mode)
