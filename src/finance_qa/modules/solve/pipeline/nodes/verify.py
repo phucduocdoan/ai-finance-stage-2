@@ -29,6 +29,94 @@ State = Mapping[str, Any]
 VERIFY_NARROW_SOLVERS_OBSERVE_ONLY = True
 
 
+def _narrow_solver_prompt(
+    state: State,
+    config: FinanceAgentConfig,
+    *,
+    observe_narrow: bool,
+    query: str,
+    frames: dict,
+    names: dict,
+    drop: dict,
+) -> tuple[dict | None, str, dict, dict]:
+    """Build a codegen prompt for narrow solvers, which leave it empty.
+
+    Returns `(early_return, prompt, frames, names)`: `early_return` is the dict
+    `verify_answer` should return immediately, or None to keep going.
+    """
+    if not observe_narrow or not query:
+        return drop, "", frames, names
+    if not frames:
+        # Those three solvers leave `frames`/`names` at `{}` (see their
+        # own returns above), so without this the checker was shown a
+        # bare question and no table at all — it judged qid18 (gold
+        # 2077.87) wrong for a right answer, because it had nothing to
+        # check the number against. Loaded the same way `generate_pandas`
+        # does, from the ids the solver actually used rather than a new
+        # limit, so the grids match what produced the answer.
+        evidence_ids = state.get("evidence_tables") or state.get("table_ids") or []
+        _, max_tables = codegen_budget(state, config)
+        names, frames, _ = load_evidence(evidence_ids, max_tables)
+        if not frames:
+            # Nothing to show the checker even after trying to load it —
+            # a verdict here would be the verifier grading a blank page,
+            # so the signal is recorded as missing rather than negative.
+            return (
+                {
+                    **drop,
+                    "diag": {
+                        **(state.get("diag") or {}),
+                        "verify": {"skipped": "no_evidence"},
+                    },
+                },
+                "", frames, names,
+            )
+    prompt = build_prompt(state["question"], frames, names)
+    return None, prompt, frames, names
+
+
+def _observe_only(state: State, verdict, drop: dict) -> dict:
+    # Observe-only: record the verdict, never touch the answer.
+    return {
+        **drop,
+        "diag": {
+            **(state.get("diag") or {}),
+            "verify": {"correct": verdict.correct, "reason": verdict.reason},
+        },
+    }
+
+
+async def _revise_and_reexecute(
+    state: State,
+    query: str,
+    prompt: str,
+    frames: dict,
+    names: dict,
+    verdict,
+    *,
+    config: FinanceAgentConfig,
+    revise_func,
+    execute_func,
+    emit_func,
+    drop: dict,
+) -> dict:
+    diag = {"verify": {"correct": False, "reason": verdict.reason, "before": query}}
+    try:
+        revised = await revise_func(prompt, query, verdict.reason)
+        result = await execute_func(
+            revised, prompt, frames,
+            question=state["question"], unit_hint=state.get("unit_hint") or "",
+            names=names, tickers=state.get("tickers") or [],
+            max_repairs=config.max_repairs,
+            repair_history=config.repair_history,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {**drop, "errors": list(state.get("errors") or []) + [f"revise: {exc}"]}
+    if result["diag"].get("failed"):
+        return {**drop, "diag": {**(state.get("diag") or {}), **diag, "verify_kept": False}}
+    return {**emit_func(state, result, {**diag, "verify_kept": True}), **drop}
+
+
 def make_verify_answer(
     config: FinanceAgentConfig,
     *,
@@ -90,31 +178,12 @@ def make_verify_answer(
         # answer from the fact catalog rather than a loaded table.
         narrow = not prompt
         if narrow:
-            if not observe_narrow or not query:
-                return drop
-            if not frames:
-                # Those three solvers leave `frames`/`names` at `{}` (see their
-                # own returns above), so without this the checker was shown a
-                # bare question and no table at all — it judged qid18 (gold
-                # 2077.87) wrong for a right answer, because it had nothing to
-                # check the number against. Loaded the same way `generate_pandas`
-                # does, from the ids the solver actually used rather than a new
-                # limit, so the grids match what produced the answer.
-                evidence_ids = state.get("evidence_tables") or state.get("table_ids") or []
-                _, max_tables = codegen_budget(state, config)
-                names, frames, _ = load_evidence(evidence_ids, max_tables)
-                if not frames:
-                    # Nothing to show the checker even after trying to load it —
-                    # a verdict here would be the verifier grading a blank page,
-                    # so the signal is recorded as missing rather than negative.
-                    return {
-                        **drop,
-                        "diag": {
-                            **(state.get("diag") or {}),
-                            "verify": {"skipped": "no_evidence"},
-                        },
-                    }
-            prompt = build_prompt(state["question"], frames, names)
+            early, prompt, frames, names = _narrow_solver_prompt(
+                state, config,
+                observe_narrow=observe_narrow, query=query, frames=frames, names=names, drop=drop,
+            )
+            if early is not None:
+                return early
         elif not frames or not prompt:
             return drop
 
@@ -127,14 +196,7 @@ def make_verify_answer(
             return {**drop, "errors": list(state.get("errors") or []) + [f"verify: {exc}"]}
 
         if narrow or screening:
-            # Observe-only: record the verdict, never touch the answer.
-            return {
-                **drop,
-                "diag": {
-                    **(state.get("diag") or {}),
-                    "verify": {"correct": verdict.correct, "reason": verdict.reason},
-                },
-            }
+            return _observe_only(state, verdict, drop)
 
         if verdict.correct:
             return {**drop, "diag": {**(state.get("diag") or {}), "verify": {"correct": True}}}
@@ -158,21 +220,10 @@ def make_verify_answer(
                 },
             }
 
-        diag = {"verify": {"correct": False, "reason": verdict.reason, "before": query}}
-        try:
-            revised = await revise_func(prompt, query, verdict.reason)
-            result = await execute_func(
-                revised, prompt, frames,
-                question=state["question"], unit_hint=state.get("unit_hint") or "",
-                names=names, tickers=state.get("tickers") or [],
-                max_repairs=config.max_repairs,
-                repair_history=config.repair_history,
-            )
-        except Exception as exc:  # noqa: BLE001
-            return {**drop, "errors": list(state.get("errors") or []) + [f"revise: {exc}"]}
-        if result["diag"].get("failed"):
-            return {**drop, "diag": {**(state.get("diag") or {}), **diag, "verify_kept": False}}
-        return {**emit_func(state, result, {**diag, "verify_kept": True}), **drop}
+        return await _revise_and_reexecute(
+            state, query, prompt, frames, names, verdict,
+            config=config, revise_func=revise_func, execute_func=execute_func, emit_func=emit_func, drop=drop,
+        )
 
     return verify_answer
 
