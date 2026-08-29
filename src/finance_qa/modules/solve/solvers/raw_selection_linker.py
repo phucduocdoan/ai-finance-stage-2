@@ -213,6 +213,12 @@ Quy tắc:
 """
 
 
+_SLOTS_RETRY_REMINDER = (
+    "Nhắc lại: nếu supported=true thì slots KHÔNG được để rỗng — phải có đúng một "
+    "RawSelectionSlotDecision cho mỗi slot_key trong request, kể cả khi câu hỏi chỉ cần một slot làm đáp án."
+)
+
+
 async def aplan_raw_selection(
     *,
     question: str,
@@ -228,32 +234,48 @@ async def aplan_raw_selection(
         f"Expected answer_kind: {answer_kind}\n\n"
         f"{raw.render_candidates(request, candidates)}"
     )
-    try:
-        result = await get_chat_model(
-            thinking=planner_thinking,
-            max_tokens=1024,
-            temperature=0.0,
-        ).with_structured_output(
-            RawSelectionDecision,
-            method=STRUCTURED_METHOD,
-        ).ainvoke([SystemMessage(content=RAW_SELECTION_SYSTEM), HumanMessage(content=user)])
-    except Exception as exc:  # noqa: BLE001 - fallback is product behavior
-        return RawSelectionDecision(
-            supported=False,
-            operation="select",
-            rank_op=order,
-            answer_kind=answer_kind,
-            reason=f"raw selection planner unavailable: {type(exc).__name__}: {exc}",
-        )
-    if result is None:
-        return RawSelectionDecision(
-            supported=False,
-            operation="select",
-            rank_op=order,
-            answer_kind=answer_kind,
-            reason="raw selection planner returned no structured decision",
-        )
-    return result if isinstance(result, RawSelectionDecision) else RawSelectionDecision.model_validate(result)
+    model = get_chat_model(
+        thinking=planner_thinking,
+        max_tokens=1024,
+        temperature=0.0,
+    ).with_structured_output(RawSelectionDecision, method=STRUCTURED_METHOD)
+
+    # The model occasionally returns supported=true with an empty `slots` list even though
+    # `RawSelectionSlotDecision` is schema-valid without one (Field(default_factory=list) makes
+    # it optional). That's silently accepted by Pydantic and only surfaces later as an opaque
+    # "slot mismatch" error in validate_decision, so catch it here and retry once with a reminder.
+    system = RAW_SELECTION_SYSTEM
+    for attempt in range(2):
+        try:
+            result = await model.ainvoke([SystemMessage(content=system), HumanMessage(content=user)])
+        except Exception as exc:  # noqa: BLE001 - fallback is product behavior
+            return RawSelectionDecision(
+                supported=False,
+                operation="select",
+                rank_op=order,
+                answer_kind=answer_kind,
+                reason=f"raw selection planner unavailable: {type(exc).__name__}: {exc}",
+            )
+        if result is None:
+            return RawSelectionDecision(
+                supported=False,
+                operation="select",
+                rank_op=order,
+                answer_kind=answer_kind,
+                reason="raw selection planner returned no structured decision",
+            )
+        decision = result if isinstance(result, RawSelectionDecision) else RawSelectionDecision.model_validate(result)
+        if not decision.supported or decision.slots:
+            return decision
+        system = RAW_SELECTION_SYSTEM + "\n" + _SLOTS_RETRY_REMINDER
+
+    return RawSelectionDecision(
+        supported=False,
+        operation="select",
+        rank_op=order,
+        answer_kind=answer_kind,
+        reason="raw selection planner returned supported=true with empty slots after retry",
+    )
 
 
 class RawSelectionError(Exception):
