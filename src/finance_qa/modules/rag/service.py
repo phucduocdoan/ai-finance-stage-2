@@ -7,8 +7,7 @@ import threading
 from functools import lru_cache
 from typing import Any
 
-from finance_qa.core.http import pool as loop_cache
-from finance_qa.core.http import run_sync
+from finance_qa.core.http import loop_cache, run_sync
 from finance_qa.core.paths import RUNS_DIR
 from finance_qa.modules.rag.candidates import (
     PRIMARY_STATEMENT_TYPES,

@@ -35,8 +35,12 @@ _pools: WeakKeyDictionary[Any, dict[Any, Any]] = WeakKeyDictionary()
 _pool_no_loop: dict[Any, Any] = {}
 
 
-def pool() -> dict[Any, Any]:
-    """The per-event-loop cache of loop-bound objects (clients, chat models)."""
+def loop_cache() -> dict[Any, Any]:
+    """The per-event-loop cache of loop-bound objects (clients, chat models).
+
+    Named for what it holds, not for `LIMITS` above -- that's the actual httpx
+    connection pool; this is the dict that hands each event loop its own client.
+    """
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -51,7 +55,7 @@ def pool() -> dict[Any, Any]:
 
 def client() -> httpx.AsyncClient:
     """Pooled `AsyncClient` for the current event loop."""
-    cache = pool()
+    cache = loop_cache()
     existing = cache.get("httpx")
     if existing is None or existing.is_closed:
         existing = cache["httpx"] = httpx.AsyncClient(timeout=TIMEOUT, limits=LIMITS)

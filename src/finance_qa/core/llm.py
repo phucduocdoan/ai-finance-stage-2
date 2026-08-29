@@ -28,7 +28,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from finance_qa.core.http import client, pool, run_sync
+from finance_qa.core.http import client, loop_cache, run_sync
 
 ENDPOINT = os.environ.get("LLM_ENDPOINT", "http://127.0.0.1:8990/v1/chat/completions")
 # The id the vLLM server on 8990 actually reports at `/v1/models`. Use the full HF
@@ -140,7 +140,7 @@ def get_chat_model(
     Cached, because a fresh ``ChatOpenAI`` builds its own httpx connection pool and
     the 7 call sites each constructed one *per question* -- roughly 8,000 pools
     over a 1,012-question run. Keyed by event loop as well as config, for the
-    reason in ``core.http.pool``.
+    reason in ``core.http.loop_cache``.
 
     Imported lazily so modules that only need ``achat()`` don't pull in langchain.
     ``temperature`` defaults to 0.0 (deterministic) for every existing caller; the
@@ -149,7 +149,7 @@ def get_chat_model(
     if temperature == 0.0 and TEMPERATURE >= 0.0:
         temperature = TEMPERATURE
     key = ("chat_model", model, thinking, max_tokens, timeout, temperature)
-    cache = pool()
+    cache = loop_cache()
     if key not in cache:
         from langchain_openai import ChatOpenAI
 
