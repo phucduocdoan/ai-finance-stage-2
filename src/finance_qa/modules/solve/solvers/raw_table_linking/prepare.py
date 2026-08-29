@@ -26,39 +26,21 @@ async def aprepare_raw_table_linker(
     use_planner: bool = False,
     planner_thinking: bool = False,
     use_ratio_groups: bool = False,
-    build_request_func=_request.build_request,
-    build_ratio_candidates_func=_candidates.build_ratio_candidates,
-    build_candidates_func=_candidates.build_candidates,
-    prefer_ratio_option_surface_func=_ratio_options._prefer_ratio_option_surface,
-    build_ratio_options_func=_ratio_options.build_ratio_options,
-    deterministic_ratio_option_decision_func=_ratio_options.deterministic_ratio_option_decision,
-    ratio_decision_from_options_func=_validate.ratio_decision_from_options,
-    aplan_raw_ratio_options_func=_planner.aplan_raw_ratio_options,
-    aplan_raw_ratio_linker_func=_planner.aplan_raw_ratio_linker,
-    build_ratio_solution_func=_solution.build_ratio_solution,
-    candidate_table_ids_func=_render._candidate_table_ids,
-    deterministic_decision_func=_decision.deterministic_decision,
-    aplan_raw_search_func=_planner.aplan_raw_search,
-    request_with_search_plan_func=_planner.request_with_search_plan,
-    search_expansion_adds_slot_coverage_func=_decision.search_expansion_adds_slot_coverage,
-    aplan_raw_table_linker_func=_planner.aplan_raw_table_linker,
-    normalize_planner_decision_func=_decision.normalize_planner_decision,
-    build_solution_func=_solution.build_solution,
 ) -> dict[str, Any]:
     """Prepare a validated raw-table plan for graph execution."""
-    request, reason = build_request_func(state)
+    request, reason = _request.build_request(state)
     if request is None:
         raise RawTableLinkError(reason)
     candidate_limit = 32 if request.operation == "ratio" else 12
     if request.operation == "ratio" and use_ratio_groups:
-        candidates, cand_diag = build_ratio_candidates_func(
+        candidates, cand_diag = _candidates.build_ratio_candidates(
             request,
             table_ids=list(state.get("table_ids") or []),
             shortlist=list(state.get("shortlist") or []),
             cell_limit_per_slot=max(candidate_limit, 80),
         )
     else:
-        candidates, cand_diag = build_candidates_func(
+        candidates, cand_diag = _candidates.build_candidates(
             request,
             table_ids=list(state.get("table_ids") or []),
             shortlist=list(state.get("shortlist") or []),
@@ -77,13 +59,13 @@ async def aprepare_raw_table_linker(
             raise RawTableLinkError("ratio raw linker requires planner")
         decision_source = "ratio_candidate_planner"
         ratio_diag: dict[str, Any] = {}
-        use_option_surface = use_ratio_groups or prefer_ratio_option_surface_func(request)
+        use_option_surface = use_ratio_groups or _ratio_options._prefer_ratio_option_surface(request)
         if use_option_surface:
-            options, option_diag = build_ratio_options_func(request, candidates, max_options_per_side=6)
+            options, option_diag = _ratio_options.build_ratio_options(request, candidates, max_options_per_side=6)
             if use_ratio_groups and option_diag["missing_options"]:
                 raise RawTableLinkError(f"missing ratio options for {option_diag['missing_options']}")
             option_decision = (
-                deterministic_ratio_option_decision_func(request, options)
+                _ratio_options.deterministic_ratio_option_decision(request, options)
                 if not option_diag["missing_options"]
                 else RawRatioOptionDecision(
                     supported=False,
@@ -93,19 +75,19 @@ async def aprepare_raw_table_linker(
             )
             if option_decision.supported:
                 decision_source = "ratio_option_deterministic"
-                ratio_decision = ratio_decision_from_options_func(request, option_decision, options)
+                ratio_decision = _validate.ratio_decision_from_options(request, option_decision, options)
             else:
                 if use_ratio_groups:
-                    option_decision = await aplan_raw_ratio_options_func(
+                    option_decision = await _planner.aplan_raw_ratio_options(
                         question=str(state.get("question") or ""),
                         request=request,
                         options=options,
                         planner_thinking=planner_thinking,
                     )
                     decision_source = "ratio_option_planner"
-                    ratio_decision = ratio_decision_from_options_func(request, option_decision, options)
+                    ratio_decision = _validate.ratio_decision_from_options(request, option_decision, options)
                 else:
-                    ratio_decision = await aplan_raw_ratio_linker_func(
+                    ratio_decision = await _planner.aplan_raw_ratio_linker(
                         question=str(state.get("question") or ""),
                         request=request,
                         candidates=candidates,
@@ -117,19 +99,19 @@ async def aprepare_raw_table_linker(
                 "option_decision": option_decision.model_dump(),
             }
         else:
-            ratio_decision = await aplan_raw_ratio_linker_func(
+            ratio_decision = await _planner.aplan_raw_ratio_linker(
                 question=str(state.get("question") or ""),
                 request=request,
                 candidates=candidates,
                 planner_thinking=planner_thinking,
             )
-        solution, frames, names, chosen = build_ratio_solution_func(request, ratio_decision, candidates)
+        solution, frames, names, chosen = _solution.build_ratio_solution(request, ratio_decision, candidates)
         return {
             "solution": solution,
             "frames": frames,
             "names": names,
             "table_ids": list(dict.fromkeys(
-                table_id for candidate in chosen for table_id in candidate_table_ids_func(candidate)
+                table_id for candidate in chosen for table_id in _render._candidate_table_ids(candidate)
             )),
             "diag": {
                 "done": True,
@@ -142,7 +124,7 @@ async def aprepare_raw_table_linker(
             },
         }
 
-    deterministic = deterministic_decision_func(request, candidates)
+    deterministic = _decision.deterministic_decision(request, candidates)
     solution_request = request
     solution_candidates = candidates
     solution_cand_diag = cand_diag
@@ -161,24 +143,24 @@ async def aprepare_raw_table_linker(
                 raise RawTableLinkError("no raw cell candidates")
             raise RawTableLinkError(f"deterministic raw linker: {deterministic.reason}")
         decision_source = "candidate_planner"
-        search_plan = await aplan_raw_search_func(
+        search_plan = await _planner.aplan_raw_search(
             question=str(state.get("question") or ""),
             request=request,
             table_ids=list(state.get("table_ids") or []),
             shortlist=list(state.get("shortlist") or []),
             planner_thinking=planner_thinking,
         )
-        expanded_request = request_with_search_plan_func(request, search_plan)
+        expanded_request = _planner.request_with_search_plan(request, search_plan)
         expanded_candidates, expanded_cand_diag = (
             (candidates, cand_diag)
             if expanded_request == request
-            else build_candidates_func(
+            else _candidates.build_candidates(
                 expanded_request,
                 table_ids=list(state.get("table_ids") or []),
                 shortlist=list(state.get("shortlist") or []),
             )
         )
-        if search_expansion_adds_slot_coverage_func(
+        if _decision.search_expansion_adds_slot_coverage(
             request, search_plan, candidates, expanded_candidates,
         ):
             solution_request = expanded_request
@@ -186,14 +168,14 @@ async def aprepare_raw_table_linker(
             solution_cand_diag = expanded_cand_diag
             search_expansion_used = True
             decision_source = "search_expanded_candidate_planner"
-        decision = await aplan_raw_table_linker_func(
+        decision = await _planner.aplan_raw_table_linker(
             question=str(state.get("question") or ""),
             request=solution_request,
             candidates=solution_candidates,
             planner_thinking=planner_thinking,
         )
-        decision = normalize_planner_decision_func(solution_request, decision)
-    solution, frames, names, chosen = build_solution_func(solution_request, decision, solution_candidates)
+        decision = _decision.normalize_planner_decision(solution_request, decision)
+    solution, frames, names, chosen = _solution.build_solution(solution_request, decision, solution_candidates)
     return {
         "solution": solution,
         "frames": frames,
