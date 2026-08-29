@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from typing import Any, Mapping, Sequence
 
+from finance_qa.modules.rag.retrievers.filters import SCOPE_FREE_DOC_TYPES
 from finance_qa.modules.solve.common.context import meta_for, table_metadata
 from finance_qa.modules.solve.common.intent import (
     CONDITIONAL_FILTER_CUE as _CONDITIONAL_FILTER,
@@ -141,16 +142,27 @@ def _scope_table_ids(
     *,
     metadata_lookup=table_metadata,
 ) -> list[str]:
-    out: list[str] = []
+    """Table ids in scope for one (ticker, year) slot.
+
+    When `doc_type == "unknown"`, this mirrors `prefer_consolidated` (see
+    `rag/retrievers/filters.py`): a `separate` table is dropped once a broader-scope
+    table (`consolidated` / `aggregated` / `explanations`) also matches, since it re-
+    queries the full metadata table and would otherwise re-admit the `separate` table
+    that the RAG-shortlist stage had already excluded for the same slot.
+    """
+    matches: list[tuple[str, str]] = []
     for table_id, meta in metadata_lookup().items():
         if str(meta.get("ticker") or "").upper() != slot.ticker:
             continue
         if str(meta.get("year") or "") != str(slot.year):
             continue
-        if doc_type in {"consolidated", "separate"} and str(meta.get("doc_type") or "") != doc_type:
+        table_doc_type = str(meta.get("doc_type") or "")
+        if doc_type in {"consolidated", "separate"} and table_doc_type != doc_type:
             continue
-        out.append(table_id)
-    return out
+        matches.append((table_id, table_doc_type))
+    if doc_type == "unknown" and any(t in {"consolidated", *SCOPE_FREE_DOC_TYPES} for _, t in matches):
+        matches = [(table_id, t) for table_id, t in matches if t != "separate"]
+    return [table_id for table_id, _ in matches]
 
 
 def _scope_identity_tokens(
