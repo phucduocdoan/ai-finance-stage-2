@@ -212,6 +212,48 @@ def _ratio_anchor(anchors: set[str]) -> str:
     return candidates[0] if len(candidates) == 1 else ""
 
 
+def _ratio_or_lookup(anchors: set[str]) -> tuple[FormulaOperation | None, str]:
+    """Single ticker, single year: a ratio metric, or the working-capital lookup."""
+    ratio = _ratio_anchor(anchors)
+    if ratio:
+        return "ratio", ratio
+    if "working_capital" in anchors:
+        return "lookup", "working_capital"
+    return None, ""
+
+
+def _growth_or_diff_years(anchors: set[str], norm_question: str) -> tuple[FormulaOperation | None, str]:
+    """Single ticker, two years: growth or diff of the one anchored money-unit metric."""
+    metric = next(iter(anchors))
+    if metric_source_unit(metric) not in _MONEY_UNITS:
+        return None, ""
+    if _GROWTH_CUE.search(norm_question):
+        return "growth", metric
+    if _DIFF_CUE.search(norm_question):
+        return "diff", metric
+    return None, ""
+
+
+def _diff_across_tickers(anchors: set[str], norm_question: str) -> tuple[FormulaOperation | None, str]:
+    """Two tickers, single year: diff of the one anchored money-unit metric."""
+    metric = next(iter(anchors))
+    if metric_source_unit(metric) in _MONEY_UNITS and _DIFF_CUE.search(norm_question):
+        return "diff", metric
+    return None, ""
+
+
+def _avg_or_median(anchors: set[str], norm_question: str) -> tuple[FormulaOperation | None, str]:
+    """Single ticker, 3+ years (2 years is handled by growth/diff above): avg or median."""
+    metric = next(iter(anchors))
+    if metric_source_unit(metric) not in _MONEY_UNITS:
+        return None, ""
+    if _MEDIAN_CUE.search(norm_question):
+        return "median", metric
+    if _AVG_CUE.search(norm_question):
+        return "avg", metric
+    return None, ""
+
+
 def deterministic_formula_plan(state: dict[str, Any]) -> StructuredPlan:
     """Build a formula plan without an LLM when text and scope are unambiguous."""
     attempt, reason = should_attempt_formula_facts(state)
@@ -227,37 +269,18 @@ def deterministic_formula_plan(state: dict[str, Any]) -> StructuredPlan:
 
     operation: FormulaOperation | None = None
     answer_metric = ""
+    # --- ratio / lookup: single ticker, single year -----------------------
     if len(tickers) == 1 and len(years) == 1:
-        ratio = _ratio_anchor(anchors)
-        if ratio:
-            operation = "ratio"
-            answer_metric = ratio
-        elif "working_capital" in anchors:
-            operation = "lookup"
-            answer_metric = "working_capital"
+        operation, answer_metric = _ratio_or_lookup(anchors)
+    # --- growth / diff: single ticker, two years ---------------------------
     elif len(tickers) == 1 and len(years) == 2 and len(anchors) == 1:
-        metric = next(iter(anchors))
-        if metric_source_unit(metric) in _MONEY_UNITS:
-            if _GROWTH_CUE.search(norm_question):
-                operation = "growth"
-                answer_metric = metric
-            elif _DIFF_CUE.search(norm_question):
-                operation = "diff"
-                answer_metric = metric
+        operation, answer_metric = _growth_or_diff_years(anchors, norm_question)
+    # --- diff: two tickers, single year -------------------------------------
     elif len(tickers) == 2 and len(years) == 1 and len(anchors) == 1:
-        metric = next(iter(anchors))
-        if metric_source_unit(metric) in _MONEY_UNITS and _DIFF_CUE.search(norm_question):
-            operation = "diff"
-            answer_metric = metric
+        operation, answer_metric = _diff_across_tickers(anchors, norm_question)
+    # --- avg / median: single ticker, 3+ years ------------------------------
     elif len(tickers) == 1 and len(years) >= 2 and len(anchors) == 1:
-        metric = next(iter(anchors))
-        if metric_source_unit(metric) in _MONEY_UNITS:
-            if _MEDIAN_CUE.search(norm_question):
-                operation = "median"
-                answer_metric = metric
-            elif _AVG_CUE.search(norm_question):
-                operation = "avg"
-                answer_metric = metric
+        operation, answer_metric = _avg_or_median(anchors, norm_question)
 
     if not operation or not answer_metric:
         return StructuredPlan(
