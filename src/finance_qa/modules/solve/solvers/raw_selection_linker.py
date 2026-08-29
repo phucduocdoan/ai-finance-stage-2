@@ -55,6 +55,7 @@ _SELECTED_SLOT_MARKER = re.compile(
 )
 _YEAR = re.compile(r"\b((?:19|20)\d{2})\b")
 _RANGE = re.compile(r"\b((?:19|20)\d{2})\s*[-–]\s*((?:19|20)\d{2})\b")
+_VERBAL_RANGE = re.compile(r"\btu\s+nam\s+((?:19|20)\d{2}).{0,30}?\bden\s+nam\s+((?:19|20)\d{2})\b")
 
 
 def _target_unit(state: Mapping[str, Any], question: str, answer_kind: str) -> Unit:
@@ -88,7 +89,7 @@ def _axis(tickers: Sequence[str], years: Sequence[int]) -> tuple[SelectionAxis |
 
 
 def _years_from_question(question: str) -> list[int]:
-    match = _RANGE.search(question)
+    match = _RANGE.search(question) or _VERBAL_RANGE.search(_norm(question))
     if match:
         first, last = int(match.group(1)), int(match.group(2))
         if first <= last and last - first <= 10:
