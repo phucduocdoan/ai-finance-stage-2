@@ -13,6 +13,7 @@ simple. Measured over the corpus: a table CSV is 767 chars at p50, 1673 at p90,
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 
 import pandas as pd
@@ -73,12 +74,41 @@ def page_text(table_id: str) -> str:
     return meta_for(table_id).get("context_page_text") or ""
 
 
+_NUMERIC_CELL = re.compile(r"^[\d.,%()\-\s]*\d[\d.,%()\-\s]*$")
+
+
+def _mark_trailing_total_row(df: pd.DataFrame) -> pd.DataFrame:
+    """Label a blank trailing all-numeric row as the total row.
+
+    A statement's total row sometimes extracts with an empty first-column
+    label — the same header/label loss `year_legend` works around for columns
+    — leaving the model no textual way to tell a totals row from a truncated
+    one (q790, q955: the denominator each question needs is exactly this row).
+    Detected, not inferred: only the last row, only when every other cell in
+    it looks numeric and the label is blank, so an ordinary unlabeled note row
+    with real numbers still renders as-is if it sits mid-table.
+    """
+    if df.empty:
+        return df
+    label_col = df.columns[0]
+    last = df.iloc[-1]
+    if str(last[label_col]).strip():
+        return df
+    rest = last.drop(label_col)
+    if rest.empty or not all(bool(_NUMERIC_CELL.match(str(v).strip())) for v in rest):
+        return df
+    df = df.copy()
+    df.iloc[-1, df.columns.get_loc(label_col)] = "TỔNG CỘNG (nhãn gốc trống)"
+    return df
+
+
 def _grid(df: pd.DataFrame) -> str:
     """The frame as text, with the integer positions the query will index by.
 
     ``to_string`` keeps the RangeIndex in the left margin, which is exactly what
     ``df.iloc[i]`` needs — so the model reads the row number it must write.
     """
+    df = _mark_trailing_total_row(df)
     if len(df) <= _MAX_GRID_ROWS:
         return df.to_string(max_colwidth=70)
     head = df.head(_HEAD_ROWS).to_string(max_colwidth=70)
