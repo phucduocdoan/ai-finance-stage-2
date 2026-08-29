@@ -406,6 +406,98 @@ _QUESTION_YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
 _QUESTION_SYMBOL = re.compile(r"\b[A-Z]{3,4}\b")
 
 
+def _scenario_adjustment(norm_question: str) -> str:
+    # No `scenario_factor` and no stress expression is emitted here, so
+    # answering would report the *unadjusted* figure.
+    if _SCENARIO_CUE.search(norm_question):
+        return "scenario adjustment not expressible as a filter_aggregate"
+    return ""
+
+
+def _subgroup_diff(norm_question: str) -> str:
+    # "chenh lech ... giua phan nhom X va phan nhom con lai" needs two
+    # groups; "trung binh chenh lech giua A va B" needs an expression.
+    if _SUBGROUP_DIFF_CUE.search(norm_question):
+        return "difference between metrics or subgroups is not a single aggregate"
+    return ""
+
+
+def _unconsumed_comparator(norm_question: str, median_spans: list[tuple[int, int]]) -> str:
+    # A comparator no filter form consumed is an unmodelled condition.
+    consumed = list(median_spans) + [m.span() for m in _FILTER_RE.finditer(norm_question)]
+    for match in _COMPARATOR_CUE.finditer(norm_question):
+        if not any(start <= match.start() < end for start, end in consumed):
+            return f"unconsumed comparator {norm_question[match.start():match.end()]!r}"
+    return ""
+
+
+def _unnamed_sign_condition(norm_question: str, occurrences: list[MetricOccurrence]) -> str:
+    """A sign condition on something the catalog cannot name.
+
+    ("gia tri tai san rong chiu ap luc thanh ly am") emits no filter, so the
+    group would be aggregated unfiltered. Rejecting here costs the false
+    positives where the token is part of a company name ("CTCP Duong Quang
+    Ngai"), which only ever means declining a question this branch might have
+    answered.
+    """
+    for match in _SIGN_FILTER_CUE.finditer(norm_question):
+        if not _metric_before(occurrences, match.start(), max_gap=_SIGN_MAX_GAP):
+            return f"sign condition {match.group('sign')!r} names no catalog metric"
+    return ""
+
+
+def _composite_metric(norm_question: str, occurrences: list[MetricOccurrence]) -> str:
+    # Two catalog metrics joined by arithmetic with no alias spanning the pair:
+    # the question names a composite metric the catalog cannot express.
+    ordered = sorted(occurrences, key=lambda hit: (hit.pos, _hit_end(hit)))
+    for left, right in zip(ordered, ordered[1:]):
+        gap = norm_question[_hit_end(left):right.pos]
+        if not _ARITHMETIC_CONNECTOR.match(gap):
+            continue
+        if any(hit.pos <= left.pos and _hit_end(hit) >= _hit_end(right) for hit in occurrences):
+            continue
+        return f"composite metric {norm_question[left.pos:_hit_end(right)]!r} not in catalog"
+    return ""
+
+
+def _multi_year_scope(norm_question: str, years: list[int]) -> str:
+    # `years` is one year by construction here, so a second year in the text is
+    # a filter or answer scope this shape cannot carry ("duong trong ca ba nam
+    # 2020-2022").
+    mentioned = {int(y) for y in _QUESTION_YEAR.findall(norm_question)}
+    if len(mentioned) > len(years):
+        return f"question spans years {sorted(mentioned)} but the plan covers {years}"
+    return ""
+
+
+def _unmentioned_group_members(question: str, tickers: list[str]) -> str:
+    """`tickers` comes from the retrieved documents, not from the question.
+
+    For an argmax that only widens the field of candidates, but here the
+    candidate set *is* the domain the answer is computed over -- one
+    over-retrieved peer inflates a `count` outright and moves every other
+    aggregation. So require the group to be enumerated by symbol in the
+    question itself.
+
+    This closes over-retrieval only: a question that lists five symbols while
+    retrieval returned four still passes, and would silently aggregate four.
+    Closing that direction needs a ticker universe to tell a real symbol from
+    an acronym like "CTCP" or "CFO", which the fact store does not expose.
+    """
+    unmentioned = sorted(set(tickers) - set(_QUESTION_SYMBOL.findall(question)))
+    if unmentioned:
+        return f"candidate group members {unmentioned} are not named in the question"
+    return ""
+
+
+def _conditioned_share_denominator(norm_question: str, aggregation: str, agg_pos: int) -> str:
+    # `share` divides by the whole candidate set; a restricted total would be
+    # divided by the wrong denominator.
+    if aggregation == "share" and _CONDITIONED_TOTAL_CUE.search(norm_question[agg_pos:]):
+        return "group share denominator is itself conditioned"
+    return ""
+
+
 def _unexpressible(
     question: str,
     norm_question: str,
@@ -423,67 +515,16 @@ def _unexpressible(
     decline, a confidently wrong catalog number also displaces the codegen
     attempt. So each returns a reason and the caller fails closed.
     """
-    if _SCENARIO_CUE.search(norm_question):
-        # No `scenario_factor` and no stress expression is emitted here, so
-        # answering would report the *unadjusted* figure.
-        return "scenario adjustment not expressible as a filter_aggregate"
-
-    if _SUBGROUP_DIFF_CUE.search(norm_question):
-        # "chenh lech ... giua phan nhom X va phan nhom con lai" needs two
-        # groups; "trung binh chenh lech giua A va B" needs an expression.
-        return "difference between metrics or subgroups is not a single aggregate"
-
-    # A comparator no filter form consumed is an unmodelled condition.
-    consumed = list(median_spans) + [m.span() for m in _FILTER_RE.finditer(norm_question)]
-    for match in _COMPARATOR_CUE.finditer(norm_question):
-        if not any(start <= match.start() < end for start, end in consumed):
-            return f"unconsumed comparator {norm_question[match.start():match.end()]!r}"
-
-    # A sign condition on something the catalog cannot name ("gia tri tai san
-    # rong chiu ap luc thanh ly am") emits no filter, so the group would be
-    # aggregated unfiltered. Rejecting here costs the false positives where the
-    # token is part of a company name ("CTCP Duong Quang Ngai"), which only ever
-    # means declining a question this branch might have answered.
-    for match in _SIGN_FILTER_CUE.finditer(norm_question):
-        if not _metric_before(occurrences, match.start(), max_gap=_SIGN_MAX_GAP):
-            return f"sign condition {match.group('sign')!r} names no catalog metric"
-
-    # Two catalog metrics joined by arithmetic with no alias spanning the pair:
-    # the question names a composite metric the catalog cannot express.
-    ordered = sorted(occurrences, key=lambda hit: (hit.pos, _hit_end(hit)))
-    for left, right in zip(ordered, ordered[1:]):
-        gap = norm_question[_hit_end(left):right.pos]
-        if not _ARITHMETIC_CONNECTOR.match(gap):
-            continue
-        if any(hit.pos <= left.pos and _hit_end(hit) >= _hit_end(right) for hit in occurrences):
-            continue
-        return f"composite metric {norm_question[left.pos:_hit_end(right)]!r} not in catalog"
-
-    # `years` is one year by construction here, so a second year in the text is
-    # a filter or answer scope this shape cannot carry ("duong trong ca ba nam
-    # 2020-2022").
-    mentioned = {int(y) for y in _QUESTION_YEAR.findall(norm_question)}
-    if len(mentioned) > len(years):
-        return f"question spans years {sorted(mentioned)} but the plan covers {years}"
-
-    # `tickers` comes from the retrieved documents, not from the question. For an
-    # argmax that only widens the field of candidates, but here the candidate set
-    # *is* the domain the answer is computed over -- one over-retrieved peer
-    # inflates a `count` outright and moves every other aggregation. So require
-    # the group to be enumerated by symbol in the question itself.
-    # This closes over-retrieval only: a question that lists five symbols while
-    # retrieval returned four still passes, and would silently aggregate four.
-    # Closing that direction needs a ticker universe to tell a real symbol from
-    # an acronym like "CTCP" or "CFO", which the fact store does not expose.
-    unmentioned = sorted(set(tickers) - set(_QUESTION_SYMBOL.findall(question)))
-    if unmentioned:
-        return f"candidate group members {unmentioned} are not named in the question"
-
-    if aggregation == "share" and _CONDITIONED_TOTAL_CUE.search(norm_question[agg_pos:]):
-        # `share` divides by the whole candidate set; a restricted total would be
-        # divided by the wrong denominator.
-        return "group share denominator is itself conditioned"
-    return ""
+    return (
+        _scenario_adjustment(norm_question)
+        or _subgroup_diff(norm_question)
+        or _unconsumed_comparator(norm_question, median_spans)
+        or _unnamed_sign_condition(norm_question, occurrences)
+        or _composite_metric(norm_question, occurrences)
+        or _multi_year_scope(norm_question, years)
+        or _unmentioned_group_members(question, tickers)
+        or _conditioned_share_denominator(norm_question, aggregation, agg_pos)
+    )
 
 
 def _aggregate_plan(
