@@ -82,29 +82,38 @@ _SEPARATE_SCOPE = re.compile(
     r"|riêng lẻ",
     re.IGNORECASE,
 )
-_CONSOLIDATED_SCOPE = re.compile(r"hợp nhất", re.IGNORECASE)
+_CONSOLIDATED_SCOPE = re.compile(r"hợp nhất|\bconsolidated\b", re.IGNORECASE)
 
 
-def _explicit_separate_scope(question: str) -> bool:
-    """True when the question names the separate/parent-only scope outright.
+def _explicit_doc_type(question: str) -> DocType | None:
+    """The scope the question states outright, when it states exactly one.
 
-    One-directional on purpose: it only promotes `unknown`, never overrides a
-    scope the model did commit to. 363 questions carry an explicit separate
-    marker and the model labels every one of them correctly; this is the
-    backstop for the handful it drops, so a miss here costs nothing beyond the
-    behaviour we already have.
+    Same authority as `_resolve_tickers`: an unambiguous, explicitly-named scope
+    overrides the model's answer rather than only filling gaps in `unknown`.
+    #355 ("MSN 2022 consolidated: ...") states the scope in so many words yet
+    the model answered `separate` -- a promote-`unknown`-only rule cannot catch
+    that, since the model never left it `unknown` to begin with. 363 questions
+    carry an explicit separate marker and the model already labels every one of
+    them correctly, so overriding on this side costs nothing beyond what we
+    already have.
 
-    A question naming *both* scopes is not a question this can answer: `doc_type`
-    is one field for the whole question, and #952 ("báo cáo công ty mẹ các năm
-    2022, 2023 và báo cáo hợp nhất các năm 2024, 2025") needs one scope per year.
-    Committing to either half would hard-filter the other half's tables out,
-    where leaving it `unknown` at least keeps both in the candidate pool. One
-    such question in 1012 -- the guard is here so the rule keeps meaning "the
-    question states one scope outright", not because the case is common.
+    Mutual exclusion (only fires when exactly one side matches) handles a
+    question naming *both* scopes: `doc_type` is one field for the whole
+    question, and #952 ("báo cáo công ty mẹ các năm 2022, 2023 và báo cáo hợp
+    nhất các năm 2024, 2025") needs one scope per year. Committing to either
+    half would hard-filter the other half's tables out, where returning `None`
+    at least leaves the model's own answer (and `unknown` keeps both in the
+    candidate pool). One such question in 1012 -- the guard is here so the rule
+    keeps meaning "the question states one scope outright", not because the
+    case is common.
     """
-    return bool(
-        _SEPARATE_SCOPE.search(question) and not _CONSOLIDATED_SCOPE.search(question)
-    )
+    consolidated = bool(_CONSOLIDATED_SCOPE.search(question))
+    separate = bool(_SEPARATE_SCOPE.search(question))
+    if consolidated and not separate:
+        return "consolidated"
+    if separate and not consolidated:
+        return "separate"
+    return None
 
 
 def make_understand(cfg):
@@ -112,7 +121,7 @@ def make_understand(cfg):
 
     async def understand(state: FinanceState) -> dict:
         resolved = _resolve_tickers(state["question"])
-        stated_separate = _explicit_separate_scope(state["question"])
+        explicit_doc_type = _explicit_doc_type(state["question"])
         try:
             user = state["question"]
             if resolved:
@@ -131,7 +140,7 @@ def make_understand(cfg):
         except Exception as e:
             return {
                 "tickers": resolved, "years": [], "metric": "", "operation": "multi_step",
-                "doc_type": "separate" if stated_separate else "unknown",
+                "doc_type": explicit_doc_type or "unknown",
                 "multi_year": False,
                 "multi_company": len(resolved) > 1,
                 "unit_hint": "", "answer_shape": "derived",
@@ -142,11 +151,7 @@ def make_understand(cfg):
         # BTC's code_stock.csv is authoritative: use rule-based tickers, falling
         # back to the LLM's guess only when name matching found nothing.
         tickers = resolved or result.tickers
-        doc_type = (
-            "separate"
-            if result.doc_type == "unknown" and stated_separate
-            else result.doc_type
-        )
+        doc_type = explicit_doc_type or result.doc_type
 
         return {
             "tickers":       tickers,
