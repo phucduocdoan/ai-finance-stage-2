@@ -238,6 +238,31 @@ class CandidateRetriever:
         self.judge_top_n = judge_top_n
         self.judge = judge or Judge()
 
+        meta, keys = self._load_texts_and_index(
+            tables=tables,
+            use_bm25=use_bm25,
+            use_dense=use_dense,
+            load_judge_text=load_judge_text,
+            doc_texts=doc_texts,
+            judge_texts=judge_texts,
+        )
+        self._load_dense_backend(use_dense, meta, keys)
+
+    def _load_texts_and_index(
+        self,
+        *,
+        tables: list[dict] | None,
+        use_bm25: bool,
+        use_dense: bool,
+        load_judge_text: bool,
+        doc_texts: dict[str, str] | None,
+        judge_texts: dict[str, str] | None,
+    ):
+        """Load the table index, then the one parquet read BM25/judge/dense share.
+
+        Returns `(meta, keys)` for `_load_dense_backend` to build the dense
+        index from; `meta` is `None` if nothing needed the parquet.
+        """
         self.tables = load_tables() if tables is None else tables
         self.index = index_by_ticker_year(self.tables)
         self.statement_types = {
@@ -257,6 +282,7 @@ class CandidateRetriever:
         if load_judge_text and judge_texts is None:
             columns.append("judge_text")
         meta = None
+        keys: list[str] | None = None
         if columns or (use_dense and doc_texts is None):
             import pandas as pd
 
@@ -279,24 +305,28 @@ class CandidateRetriever:
         if self.reranker is not None and not self.doc_texts:
             raise ValueError("a reranker needs doc_texts or the doc_text parquet")
 
-        if use_dense:
-            if meta is None:
-                raise ValueError("use_dense needs the doc_text parquet for row order")
-            import numpy as np
+        return meta, keys
 
-            index_path = self.embedder.index_path
-            if not index_path.exists():
-                raise FileNotFoundError(
-                    f"dense backend {self.embedder.name!r} needs {index_path}; "
-                    "build it first (scripts/build_deepinfra_index.py for qwen3-4b)"
-                )
-            vectors = np.load(index_path)
-            if len(vectors) != len(keys):
-                raise ValueError(
-                    f"{index_path.name} has {len(vectors):,} rows but the doc_text "
-                    f"parquet has {len(keys):,}; the index is stale"
-                )
-            self._dense = (vectors, {key: i for i, key in enumerate(keys)})
+    def _load_dense_backend(self, use_dense: bool, meta, keys: list[str] | None) -> None:
+        if not use_dense:
+            return
+        if meta is None:
+            raise ValueError("use_dense needs the doc_text parquet for row order")
+        import numpy as np
+
+        index_path = self.embedder.index_path
+        if not index_path.exists():
+            raise FileNotFoundError(
+                f"dense backend {self.embedder.name!r} needs {index_path}; "
+                "build it first (scripts/build_deepinfra_index.py for qwen3-4b)"
+            )
+        vectors = np.load(index_path)
+        if len(vectors) != len(keys):
+            raise ValueError(
+                f"{index_path.name} has {len(vectors):,} rows but the doc_text "
+                f"parquet has {len(keys):,}; the index is stale"
+            )
+        self._dense = (vectors, {key: i for i, key in enumerate(keys)})
 
     # -- queries -----------------------------------------------------------
 
