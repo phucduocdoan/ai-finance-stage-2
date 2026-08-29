@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Any, Sequence
 
 from finance_qa.modules.data.table_store import load_frame
@@ -37,23 +38,109 @@ def _ratio_numerator_roles(request: RawLinkRequest) -> set[str]:
     return {"lt_1y", "1_to_5y", "gt_5y"}
 
 
-def _candidate_rows(
+@dataclass
+class _TableScoringContext:
+    """Everything about one table that a row's score does not change."""
+
+    df: Any
+    label_col: object
+    context: str
+    scoring_tokens: Any
+    scoring_norm: str
+    table_score: float
+    row_paths: dict[int, list[str]]
+    column_scores: dict[object, float]
+    row_anchor: float
+
+
+def _score_table_columns(
+    df,
+    label_col,
+    column_profiles: dict[str, Any],
+    *,
+    request: RawLinkRequest,
+    slot: RawScopeSlot,
+    table_year: int | None,
+    scoring_tokens: Any,
+) -> dict[object, float]:
+    # Column scores do not depend on the row, so they are computed once per table.
+    column_scores: dict[object, float] = {}
+    for column in df.columns:
+        if column == label_col:
+            continue
+        profile = column_profiles.get(str(column))
+        if profile is not None and profile.is_identifier:
+            continue
+        # A share-of-total column cannot answer a question asked in đồng, and it holds a
+        # number in the same row as the amount, so it wins ties it has no claim to.
+        if request.target_unit in _scoring._MONEY_UNITS and _scoring._is_percent_column(column):
+            continue
+        column_scores[column] = max(0.0, min(1.0, _scoring._column_score(
+            column,
+            slot_year=slot.year,
+            period=request.period,
+            table_year=table_year,
+            resolved_year=profile.resolved_year if profile else None,
+        ) + _scoring._flow_column_adjustment(request, column)))
+
+    # A breakdown table (`Điện | Than | Khác | Cộng`) holds the answer in its total
+    # column unless the question names one of the parts. `_column_score` reads only
+    # period wording, so those four columns tied and row order picked the winner.
+    total_columns = {c for c in column_scores if _scoring._is_total_row(_norm(_scoring._leaf(c)))}
+    if total_columns and not any(
+        _scoring._token_score(scoring_tokens, _scoring._leaf(c)) > 0
+        for c in column_scores
+        if c not in total_columns
+    ):
+        for column in total_columns:
+            column_scores[column] = min(1.0, column_scores[column] + 0.12)
+    return column_scores
+
+
+def _row_anchor_score(
+    df,
+    label_col,
+    row_paths: dict[int, list[str]],
+    scoring_tokens: Any,
+    scoring_norm: str,
+) -> float:
+    # `Cộng` says nothing about what is being added, so a total row borrows the best
+    # score among the rows above it. This used to run only when the question spelled out
+    # "tổng", which left every other total row at exactly 0 on the row axis: q109 asks
+    # for prepayments to sellers and the answer is the note's `Cộng` row, scored 0.00.
+    row_anchor = 0.0
+    for position, raw_label in df[label_col].items():
+        label = _scoring._text(raw_label)
+        if label and not _scoring._is_total_row(label):
+            row_anchor = max(
+                row_anchor,
+                _scoring._semantic_score(
+                    scoring_tokens,
+                    scoring_norm,
+                    _scoring._row_text(label, row_paths.get(position)),
+                ),
+            )
+    return row_anchor
+
+
+def _build_table_scoring_context(
     request: RawLinkRequest,
     slot: RawScopeSlot,
     table_id: str,
-    ranked: Sequence[str],
     *,
-    start_id: int,
     frame_loader=load_frame,
     meta_lookup=meta_for,
-    page_text_lookup=page_text,
-) -> list[RawCellCandidate]:
+) -> _TableScoringContext | None:
+    """Load one table and score its columns/rows once, before per-cell candidates.
+
+    Returns None when the table cannot be read or has fewer than two usable columns.
+    """
     try:
         df = frame_loader(table_id)
     except Exception:  # noqa: BLE001 - one unreadable table cannot answer
-        return []
+        return None
     if df.empty or df.shape[1] < 2:
-        return []
+        return None
 
     meta = meta_lookup(table_id)
     profile_label_col = None
@@ -86,54 +173,50 @@ def _candidate_rows(
         }
     except Exception:  # noqa: BLE001 - header enrichment is advisory for linking
         column_profiles = {}
-    # Column scores do not depend on the row, so they are computed once per table.
-    column_scores: dict[object, float] = {}
-    for column in df.columns:
-        if column == label_col:
-            continue
-        profile = column_profiles.get(str(column))
-        if profile is not None and profile.is_identifier:
-            continue
-        # A share-of-total column cannot answer a question asked in đồng, and it holds a
-        # number in the same row as the amount, so it wins ties it has no claim to.
-        if request.target_unit in _scoring._MONEY_UNITS and _scoring._is_percent_column(column):
-            continue
-        column_scores[column] = max(0.0, min(1.0, _scoring._column_score(
-            column,
-            slot_year=slot.year,
-            period=request.period,
-            table_year=table_year,
-            resolved_year=profile.resolved_year if profile else None,
-        ) + _scoring._flow_column_adjustment(request, column)))
 
-    # A breakdown table (`Điện | Than | Khác | Cộng`) holds the answer in its total
-    # column unless the question names one of the parts. `_column_score` reads only
-    # period wording, so those four columns tied and row order picked the winner.
-    total_columns = {c for c in column_scores if _scoring._is_total_row(_norm(_scoring._leaf(c)))}
-    if total_columns and not any(
-        _scoring._token_score(scoring_tokens, _scoring._leaf(c)) > 0
-        for c in column_scores
-        if c not in total_columns
-    ):
-        for column in total_columns:
-            column_scores[column] = min(1.0, column_scores[column] + 0.12)
+    column_scores = _score_table_columns(
+        df,
+        label_col,
+        column_profiles,
+        request=request,
+        slot=slot,
+        table_year=table_year,
+        scoring_tokens=scoring_tokens,
+    )
+    row_anchor = _row_anchor_score(df, label_col, row_paths, scoring_tokens, scoring_norm)
 
-    # `Cộng` says nothing about what is being added, so a total row borrows the best
-    # score among the rows above it. This used to run only when the question spelled out
-    # "tổng", which left every other total row at exactly 0 on the row axis: q109 asks
-    # for prepayments to sellers and the answer is the note's `Cộng` row, scored 0.00.
-    row_anchor = 0.0
-    for position, raw_label in df[label_col].items():
-        label = _scoring._text(raw_label)
-        if label and not _scoring._is_total_row(label):
-            row_anchor = max(
-                row_anchor,
-                _scoring._semantic_score(
-                    scoring_tokens,
-                    scoring_norm,
-                    _scoring._row_text(label, row_paths.get(position)),
-                ),
-            )
+    return _TableScoringContext(
+        df=df,
+        label_col=label_col,
+        context=context,
+        scoring_tokens=scoring_tokens,
+        scoring_norm=scoring_norm,
+        table_score=table_score,
+        row_paths=row_paths,
+        column_scores=column_scores,
+        row_anchor=row_anchor,
+    )
+
+
+def _score_candidate_rows(
+    request: RawLinkRequest,
+    slot: RawScopeSlot,
+    table_id: str,
+    ranked: Sequence[str],
+    ctx: _TableScoringContext,
+    *,
+    start_id: int,
+    page_text_lookup=page_text,
+) -> list[RawCellCandidate]:
+    df = ctx.df
+    label_col = ctx.label_col
+    context = ctx.context
+    scoring_tokens = ctx.scoring_tokens
+    scoring_norm = ctx.scoring_norm
+    table_score = ctx.table_score
+    row_paths = ctx.row_paths
+    column_scores = ctx.column_scores
+    row_anchor = ctx.row_anchor
     out: list[RawCellCandidate] = []
 
     for position, row in df.iterrows():
@@ -235,6 +318,27 @@ def _candidate_rows(
                 )
             )
     return out
+
+
+def _candidate_rows(
+    request: RawLinkRequest,
+    slot: RawScopeSlot,
+    table_id: str,
+    ranked: Sequence[str],
+    *,
+    start_id: int,
+    frame_loader=load_frame,
+    meta_lookup=meta_for,
+    page_text_lookup=page_text,
+) -> list[RawCellCandidate]:
+    ctx = _build_table_scoring_context(
+        request, slot, table_id, frame_loader=frame_loader, meta_lookup=meta_lookup,
+    )
+    if ctx is None:
+        return []
+    return _score_candidate_rows(
+        request, slot, table_id, ranked, ctx, start_id=start_id, page_text_lookup=page_text_lookup,
+    )
 
 
 def build_candidates(
