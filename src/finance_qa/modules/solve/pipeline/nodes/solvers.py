@@ -275,58 +275,87 @@ def make_solve_formula_facts(config: FinanceAgentConfig):
     return solve_formula_facts
 
 
+async def _run_linked_solver(
+    state: State,
+    solver_name: str,
+    prepare: Callable[[State], Awaitable[dict]],
+    decline_exc: type[Exception],
+    *,
+    merge_table_ids: bool = False,
+) -> dict:
+    """Run a raw-table-linked solver: prepare a solution, execute it, translate outcome.
+
+    `make_solve_raw_table_linker` and `make_solve_raw_selection_linker` below
+    share this exact shape: call an `aprepare_*` function, decline on its own
+    "this question isn't mine" error, execute the resulting solution, decline
+    again if the query itself failed, else report the solver's answer. What
+    varies between them is only the solver name, the `aprepare_*` call, its
+    decline exception, and whether `table_ids` gets merged with the state's
+    existing ones before emitting.
+    """
+    try:
+        prepared = await prepare(state)
+    except decline_exc as exc:
+        return declined(
+            state, solver_name, str(exc),
+            errors=[f"{solver_name}: {exc}"],
+        )
+    except Exception as exc:  # noqa: BLE001 - fallback is product behaviour
+        reason = f"{type(exc).__name__}: {exc}"
+        return errored(
+            state, solver_name, reason,
+            errors=[f"{solver_name}: {reason}"],
+        )
+
+    result = await aexecute(
+        prepared["solution"],
+        "",
+        prepared["frames"],
+        question=state["question"],
+        unit_hint=state.get("unit_hint") or "",
+        names=prepared["names"],
+        tickers=state.get("tickers") or [],
+        max_repairs=0,
+        repair_history=False,
+    )
+    if result["diag"].get("failed"):
+        return declined(
+            state, solver_name, "query failed",
+            payload=prepared["diag"],
+            errors=[f"{solver_name}: {err}" for err in result["errors"]],
+        )
+
+    extra = {}
+    if merge_table_ids:
+        extra["table_ids"] = append_unique(list(state.get("table_ids") or []), prepared["table_ids"])
+    return emit_solver_result(
+        state,
+        solver_name,
+        result,
+        prepared["diag"],
+        frames=prepared["frames"],
+        names=prepared["names"],
+        evidence_tables=prepared["table_ids"],
+        solution=prepared["solution"].model_dump(),
+        codegen_prompt="",
+        **extra,
+    )
+
+
 def make_solve_raw_table_linker(config: FinanceAgentConfig):
     """Answer fixed-scope raw-table arithmetic from linked cell candidates."""
 
     async def solve_raw_table_linker(state: State) -> dict:
-        errors = list(state.get("errors") or [])
-        try:
-            prepared = await aprepare_raw_table_linker(
-                state,
+        return await _run_linked_solver(
+            state,
+            "raw_table_linker",
+            lambda s: aprepare_raw_table_linker(
+                s,
                 use_planner=config.raw_table_linker_planner,
                 planner_thinking=config.raw_table_linker_planner_thinking,
                 use_ratio_groups=config.raw_table_linker_ratio_groups,
-            )
-        except RawTableLinkError as exc:
-            return declined(
-                state, "raw_table_linker", str(exc),
-                errors=[f"raw_table_linker: {exc}"],
-            )
-        except Exception as exc:  # noqa: BLE001 - fallback is product behaviour
-            reason = f"{type(exc).__name__}: {exc}"
-            return errored(
-                state, "raw_table_linker", reason,
-                errors=[f"raw_table_linker: {reason}"],
-            )
-
-        result = await aexecute(
-            prepared["solution"],
-            "",
-            prepared["frames"],
-            question=state["question"],
-            unit_hint=state.get("unit_hint") or "",
-            names=prepared["names"],
-            tickers=state.get("tickers") or [],
-            max_repairs=0,
-            repair_history=False,
-        )
-        if result["diag"].get("failed"):
-            return declined(
-                state, "raw_table_linker", "query failed",
-                payload=prepared["diag"],
-                errors=[f"raw_table_linker: {err}" for err in result["errors"]],
-            )
-
-        return emit_solver_result(
-            state,
-            "raw_table_linker",
-            result,
-            prepared["diag"],
-            frames=prepared["frames"],
-            names=prepared["names"],
-            evidence_tables=prepared["table_ids"],
-            solution=prepared["solution"].model_dump(),
-            codegen_prompt="",
+            ),
+            RawTableLinkError,
         )
 
     return solve_raw_table_linker
@@ -336,55 +365,16 @@ def make_solve_raw_selection_linker(config: FinanceAgentConfig):
     """Answer raw-table max/min selection with bounded candidate ids."""
 
     async def solve_raw_selection_linker(state: State) -> dict:
-        errors = list(state.get("errors") or [])
-        try:
-            prepared = await aprepare_raw_selection_linker(
-                state,
-                use_planner=config.raw_table_linker_planner,
-                planner_thinking=config.raw_table_linker_planner_thinking,
-            )
-        except RawSelectionError as exc:
-            return declined(
-                state, "raw_selection_linker", str(exc),
-                errors=[f"raw_selection_linker: {exc}"],
-            )
-        except Exception as exc:  # noqa: BLE001 - fallback is product behaviour
-            reason = f"{type(exc).__name__}: {exc}"
-            return errored(
-                state, "raw_selection_linker", reason,
-                errors=[f"raw_selection_linker: {reason}"],
-            )
-
-        result = await aexecute(
-            prepared["solution"],
-            "",
-            prepared["frames"],
-            question=state["question"],
-            unit_hint=state.get("unit_hint") or "",
-            names=prepared["names"],
-            tickers=state.get("tickers") or [],
-            max_repairs=0,
-            repair_history=False,
-        )
-        if result["diag"].get("failed"):
-            return declined(
-                state, "raw_selection_linker", "query failed",
-                payload=prepared["diag"],
-                errors=[f"raw_selection_linker: {err}" for err in result["errors"]],
-            )
-
-        table_ids = append_unique(list(state.get("table_ids") or []), prepared["table_ids"])
-        return emit_solver_result(
+        return await _run_linked_solver(
             state,
             "raw_selection_linker",
-            result,
-            prepared["diag"],
-            frames=prepared["frames"],
-            names=prepared["names"],
-            evidence_tables=prepared["table_ids"],
-            solution=prepared["solution"].model_dump(),
-            table_ids=table_ids,
-            codegen_prompt="",
+            lambda s: aprepare_raw_selection_linker(
+                s,
+                use_planner=config.raw_table_linker_planner,
+                planner_thinking=config.raw_table_linker_planner_thinking,
+            ),
+            RawSelectionError,
+            merge_table_ids=True,
         )
 
     return solve_raw_selection_linker
