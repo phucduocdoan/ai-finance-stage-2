@@ -12,12 +12,12 @@ from finance_qa.modules.solve.common.units import detect_unit
 from finance_qa.modules.solve.facts.table_profile import build_table_profile
 from finance_qa.modules.solve.solvers.raw_table_linking import request as _request
 from finance_qa.modules.solve.solvers.raw_table_linking import scoring as _scoring
-from finance_qa.modules.solve.solvers.table_linking.columns import (
+from finance_qa.modules.solve.solvers.table_profiles.columns import (
     build_column_group_candidates,
     build_column_profiles,
 )
-from finance_qa.modules.solve.solvers.table_linking.rows import build_row_profiles
-from finance_qa.modules.solve.solvers.table_linking.schema import (
+from finance_qa.modules.solve.solvers.table_profiles.rows import build_row_profiles
+from finance_qa.modules.solve.solvers.table_profiles.schema import (
     RawCellCandidate,
     RawGroupCandidate,
     RawLinkRequest,

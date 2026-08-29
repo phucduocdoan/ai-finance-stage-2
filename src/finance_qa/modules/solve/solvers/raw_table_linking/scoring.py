@@ -14,7 +14,7 @@ from finance_qa.modules.solve.common.context import meta_for
 from finance_qa.modules.solve.common.intent import norm as _norm
 from finance_qa.modules.solve.solvers.cell_locator import PeriodIntent, _rank_bonus
 from finance_qa.modules.solve.solvers.raw_table_linking.request import _tokens
-from finance_qa.modules.solve.solvers.table_linking.schema import RawLinkRequest
+from finance_qa.modules.solve.solvers.table_profiles.schema import RawLinkRequest
 from finance_qa.modules.tools.numeric import parse_number
 
 

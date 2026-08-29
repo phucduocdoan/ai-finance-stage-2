@@ -8,7 +8,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.solve.solvers.table_linking import (  # noqa: E402
+from finance_qa.modules.solve.solvers.table_profiles import (  # noqa: E402
     LinkedRowProfile,
     build_row_profiles,
 )

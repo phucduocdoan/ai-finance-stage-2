@@ -123,7 +123,7 @@ for table_id in FRAMES:
 
 
 # Module-level, so it outlives this file: under `pytest tests/` the fakes were still
-# installed when `test_table_linking_columns.py` imported, and its NVL cell-candidate
+# installed when `test_table_profiles_columns.py` imported, and its NVL cell-candidate
 # checks failed against these four synthetic tables. `_RAW_ORIGINALS` + the restore at
 # the end of the file keep the patch scoped to this module.
 _RAW_ORIGINALS = {

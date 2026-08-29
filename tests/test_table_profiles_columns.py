@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from finance_qa.modules.solve.solvers import raw_table_linker as raw  # noqa: E402
-from finance_qa.modules.solve.solvers.table_linking import (  # noqa: E402
+from finance_qa.modules.solve.solvers.table_profiles import (  # noqa: E402
     RawScopeSlot,
     build_column_group_candidates,
     build_column_profiles,

@@ -7,6 +7,10 @@ live in raw CSV tables, notes, bank layouts, or tables without VAS ``Mã số``.
 The LLM does not write pandas. It only chooses from a bounded list of real cell
 candidates and an operation. Python validates scope/unit/ambiguity and builds the
 submitted expression.
+
+This module is a facade: nearly every name below is a thin delegate or bare
+re-export of the real implementation in `raw_table_linking/*`. It exists so
+callers get one flat import surface instead of reaching into 10 submodules.
 """
 from __future__ import annotations
 
@@ -45,7 +49,7 @@ from finance_qa.modules.solve.solvers.raw_table_linking.schema import (
     RawSlotSemanticConstraint,
     RawTableLinkError,
 )
-from finance_qa.modules.solve.solvers.table_linking.schema import (
+from finance_qa.modules.solve.solvers.table_profiles.schema import (
     RawCellCandidate,
     RawGroupCandidate,
     RawLinkRequest,
