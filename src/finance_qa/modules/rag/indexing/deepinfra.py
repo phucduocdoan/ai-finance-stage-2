@@ -1,4 +1,8 @@
-"""DeepInfra embedding backend for the dense retrieval channel."""
+"""DeepInfra embedding backend for the dense retrieval channel.
+
+See also `rerankers/deepinfra.py` for the reranker backend -- same
+provider, different pipeline stage, easy to open the wrong one by filename.
+"""
 from __future__ import annotations
 
 from typing import Sequence

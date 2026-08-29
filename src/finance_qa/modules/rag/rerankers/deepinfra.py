@@ -1,4 +1,8 @@
-"""DeepInfra reranker backend."""
+"""DeepInfra reranker backend.
+
+See also `indexing/deepinfra.py` for the embedding backend -- same
+provider, different pipeline stage, easy to open the wrong one by filename.
+"""
 from __future__ import annotations
 
 from typing import Sequence
