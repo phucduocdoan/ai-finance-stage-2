@@ -263,6 +263,47 @@ both = run(execute.aexecute(expense_sol, "", {"df1": expense}, question="Chi ph�
 check("magnitude and scaling compose", abs(both["answer"] - 83.790676915) < 1e-9)
 check("both transforms are in the one query", both["pandas_query"].startswith("(abs("))
 
+# ── percent-ratio scaling on the codegen path ───────────────────────────────────
+# q955: average of 4 per-ticker ratios, gold is 54.66 (a percent) against a
+# composed query that only computes the fraction 0.5466 -- `conversion_factor`
+# never scales ratio -> percent, since that arithmetic is deliberately left to
+# the model, and here it wrote the inner divisions but not the outer `* 100`.
+RATIO_FRAMES = {f"df{i}": pd.DataFrame({"a": [538], "b": [1000]}) for i in range(1, 5)}
+ratio_terms = " + ".join(f"(df{i}.iloc[0]['a'] / df{i}.iloc[0]['b'])" for i in range(1, 5))
+ratio_sol = solution.PandasSolution(
+    table_variable="df1",
+    target_row="0",
+    target_column="a",
+    source_unit="vnd",
+    target_unit="percent",
+    pandas_query=f"({ratio_terms}) / 4",
+)
+avg_ratio = run(execute.aexecute(ratio_sol, "", RATIO_FRAMES, question="… trung bình là bao nhiêu phần trăm?"))
+check("an unscaled average-of-ratios is multiplied by 100", abs(avg_ratio["answer"] - 53.8) < 1e-9)
+check("the *100 is in the submitted query", avg_ratio["pandas_query"].endswith("* 100"))
+check("the diag records the percent scaling", avg_ratio["diag"]["percent_scaled"] is True)
+
+# The model remembered its own `* 100`: must not be rescaled a second time.
+already_scaled_sol = ratio_sol.model_copy(update={"pandas_query": f"(({ratio_terms}) / 4) * 100"})
+already = run(execute.aexecute(already_scaled_sol, "", RATIO_FRAMES, question="… trung bình là bao nhiêu phần trăm?"))
+check("a model-scaled ratio is not doubled", abs(already["answer"] - 53.8) < 1e-9)
+check("the diag records no extra scaling", already["diag"]["percent_scaled"] is False)
+
+# A plain average of two already-percent cells (division by a bare count, not by
+# data) must not be rescaled: there is no data/data ratio to find.
+percent_cells = {"df1": pd.DataFrame({"roe": [15.2]}), "df2": pd.DataFrame({"roe": [18.4]})}
+avg_cells_sol = solution.PandasSolution(
+    table_variable="df1",
+    target_row="0",
+    target_column="roe",
+    source_unit="percent",
+    target_unit="percent",
+    pandas_query="(df1.iloc[0]['roe'] + df2.iloc[0]['roe']) / 2",
+)
+avg_cells = run(execute.aexecute(avg_cells_sol, "", percent_cells, question="… trung bình là bao nhiêu phần trăm?"))
+check("an average of already-percent cells is left alone", abs(avg_cells["answer"] - 16.8) < 1e-9)
+check("the diag records no percent scaling", avg_cells["diag"]["percent_scaled"] is False)
+
 # The six blocked shapes: arithmetic *over* expense rows, where the sign is the answer.
 check(
     "a difference between expense rows keeps its sign",
@@ -294,14 +335,16 @@ check("an untouched query keeps the reported sign", signed["answer"] == -8379067
 check("scaled flag ignores the abs wrapper", signed["diag"]["scaled"] is False)
 
 # ── a difference between two companies, and money already paid out ─────────────
-# q774/q777 ask "chênh lệch giữa A và B": which company is named first is the
-# question writer's choice, so gold is the magnitude. q623 asks the difference
-# between two year-ends of one company, where the sign is the answer. The
-# separator is the year count, and the ticker count is what says "two companies".
+# q744/q752/q759 (hand-checked gold) ask "chênh lệch giữa A và B" and all have
+# *negative* gold, each "per question order" (first company named minus second);
+# codegen already computes that order and sign on its own, so `as_magnitude` must
+# not force the magnitude here — see its docstring for the full evidence trail.
+# `between_two_companies` itself is unchanged (still used by the analysis
+# scripts); it is simply no longer consulted by `as_magnitude`.
 TWO_CO = "Chênh lệch giữa số dư tiền mặt của công ty mẹ VIB và công ty mẹ SHB cuối năm 2019 là bao nhiêu?"
 check(
-    "a difference between two companies answers as a magnitude",
-    execute.as_magnitude(TWO_CO, "Tiền mặt", ["VIB", "SHB"]),
+    "a difference between two companies keeps its sign",
+    not execute.as_magnitude(TWO_CO, "Tiền mặt", ["VIB", "SHB"]),
 )
 check(
     "the same wording with one ticker keeps its sign",
@@ -325,10 +368,11 @@ check(
     ),
 )
 check(
-    "'công ty cổ phần' is not a selection marker",
-    execute.as_magnitude(
-        "Chênh lệch tổng tài sản giữa Công ty Cổ phần A và Công ty Cổ phần B cuối năm 2020?",
-        "Tổng tài sản",
+    "'công ty cổ phần' is not a selection marker (between_two_companies itself)",
+    execute.between_two_companies(
+        execute.intent_norm(
+            "Chênh lệch tổng tài sản giữa Công ty Cổ phần A và Công ty Cổ phần B cuối năm 2020?"
+        ),
         ["AAA", "BBB"],
     ),
 )
@@ -338,7 +382,7 @@ two_co = run(
         "", {"df1": expense}, question=TWO_CO, tickers=["VIB", "SHB"],
     )
 )
-check("aexecute passes the tickers through to the guard", two_co["answer"] == 83790676915.0)
+check("a two-company difference keeps the reported sign through aexecute", two_co["answer"] == -83790676915.0)
 check(
     "an average of tax already paid answers as a magnitude",
     execute.as_magnitude(

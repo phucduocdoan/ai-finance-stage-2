@@ -8,6 +8,7 @@ the grader re-executes it and must reproduce the submitted answer.
 """
 from __future__ import annotations
 
+import ast
 import re
 from typing import Mapping, Sequence
 
@@ -247,13 +248,12 @@ async def arun_with_repair(
 def between_two_companies(normalized: str, tickers: Sequence[str]) -> bool:
     """Is this a difference between two companies in a single period?
 
-    Then the sign is an artifact of which company the question happens to name
-    first, and gold reports the magnitude: on the 1,012-question run 27 answers
-    match this shape and are negative, and all four that the clean eval labels
-    (q774, q777, and q735/q769, wrong for other reasons) have positive gold. A
-    difference *across periods* is the opposite case: q623 ("cuối năm 2023 và cuối
-    năm 2022") means 2023 minus 2022, so flipping the sign flips the meaning. That
-    is what the year count separates.
+    Kept for the analysis scripts that still reference it
+    (`scripts/gate_sign_replay.py`, `scripts/patch_sign_submission.py`) but no
+    longer consulted by `as_magnitude`: see the "was" paragraph there for why.
+    A difference *across periods* is a different shape: q623 ("cuối năm 2023 và
+    cuối năm 2022") means 2023 minus 2022, so flipping the sign flips the
+    meaning. That is what the year count separates.
 
     Two guards earn their keep. `SELECTION_MARKER` drops screening questions
     (q417, q418, q445), where "cao hơn" trips `DIFF_CUE_LOOSE` but the answer is
@@ -279,21 +279,30 @@ def as_magnitude(question: str, target_row: str, tickers: Sequence[str] = ()) ->
     expense parses to a negative and nothing on this path undoes it.
 
     Every solver reaches this one call (`graph.py` runs each of them through
-    `aexecute`), and `abs` here wraps the *whole* query, so it also fixes the two
-    cases the per-term `value_transform` cannot: a two-company difference, where
-    `abs(a) - abs(b)` is still negative, and an average of amounts paid out.
-    Measured on the clean eval those two additions are +3 (q774, q777, q894) / −0,
-    and they flip 28 of the 1,012 answers.
+    `aexecute`), and `abs` here wraps the *whole* query, so it also fixes what
+    the per-term `value_transform` cannot: an average of amounts paid out.
 
-    The three cues below are the difference between a gain and a regression. On
-    the 1,012-question run 14 codegen answers are negative on an expense metric;
-    this guard flips 11 and blocks 3 (q454, q601 differences; q639 wording),
-    because in those the sign *is* the answer: a difference (`DIFF_CUE_LOOSE`),
-    growth (`GROWTH_CUE`), or the wordings neither covers (`MAGNITUDE_BLOCK`). On
-    gold73 that is +2 (q525, q526) / −0.
+    This used to also force the magnitude for `between_two_companies()` — a
+    two-company "chênh lệch", where `abs(a) - abs(b)` is still negative — on the
+    theory that which company the question names first is arbitrary, so gold
+    always wants the magnitude. That was measured against three questions (q774,
+    q777, q894) from `artifacts/eval_clean/`, an internal Claude-labeled proxy set
+    whose own docstring (`scripts/score_clean_eval.py`) warns it disagrees with
+    real BTC gold specifically on ambiguous questions. `docs/label_calibration_
+    2026-08-23.md` already found q774 to be exactly that: two independent re-label
+    passes both read −204503 (VIB minus SHB, the question's own order), against
+    the one proxy label of +204503 that justified this rule. Separately,
+    `data/eval/manual15_gold.jsonl` and `unbiased60_gold.jsonl` — hand-checked
+    against the source tables, not Claude-labeled — carry q744, q752, and q759,
+    three more two-company differences, all with *negative* gold, each annotated
+    "per question order", and in each case codegen already computed that exact
+    signed value before this rule's `abs()` flipped it to the wrong sign. Four
+    real, checkable data points and zero survive in favor of "always positive";
+    the sign here is not arbitrary, it is the order the question names the two
+    companies in, and codegen already gets that order right on its own.
     """
     normalized = intent_norm(question)
-    if between_two_companies(normalized, tickers) or PAID_OUT.search(normalized):
+    if PAID_OUT.search(normalized):
         return True
     text = f"{question} {target_row}"
     if SIGNED_METRIC.search(text) or not MAGNITUDE_METRIC.search(text):
@@ -423,6 +432,47 @@ def project_year(
     return f"({winner}) * 0 + {year}", year
 
 
+def _is_data_ratio(query: str) -> bool:
+    """Does the query divide two data-bearing subexpressions -- a genuine ratio?
+
+    `conversion_factor` never scales a ratio to a percent (see `units.py`): that
+    arithmetic is the model's job, and it is unreliable at it exactly where the
+    expression is composed rather than a single division. q955 averages four
+    per-ticker ratios, ``((a1/b1) + (a2/b2) + (a3/b3) + (a4/b4)) / 4``, and gold
+    is 54.66 against a submitted 0.5466 -- the model wrote the four inner
+    divisions but not the outer ``* 100``.
+
+    Only a division whose *both* sides reference a table frame counts: the outer
+    ``/ 4`` above divides by a bare count, not by data, and must not trip this --
+    an already percent-valued average like ``(df1.iloc[2] + df2.iloc[3]) / 2``
+    would otherwise be rescaled a second time.
+    """
+    try:
+        tree = ast.parse(query, mode="eval")
+    except SyntaxError:
+        return False
+    return any(
+        isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div)
+        and _DF_VAR.search(ast.unparse(node.left)) and _DF_VAR.search(ast.unparse(node.right))
+        for node in ast.walk(tree)
+    )
+
+
+def _already_scaled_to_percent(query: str) -> bool:
+    """Does the query's top-level operation already multiply by 100?
+
+    Checked so a model that *did* remember its own `* 100` (as most do) is not
+    rescaled a second time by the guard above.
+    """
+    try:
+        tree = ast.parse(query, mode="eval").body
+    except SyntaxError:
+        return False
+    if not (isinstance(tree, ast.BinOp) and isinstance(tree.op, ast.Mult)):
+        return False
+    return any(isinstance(side, ast.Constant) and side.value in (100, 100.0) for side in (tree.left, tree.right))
+
+
 def apply_units(
     solution: PandasSolution,
     frames: Mapping[str, pd.DataFrame],
@@ -477,6 +527,13 @@ def apply_units(
     # magnitude applied outside it would make the two metrics disagree.
     magnitude = as_magnitude(question, solution.target_row, tickers)
     inner = f"abs({raw_query})" if magnitude else raw_query
+    percent_scaled = (
+        target == "percent"
+        and _is_data_ratio(raw_query)
+        and not _already_scaled_to_percent(raw_query)
+    )
+    if percent_scaled:
+        inner = f"({inner}) * 100"
     query = scale_expression(inner, source, target)
     return query, {
         "source_unit": source,
@@ -484,6 +541,7 @@ def apply_units(
         "model_source_unit": solution.source_unit,
         "target_unit": target,
         "scaled": query != inner,
+        "percent_scaled": percent_scaled,
         "magnitude_abs": magnitude,
         "model_factors_stripped": removed,
     }
