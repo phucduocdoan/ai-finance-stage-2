@@ -50,15 +50,24 @@ def _long_text_ratio(series: pd.Series) -> float:
     return float((words >= 3).mean())
 
 
+def _with_columns(frame: pd.DataFrame, names: list[str], *, reset_index: bool = False) -> pd.DataFrame:
+    """Copy `frame`, rename its columns to `names`, and return it.
+
+    `reset_index=True` for a `body = df.iloc[1:]` slice, so the dropped
+    header row's positions don't leak into what a later `.iloc` prints.
+    """
+    out = frame.reset_index(drop=True).copy() if reset_index else frame.copy()
+    out.columns = names
+    return out
+
+
 def repair_shifted_bank_header(df: pd.DataFrame) -> pd.DataFrame:
     """Repair common bank statement headers shifted one cell left."""
     cols = [str(col) for col in df.columns]
     if len(cols) < 4:
         return df
     if _looks_like_stt_label_shift(df, cols):
-        out = df.iloc[:, :-1].copy()
-        out.columns = cols[1:]
-        return out
+        return _with_columns(df.iloc[:, :-1], cols[1:])
     shifted = (
         cols[0].startswith("Unnamed:")
         and cols[1].strip().casefold() == "thuyết minh"
@@ -72,9 +81,7 @@ def repair_shifted_bank_header(df: pd.DataFrame) -> pd.DataFrame:
     if filled.empty or filled.map(parse_number).isna().mean() < 0.8:
         return df
 
-    out = df.copy()
-    out.columns = ["STT", "Chỉ tiêu", *cols[1:-1]]
-    return out
+    return _with_columns(df, ["STT", "Chỉ tiêu", *cols[1:-1]])
 
 
 def _looks_like_stt_label_shift(df: pd.DataFrame, cols: list[str]) -> bool:
@@ -168,9 +175,7 @@ def repair_shifted_multilevel_header(df: pd.DataFrame) -> pd.DataFrame:
     ]
     if len({name.casefold() for name in repaired}) != len(repaired):
         return df
-    out = body.reset_index(drop=True).copy()
-    out.columns = repaired
-    return out
+    return _with_columns(body, repaired, reset_index=True)
 
 def repair_group_leaf_header(df: pd.DataFrame) -> pd.DataFrame:
     """Name the trailing columns from a leaf header row when only the last group spans.
@@ -226,9 +231,7 @@ def repair_group_leaf_header(df: pd.DataFrame) -> pd.DataFrame:
         repaired.append(f"{group} | {leaf}" if group else leaf)
     if len({name.casefold() for name in repaired}) != len(repaired):
         return df
-    out = body.reset_index(drop=True).copy()
-    out.columns = repaired
-    return out
+    return _with_columns(body, repaired, reset_index=True)
 
 
 # Names a label column can carry. Used to find the one column whose content decides
@@ -270,9 +273,7 @@ def repair_right_shifted_columns(df: pd.DataFrame) -> pd.DataFrame:
     )
     if not shifted:
         return df
-    out = df.copy()
-    out.columns = ["STT", *cols[:-1]]
-    return out
+    return _with_columns(df, ["STT", *cols[:-1]])
 
 
 __all__ = [
