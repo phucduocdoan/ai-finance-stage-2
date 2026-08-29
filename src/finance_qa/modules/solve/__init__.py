@@ -1,15 +1,16 @@
-"""Grounded pandas code generation: read the grids, write one query, run it.
+"""Turn a retrieved table context into an answer.
 
-Two steps, after retrieval:
-    retrieve (existing) -> generate_pandas -> execute_and_repair
+pipeline/ wires the LangGraph nodes (the node functions live under
+pipeline/nodes/) and routes each question to a solver. solvers/ holds the
+solving strategies themselves: deterministic cell lookup, raw-table linking,
+selection (argmax/argmin), fact-catalog lookups, and question decomposition.
+Each solver answers by either querying facts/ — a deterministic, DuckDB-backed
+metric catalog — or driving codegen/, where the model writes one pandas
+expression that gets executed and repaired. common/ underlies all of it:
+units, intent parsing, and the shared solution schema.
 
-There is no selection step. `generate_pandas` is handed the head of retrieval's
-ranking and shows the model every one of those tables in full; picking among them
-is part of writing the query, because that is the only point where the contents
-are visible. Slicing to 3 tables beforehand was measured worse — see the pipeline
-docstring.
-
-The design rule for the whole package: the model sees table *contents*, not a
-schema, and it only decides which cells to read. Anything deterministic — unit
-detection, unit conversion, execution — is code.
+The design rule behind raw-table linking and codegen, still the core of the
+package: the model sees table *contents*, not a schema, and only decides
+which cells to read. Anything deterministic — unit detection, unit
+conversion, execution — is code.
 """
