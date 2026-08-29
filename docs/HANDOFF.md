@@ -166,7 +166,7 @@ rebuilt today because the v1 metadata file it was built from no longer exists on
 | table metadata/CSV -> long format | `modules.data.preprocessing.long_format.LongFormatBuilder` | `scripts/build_long_format.py` |
 | retrieval text -> local dense index | `modules.rag.indexing.dense.DenseIndexBuilder` | `scripts/build_dense_index.py` |
 | retrieval text -> hosted dense index (paid) | `modules.rag.indexing.deepinfra_build.DeepInfraIndexBuilder` | `scripts/build_deepinfra_index.py` |
-| `statement_type=="unknown"` rows -> reclassification patch | `modules.data.preprocessing.statement_type_classifier.StatementTypeClassifier` | `scripts/classify_statement_type.py` |
+| `statement_type=="unknown"` rows -> reclassification patch | `modules.data.preprocessing.offline.statement_type_classifier.StatementTypeClassifier` | `scripts/classify_statement_type.py` |
 
 `src/finance_qa/pipelines/data_pipeline.py` (+ `scripts/build_data_pipeline.py`) chains the
 required rebuild order (`enrich_questions -> build_doc_text -> build_dense_index`); the other

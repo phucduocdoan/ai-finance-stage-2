@@ -23,9 +23,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from finance_qa.core.paths import FINANCIAL_STATEMENTS_DIR, METADATA_DIR, TABLE_METADATA_PATH
-from finance_qa.modules.data.preprocessing.grid import expand_table
-from finance_qa.modules.data.preprocessing.header_flatten import flatten_header
-from finance_qa.modules.data.preprocessing.metadata_enrichment import report_id_to_ocr_path
+from finance_qa.modules.data.preprocessing.offline.grid import expand_table
+from finance_qa.modules.data.preprocessing.offline.header_flatten import flatten_header
+from finance_qa.modules.data.preprocessing.offline.metadata_enrichment import report_id_to_ocr_path
 
 
 EXPECTED_ROWS = 146_246

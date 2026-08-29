@@ -15,7 +15,7 @@ import sys
 import unicodedata
 
 from finance_qa.core.paths import TABLE_METADATA_PATH
-from finance_qa.modules.data.preprocessing.metadata_enrichment import (
+from finance_qa.modules.data.preprocessing.offline.metadata_enrichment import (
     TABLE_PATTERN,
     report_id_to_ocr_path,
 )

@@ -14,7 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from finance_qa.modules.data.preprocessing.metadata_enrichment import (  # noqa: E402
+from finance_qa.modules.data.preprocessing.offline.metadata_enrichment import (  # noqa: E402
     find_table_offsets,
     page_prose_for,
 )

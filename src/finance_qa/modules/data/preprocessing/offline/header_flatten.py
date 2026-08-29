@@ -31,7 +31,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 
-from finance_qa.modules.data.preprocessing.grid import Grid
+from finance_qa.modules.data.preprocessing.offline.grid import Grid
 
 # A cell that "looks like a number": digits with thousands separators, optional leading
 # minus or parens for negative, optional trailing percent. Financial-statement OCR also
