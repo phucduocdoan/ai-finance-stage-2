@@ -29,7 +29,10 @@ from finance_qa.modules.solve.solvers.table_profiles.schema import (
 _TOTAL_QUESTION = re.compile(r"\b(?:tong\s+so\s+du|tong\s+gia\s+tri|tong\s+du\s+no|tong\s+cong)\b")
 _STOPWORDS = {
     "a", "an", "and", "bao", "bao nhieu", "bang", "bao cao", "bctc",
-    "cai", "cac", "cho", "co", "cong", "cong ty", "cp", "ctcp", "cua",
+    "cai", "cac", "co", "cong", "cong ty", "cp", "ctcp", "cua",
+    # `cho` is deliberately absent: it was here as a filler particle, but stripping
+    # it also collapses `cho vay` ("to lend") into bare `vay` ("to borrow"), so a
+    # question about lending scores against a table about borrowing.
     "cuoi", "den", "diem", "don", "don vi", "duoc", "giua", "hoi",
     # `ngan` is deliberately absent: it was here for `ngân hàng`, but stripping it
     # also deletes `ngắn` from every row label, so `Ngắn hạn` and `Dài hạn` become
