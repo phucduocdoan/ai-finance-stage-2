@@ -72,19 +72,33 @@ PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --all --out artifacts/r
 # 3. score against the honest gold set (73 questions, see docs/HANDOFF.md):
 PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --run solve=artifacts/runs/full_run.jsonl --right solve
 
-# 4. rescale answers that fall below the floor of the unit they were asked in:
-PYTHONPATH=src .venv_bge/bin/python scripts/rescale_below_floor.py \
-    artifacts/runs/full_run.jsonl artifacts/runs/full_run_rescaled.jsonl
+# 4. (optional, needs step 2 run more than once) fill the certainly-wrong cells of one
+#    run from the others:
+PYTHONPATH=src .venv_bge/bin/python scripts/fill_from_arms.py \
+    artifacts/runs/full_run.jsonl artifacts/runs/full_run_filled.jsonl \
+    artifacts/runs/full_run_2.jsonl artifacts/runs/full_run_3.jsonl
 
-# 5. package a leaderboard submission:
+# 5. rescale answers that fall below the floor of the unit they were asked in:
+PYTHONPATH=src .venv_bge/bin/python scripts/rescale_below_floor.py \
+    artifacts/runs/full_run_filled.jsonl artifacts/runs/full_run_rescaled.jsonl
+
+# 6. package a leaderboard submission:
 PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_rescaled.jsonl --out output/submission
 ```
 
-Step 4 is what every submitted run went through; skipping it costs roughly 1.6 leaderboard
-points. It is a post-processing pass, not a solver: it needs the `unit_hint` of every question
-at once and only looks at the final number, so it sits between `run_graph.py` and
-`build_submission.py` rather than inside `modules/solve/`. Its docstring carries the full
-rationale and the pre-registered bar it was measured against.
+Steps 4 and 5 are post-processing passes, not solvers: both need the `unit_hint` of every
+question at once and only look at the final number, so they sit between `run_graph.py` and
+`build_submission.py` rather than inside `modules/solve/`. Each docstring carries the full
+rationale and the pre-registered bar it was measured against. Skipping step 5 costs roughly
+1.6 leaderboard points.
+
+Step 4 exists because the pipeline is not deterministic. Same code, same server,
+`temperature=0`: two runs disagree on about 30% of answers, because vLLM batches requests
+continuously and batch composition changes between runs. So no single run is bit-reproducible,
+including the ones already submitted. Step 4 turns that into an advantage by running step 2
+several times and replacing only the cells that are wrong on their face (`answer == 0.0`, the
+give-up constant; or outside the plausible band of the unit asked for). Measured twice a week
+apart against a bar registered in advance, it has never turned a right answer into a wrong one.
 
 `run_graph.py --ids <comma-separated ids>` runs a subset instead of `--all` (see Common Commands
 below for a one-question smoke test).
