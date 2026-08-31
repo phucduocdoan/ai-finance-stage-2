@@ -40,6 +40,7 @@ python3 -m venv .venv_bge
   `data/indexes/tables_dense.npy` — protected derived artifacts (`docs/DECISIONS.md` section 8).
   The bge-m3 dense index cannot currently be rebuilt from scratch (its v1 metadata source no
   longer exists on disk), so these three must be copied in from a backup rather than regenerated.
+  Download link and per-file schema: [`docs/DATA.md`](docs/DATA.md).
 - `data/eval/*.jsonl` (gold questions) — these ARE tracked in git (`!data/eval/` in
   `.gitignore`), nothing to provide.
 
