@@ -1,10 +1,13 @@
 """Deterministic executor for a validated StructuredPlan."""
 from __future__ import annotations
 
+import re
 from statistics import median
 from typing import Any
 
+from finance_qa.modules.data.table_store import submission_csv_name
 from finance_qa.modules.solve.common.units import conversion_factor, unit_from_hint
+from finance_qa.modules.solve.facts.cellexpr import Num, cell_expression
 from finance_qa.modules.solve.facts.metrics import (
     PRIMITIVES,
     _MONEY_UNITS,
@@ -27,15 +30,23 @@ class _EvalContext:
         self.store = store
         self.doc_type = doc_type
         self.facts: list[Fact] = []
+        # table_id -> dfN, đánh số theo thứ tự gặp đầu tiên, giống cách codegen
+        # đặt tên khung dữ liệu cho các bảng nó được đưa.
+        self.names: dict[str, str] = {}
 
-    def primitive(self, key: str, ticker: str, year: int, period_kind: str = "end") -> float:
+    def variable(self, table_id: str) -> str:
+        if table_id not in self.names:
+            self.names[table_id] = f"df{len(self.names)}"
+        return self.names[table_id]
+
+    def primitive(self, key: str, ticker: str, year: int, period_kind: str = "end") -> Num:
         metric = PRIMITIVES[key]
         fact = self.store.value(
             ticker=ticker, year=year, doc_type=self.doc_type,
             metric=metric, period_kind=period_kind,
         )
         self.facts.append(fact)
-        return fact.value
+        return Num(fact.value, cell_expression(fact, self.variable(fact.table_id)))
 
 
 def _average_primitive(ctx: _EvalContext, key: str, ticker: str, year: int) -> float:
@@ -136,7 +147,8 @@ def _measure_value(
 def _divide(num: float, den: float) -> float:
     if not _finite(den) or abs(float(den)) < 1e-12:
         raise StructuredFactError("division by zero")
-    return float(num) / float(den)
+    # Không bọc `float()`: nó cắt mất biểu thức mà `Num` đang mang theo.
+    return num / den
 
 
 def _passes(value: float, relation: str, target: float | None) -> bool:
@@ -263,7 +275,7 @@ def execute_plan(
         metric = plan.answer_metric or plan.selector_metric
         values = [val(metric, plan.tickers[0], year)[0] for year in plan.years]
         source_unit = _measure_value(ctx, metric, plan.tickers[0], plan.years[-1], plan)[1]
-        answer = sum(values) / len(values) if plan.operation == "avg" else float(median(values))
+        answer = sum(values) / len(values) if plan.operation == "avg" else median(values)
     elif plan.operation in {"argmax", "argmin", "conditional_select"}:
         answer, source_unit, selected = _execute_selection(plan, ctx)
     elif plan.operation == "filter_aggregate":
@@ -276,11 +288,12 @@ def execute_plan(
     if plan.round_digits is not None:
         scaled = round(scaled, int(plan.round_digits))
     table_ids = list(dict.fromkeys(f.table_id for f in ctx.facts))
+    query, evidence = _query_and_evidence(scaled, ctx)
     return {
         "answer": float(scaled),
-        "pandas_query": repr(float(scaled)),
+        "pandas_query": query,
         "table_ids": table_ids,
-        "evidence": [],
+        "evidence": evidence,
         "diag": {
             "done": True,
             "plan": plan.model_dump(),
@@ -290,6 +303,28 @@ def execute_plan(
             "facts": [_fact_diag(f) for f in ctx.facts],
         },
     }
+
+
+_DF_VAR = re.compile(r"\bdf\d+\b")
+
+
+def _query_and_evidence(scaled: Any, ctx: _EvalContext) -> tuple[str, list[dict]]:
+    """Biểu thức đọc ô cùng evidence của nó, hoặc hằng số cũ nếu không truy nguyên được.
+
+    Rơi về hằng số khi bất kỳ fact nào trong phép tính không định vị được ô: câu đó
+    vẫn giữ đáp án nhưng vẫn vi phạm luật gán cứng, còn hơn là ship một biểu thức
+    đọc nhầm ô rồi sai cả đáp án lẫn `EXECUTION_ACCURACY`.
+    """
+    expr = scaled.expr if isinstance(scaled, Num) else None
+    if not expr:
+        return repr(float(scaled)), []
+    read = set(_DF_VAR.findall(expr))
+    evidence = [
+        {"variable": var, "csv_path": f"data/{submission_csv_name(table_id)}"}
+        for table_id, var in ctx.names.items()
+        if var in read
+    ]
+    return expr, evidence
 
 
 def _supported_filters(plan: StructuredPlan) -> tuple[bool, str]:
@@ -485,7 +520,7 @@ def _element_values(
             skipped.append({"element": str(element), "reason": f"{metric} not finite"})
             continue
         unit = unit_here
-        out.append((element, float(value)))
+        out.append((element, value))
     return out, unit
 
 
@@ -532,9 +567,9 @@ def _execute_aggregate(plan: StructuredPlan, ctx: _EvalContext) -> tuple[float, 
     if plan.aggregation == "mean":
         return sum(values) / len(values), unit, selected
     if plan.aggregation == "median":
-        return float(median(values)), unit, selected
+        return median(values), unit, selected
     if plan.aggregation == "sum":
-        return float(sum(values)), unit, selected
+        return sum(values), unit, selected
     raise StructuredFactError(f"unsupported aggregation: {plan.aggregation}")
 
 

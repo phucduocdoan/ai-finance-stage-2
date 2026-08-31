@@ -72,30 +72,42 @@ PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --all --out artifacts/r
 # 3. score against the honest gold set (73 questions, see docs/HANDOFF.md):
 PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --run solve=artifacts/runs/full_run.jsonl --right solve
 
-# 4. (optional, needs step 2 run more than once) fill the certainly-wrong cells of one
+# 4. (only for runs produced before the cellexpr fix) rewrite the fact solvers'
+#    hardcoded pandas_query into a real cell read:
+PYTHONPATH=src .venv_bge/bin/python scripts/repair_fact_queries.py \
+    artifacts/runs/full_run.jsonl artifacts/runs/full_run_repaired.jsonl
+
+# 5. (optional, needs step 2 run more than once) fill the certainly-wrong cells of one
 #    run from the others:
 PYTHONPATH=src .venv_bge/bin/python scripts/fill_from_arms.py \
-    artifacts/runs/full_run.jsonl artifacts/runs/full_run_filled.jsonl \
-    artifacts/runs/full_run_2.jsonl artifacts/runs/full_run_3.jsonl
+    artifacts/runs/full_run_repaired.jsonl artifacts/runs/full_run_filled.jsonl \
+    artifacts/runs/full_run_2_repaired.jsonl artifacts/runs/full_run_3_repaired.jsonl
 
-# 5. rescale answers that fall below the floor of the unit they were asked in:
+# 6. rescale answers that fall below the floor of the unit they were asked in:
 PYTHONPATH=src .venv_bge/bin/python scripts/rescale_below_floor.py \
     artifacts/runs/full_run_filled.jsonl artifacts/runs/full_run_rescaled.jsonl
 
-# 6. package a leaderboard submission:
+# 7. package a leaderboard submission:
 PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_rescaled.jsonl --out output/submission
 ```
 
-Steps 4 and 5 are post-processing passes, not solvers: both need the `unit_hint` of every
-question at once and only look at the final number, so they sit between `run_graph.py` and
+Steps 4 to 6 are post-processing passes, not solvers, so they sit between `run_graph.py` and
 `build_submission.py` rather than inside `modules/solve/`. Each docstring carries the full
-rationale and the pre-registered bar it was measured against. Skipping step 5 costs roughly
+rationale and the pre-registered bar it was measured against. Skipping step 6 costs roughly
 1.6 leaderboard points.
 
-Step 4 exists because the pipeline is not deterministic. Same code, same server,
+Step 4 is a compliance repair, and it is only needed for runs recorded before
+`modules/solve/facts/cellexpr.py` existed. The fact solvers used to compute their answer in
+Python from `long_format.parquet` and then write the number itself as `pandas_query`, which
+the rules score as zero. It replays the plan stored in each record's `diag` to recover a real
+`dfN.iloc[r]["col"]` expression, and only overwrites when the replayed answer matches the
+recorded one exactly. Step 5 and 6 must run after it: both rewrite `answer` or wrap
+`pandas_query`, so a replay after them would not match.
+
+Step 5 exists because the pipeline is not deterministic. Same code, same server,
 `temperature=0`: two runs disagree on about 30% of answers, because vLLM batches requests
 continuously and batch composition changes between runs. So no single run is bit-reproducible,
-including the ones already submitted. Step 4 turns that into an advantage by running step 2
+including the ones already submitted. Step 5 turns that into an advantage by running step 2
 several times and replacing only the cells that are wrong on their face (`answer == 0.0`, the
 give-up constant; or outside the plausible band of the unit asked for). Measured twice a week
 apart against a bar registered in advance, it has never turned a right answer into a wrong one.
@@ -177,6 +189,7 @@ PYTHONPATH=src .venv_bge/bin/python -m compileall -q src scripts tests
 PYTHONPATH=src .venv_bge/bin/python tests/test_query_execution.py
 PYTHONPATH=src .venv_bge/bin/python tests/test_candidate_pool.py
 PYTHONPATH=src .venv_bge/bin/python tests/test_solve_units.py
+PYTHONPATH=src .venv_bge/bin/python tests/test_cell_expression.py
 PYTHONPATH=src .venv_bge/bin/python tests/test_understand.py
 PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --ids 371 --out artifacts/runs/smoke_q371.jsonl
 ```
