@@ -72,9 +72,19 @@ PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --all --out artifacts/r
 # 3. score against the honest gold set (73 questions, see docs/HANDOFF.md):
 PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --run solve=artifacts/runs/full_run.jsonl --right solve
 
-# 4. package a leaderboard submission:
-PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run.jsonl --out output/submission
+# 4. rescale answers that fall below the floor of the unit they were asked in:
+PYTHONPATH=src .venv_bge/bin/python scripts/rescale_below_floor.py \
+    artifacts/runs/full_run.jsonl artifacts/runs/full_run_rescaled.jsonl
+
+# 5. package a leaderboard submission:
+PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_rescaled.jsonl --out output/submission
 ```
+
+Step 4 is what every submitted run went through; skipping it costs roughly 1.6 leaderboard
+points. It is a post-processing pass, not a solver: it needs the `unit_hint` of every question
+at once and only looks at the final number, so it sits between `run_graph.py` and
+`build_submission.py` rather than inside `modules/solve/`. Its docstring carries the full
+rationale and the pre-registered bar it was measured against.
 
 `run_graph.py --ids <comma-separated ids>` runs a subset instead of `--all` (see Common Commands
 below for a one-question smoke test).
