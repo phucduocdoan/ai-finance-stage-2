@@ -115,6 +115,23 @@ apart against a bar registered in advance, it has never turned a right answer in
 `run_graph.py --ids <comma-separated ids>` runs a subset instead of `--all` (see Common Commands
 below for a one-question smoke test).
 
+### What the submitted answers came from
+
+The answers in the final submission were recorded on 2026-08-24 and are preserved verbatim at
+`artifacts/runs/full1012_v17_unitfix.jsonl`, which already carries the step 6 rescale. The
+submission is that file put through steps 4 and 7 above; step 5 was not used. Step 4 changed
+94 of the 1,012 `pandas_query` values and left every `answer` untouched (1,012 of 1,012
+identical), so the submitted answer set is exactly the recorded one. That part is
+deterministic: re-running those two steps on that file reproduces the submitted archive.
+
+Step 2 is not. Because of the batching effect described above, a fresh run of the current code
+against a fresh vLLM server lands about three points lower than the recorded run (0.37 rather
+than 0.40 answer accuracy), and two fresh runs also differ from each other. The gap is not a
+code regression: the header-repair commits landed after 2026-08-24 were checked by diffing
+column names for all 9,647 tables between that commit and HEAD, and none changed. The only
+uncontrolled variable is the vLLM server configuration in use on 2026-08-24, which was not
+recorded. So expect a re-run to reproduce the pipeline and the method, not the exact numbers.
+
 ## Repository Layout
 
 ```text
