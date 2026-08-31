@@ -94,3 +94,9 @@ artifacts/reports/questions_taxonomy.md
 # rebuildable from it; the resolver output it produced (ticker_names/canonical/name_index)
 # is small and IS kept.
 artifacts/relabel/ticker_blob.json
+
+# one-off evaluation/investigation scripts and dated debugging notes, kept locally
+# (and in git history) for our own reference -- not part of the submitted product's
+# focused source tree, which BTC reads as "toàn bộ mã nguồn của sản phẩm".
+scripts/dev/
+docs/investigations/

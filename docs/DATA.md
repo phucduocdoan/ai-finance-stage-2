@@ -1,13 +1,10 @@
 # Tài liệu mô tả dữ liệu
 
-> **CẢNH BÁO — VIỆC CẦN LÀM TRƯỚC KHI NỘP BÀI**
-> Dữ liệu gốc (raw) đã public sẵn trên HuggingFace, có link ngay bên dưới — không cần làm gì
-> thêm. Nhưng **dữ liệu phái sinh (derived) do đội tự tính — `tables_metadata_v2.jsonl`,
-> `tables_doc_text.parquet`, `tables_dense.npy`, tổng cộng ~618 MB — CHƯA được upload lên
-> Google Drive/OneDrive nào cả.** Đây là bước duy nhất cần một người thật thao tác (agent
-> không tự upload được). Xem mục "Việc cần làm thủ công" ở cuối file này.
+> Dữ liệu gốc (raw) đã public sẵn trên HuggingFace, có link ngay bên dưới. Dữ liệu phái sinh
+> (derived) do đội tự tính — `tables_metadata_v2.jsonl`, `tables_doc_text.parquet`,
+> `tables_dense.npy`, tổng cộng ~618 MB — đã được upload lên Google Drive.
 >
-> Link Google Drive/OneDrive cho dữ liệu phái sinh: **`[TODO: dán link Google Drive/OneDrive tại đây]`**
+> Link Google Drive cho dữ liệu phái sinh: https://drive.google.com/drive/folders/1m8ToGAsZD0QWiEmnVnMq32OSSzn-DsAl?usp=sharing
 
 ## 1. Nguồn dữ liệu
 
@@ -155,8 +152,8 @@ yêu cầu.
 
 ## Việc cần làm thủ công (không thể tự động hoá)
 
-- [ ] Upload 3 tệp ở mục 3 (~618 MiB) lên Google Drive hoặc OneDrive, bật chia sẻ ở chế độ
-      "Anyone with the link can view".
-- [ ] Dán link chia sẻ vào phần cảnh báo ở đầu tài liệu này (thay `[TODO: ...]`).
+- [x] Upload 3 tệp ở mục 3 (~618 MiB) lên Google Drive, link ở đầu tài liệu này.
 - [ ] Kiểm tra lại link hoạt động từ một trình duyệt ẩn danh (không đăng nhập) trước khi nộp,
-      đúng khuyến nghị cuối `final_submission.md`.
+      đúng khuyến nghị cuối `final_submission.md` — `curl` chỉ xác nhận link trả về HTTP 200,
+      không xác nhận chế độ chia sẻ đã đúng "Anyone with the link can view" (Drive có thể trả
+      200 cho cả trang "yêu cầu quyền truy cập"), nên bước này vẫn cần người thật kiểm tra.
