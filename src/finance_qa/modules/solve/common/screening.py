@@ -1,6 +1,6 @@
 """Screening-question detector: multi-company filter-then-aggregate.
 
-Moved here from `scripts/gate_screening_class.py` so the solver
+Moved here from `scripts/dev/gate_screening_class.py` so the solver
 (`agents/finance/graph.py`) and the gates (`gate_screening_class.py`,
 `gate_screening_run.py`, `gate_screening_evidence.py`,
 `gate_selection_reasons.py`) share one definition instead of two copies

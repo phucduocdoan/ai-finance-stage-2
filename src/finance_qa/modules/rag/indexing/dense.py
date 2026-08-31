@@ -3,7 +3,7 @@
 bge-m3 dense is XLM-R large + CLS pooling + L2 normalize, so plain
 `transformers` is enough -- no FlagEmbedding / sentence-transformers, which in
 this shared env would risk downgrading torch (see "Môi trường chạy" in
-docs/v0_retrieval_pipeline.md).
+docs/investigations/v0_retrieval_pipeline.md).
 
 Must run under .venv_bge: the base conda env's torch is cu130 against a
 CUDA-12.7 driver and cannot use the GPU at all.
@@ -137,7 +137,7 @@ class BgeM3DenseTextEmbedder(BgeM3Embedder):
     Subclassed rather than parameterised so that the pairing of encoder + column + index file
     stays a single named thing a caller selects by registry name, and cannot be assembled
     wrongly at a call site. See `document_text.build_dense_text` for why the column exists and
-    docs/retrieval_preprocessing_2026-08-21.md §10.4 for the ablation that picked it.
+    docs/investigations/retrieval_preprocessing_2026-08-21.md §10.4 for the ablation that picked it.
     """
 
     name = "bge-m3-dense-text"

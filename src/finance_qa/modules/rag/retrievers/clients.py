@@ -14,7 +14,7 @@ rather than separate arguments the caller could get wrong.
 `text_column` exists because BM25 and a dense encoder do not want the same text.
 An unmatched token is free for BM25 and not for a bi-encoder, which has no IDF to
 discount it with; measured, that is worth top-3 +7 over 154 gold questions
-*with the reranker off* (docs/retrieval_preprocessing_2026-08-21.md §10.3-10.4).
+*with the reranker off* (docs/investigations/retrieval_preprocessing_2026-08-21.md §10.3-10.4).
 With the production reranker it is not: a rerank replaces the fused order, so only
 pool membership survives, the two tie at top-20, and end to end through `_evidence`
 the DOCS tier is identical while TABLES stays inside the run-to-run churn floor

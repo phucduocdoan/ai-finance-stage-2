@@ -43,7 +43,7 @@ because an unmatched token is free for BM25 and not for a bi-encoder.
 
 "bge-m3", and measured — but read the config it was measured in. Over 154 gold questions
 `dense_text` is worth top-3 +7 / top-10 +4 with **the reranker off**
-(docs/retrieval_preprocessing_2026-08-21.md §10.4). That win is in the *fused order*, and
+(docs/investigations/retrieval_preprocessing_2026-08-21.md §10.4). That win is in the *fused order*, and
 `_arerank` re-scores the whole pool and replaces `pool.ranked` wholesale, so with the
 default reranker the fused order is thrown away and the dense channel can only act
 through pool membership. Measured on membership alone (which the reranker does not
@@ -52,7 +52,7 @@ change, so this is exact for production): pools differ on 150/154 questions by a
 
 Measured the rest of the chain too, rather than inferring it. With the reranker on, the
 two backends tie at top-20 (148 each), which is the window `judge_top_n` cuts. End to end
-through `_evidence` (scripts/gate_retrieval_full.py), DOCS F2 is identical to three
+through `_evidence` (scripts/dev/gate_retrieval_full.py), DOCS F2 is identical to three
 decimals — `relevant_docs` comes from the hard filter via primary expansion, not from
 ranking — and TABLES F2 sits inside the churn floor: the same `doc_text` config scored
 top-3 23 then 26 on unbiased60 across two runs, against dense_text's 26. The one cell
@@ -86,7 +86,7 @@ run -- thinking off, prompt asking for a rationale before the JSON, max_tokens 1
 measures worse: top-3 124 -> 114 over 154 gold questions against a churn floor of 1-2
 questions, because reasoning makes the judge more selective (median picks 3 -> 2, recall
 0.892 -> 0.827) and F2 weights recall four times precision. Being choosier is the wrong
-direction for this stage; `scripts/gate_retrieval_full.py --arms reasoning` is the probe.
+direction for this stage; `scripts/dev/gate_retrieval_full.py --arms reasoning` is the probe.
 
 ### `frozen_fallback`
 
@@ -123,7 +123,7 @@ added up to a default run scoring 39/73 while the good numbers lived only in
 whichever shell had the env vars exported. That is the failure this flip fixes,
 not any new evidence. `SOLVE_<NAME>=0` still gives every A/B its control arm.
 Artifacts: gold73_qwen35.jsonl, gold73_qwen35_flagson.jsonl,
-gold73_qwen35_planner.jsonl; docs/leaderboard_and_strategy_2026-08-21.md §2.
+gold73_qwen35_planner.jsonl; docs/investigations/leaderboard_and_strategy_2026-08-21.md §2.
 
 ### `cell_locator`
 
@@ -255,7 +255,7 @@ stays at 3, the prompt does not grow, so it cannot pay the cost the
 near-duplicate confusion). Widening is what carries that risk, so it waits
 behind `SOLVE_MAX_TABLES_MULTI_COMPANY` until the predicate step lands and
 there is something for the extra companies to be filtered *by*.
-`scripts/gate_slot_budget.py` reproduces all three rows offline, no LLM.
+`scripts/dev/gate_slot_budget.py` reproduces all three rows offline, no LLM.
 
 ### `codegen_thinking`
 

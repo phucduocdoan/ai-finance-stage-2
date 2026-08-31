@@ -4,7 +4,7 @@ Replaces the cross-encoder reranker of the original Q7 design (user's call:
 "chưa cần rerank model mà cứ dùng llm local làm rerank cũng được").
 
 Two consequences of using a judge instead of a cross-encoder, both measured on
-data/eval/evalset.json (see docs/v0_retrieval_pipeline.md):
+data/eval/evalset.json (see docs/investigations/v0_retrieval_pipeline.md):
 
 - The pool is the **union** of BM25 top-N and dense top-N, NOT the RRF ranking.
   A judge reads every candidate, so the order inside the pool is irrelevant and

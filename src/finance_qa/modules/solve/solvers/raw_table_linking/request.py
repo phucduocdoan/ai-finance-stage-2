@@ -30,9 +30,7 @@ _TOTAL_QUESTION = re.compile(r"\b(?:tong\s+so\s+du|tong\s+gia\s+tri|tong\s+du\s+
 _STOPWORDS = {
     "a", "an", "and", "bao", "bao nhieu", "bang", "bao cao", "bctc",
     "cai", "cac", "co", "cong", "cong ty", "cp", "ctcp", "cua",
-    # `cho` is deliberately absent: it was here as a filler particle, but stripping
-    # it also collapses `cho vay` ("to lend") into bare `vay` ("to borrow"), so a
-    # question about lending scores against a table about borrowing.
+    # `cho` is not listed here: it is context-sensitive, see `_tokens` below.
     "cuoi", "den", "diem", "don", "don vi", "duoc", "giua", "hoi",
     # `ngan` is deliberately absent: it was here for `ngân hàng`, but stripping it
     # also deletes `ngắn` from every row label, so `Ngắn hạn` and `Dài hạn` become
@@ -45,12 +43,23 @@ _UNIT_TOKENS = {
     "dong", "trieu", "nghin", "tram", "vnd", "vnd", "phan", "tram",
     "co", "lan",
 }
+# `cho` is a filler preposition almost everywhere ("tra cho", "phai tra cho
+# nguoi ban"), but scoring must keep it in `cho vay`/`cho thue` ("to lend"/"to
+# lease") or a lending question collapses onto a borrowing table (bare `vay`).
+_CHO_KEEP_NEXT = {"vay", "thue"}
 
 
 def _tokens(text: object) -> list[str]:
+    words = _norm(text).split()
     out: list[str] = []
-    for token in _norm(text).split():
-        if token.isdigit() or token in _STOPWORDS or token in _UNIT_TOKENS:
+    for i, token in enumerate(words):
+        if token.isdigit():
+            continue
+        if token == "cho":
+            if i + 1 < len(words) and words[i + 1] in _CHO_KEEP_NEXT:
+                out.append(token)
+            continue
+        if token in _STOPWORDS or token in _UNIT_TOKENS:
             continue
         if len(token) <= 1:
             continue

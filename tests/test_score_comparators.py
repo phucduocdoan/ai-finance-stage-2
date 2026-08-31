@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
+sys.path.insert(0, str(Path(__file__).parents[1] / "scripts" / "dev"))
 
 from score_clean_eval import correct  # noqa: E402
 

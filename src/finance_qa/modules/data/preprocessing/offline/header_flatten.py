@@ -8,7 +8,7 @@ never expands `rowspan`/`colspan`. Two failure modes follow directly from that:
    alone, dropping the second tier.
 2. Column boundaries drift wherever a `colspan`/`rowspan` cell exists, so a "unit" cell
    (`VND`, `Triệu đồng`, `Đơn vị tính: VND`) lands inside the *text* of a neighboring header
-   cell instead of its own slot -- `docs/retrieval_preprocessing_2026-08-21.md` §3.1 catalogs
+   cell instead of its own slot -- `docs/investigations/retrieval_preprocessing_2026-08-21.md` §3.1 catalogs
    this as `2023VND`, `Số cuối nămTriệu đồng`, `Số cuối năm | Đơn vị tính: VND`, etc.
 
 This module re-derives the header from the properly expanded `Grid` (see `grid.py`), which

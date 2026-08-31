@@ -1,6 +1,6 @@
 """Build `tables_metadata_v3.jsonl`: re-derive `header_flat` + a new `unit` field.
 
-Staging artifact for the experiment in `docs/retrieval_preprocessing_2026-08-21.md` §3.1/§6.
+Staging artifact for the experiment in `docs/investigations/retrieval_preprocessing_2026-08-21.md` §3.1/§6.
 Reads the existing `tables_metadata_v2.jsonl` row by row and, for every row, re-parses that
 table's *raw* HTML (via `grid.expand_table` + `header_flatten.flatten_header`) instead of
 trusting the v2 `header_flat`, which came from a naive, span-blind CSV extraction

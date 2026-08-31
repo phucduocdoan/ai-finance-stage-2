@@ -19,7 +19,7 @@ Minimum keep set da ghi trong `docs/refactor_plan.md`:
 
 - `artifacts/runs/full1012_v17_unitfix.jsonl` - reproduce truc tiep baseline v17_unitfix o tren.
 - `artifacts/runs/full1012_t06.jsonl` (+ `.s0-s3.jsonl/.log`, `.commit`) - arm t=0.6 dang do,
-  nhac toi trong `docs/final_week_plan_2026-08-23.md:886` la chua bau xong, chua duoc gop vao
+  nhac toi trong `docs/investigations/final_week_plan_2026-08-23.md:886` la chua bau xong, chua duoc gop vao
   quyet dinh nao ca.
 - `artifacts/runs/full1012_all_on_a.*`, `full1012_all_on_b.*` - cap do gan nhat lien quan toi
   quyet dinh v16/v17 (commit `027ff0d`, `c4cfc08`), giu cho toi khi t=0.6 co ket luan.
@@ -58,6 +58,6 @@ Minimum keep set da ghi trong `docs/refactor_plan.md`:
 
 ## Not covered by this manifest
 
-- `docs/competition/`, `docs/feasibility/`, `scripts/probe_selection_plans.py`,
+- `docs/competition/`, `docs/investigations/feasibility/`, `scripts/dev/probe_selection_plans.py`,
   `artifacts/eval_clean/*.json` - da xac nhan khong co code nao trong `src/`/`tests/`/`scripts/`
   phu thuoc vao chung; van con untracked/chua commit, khong thuoc pham vi Phase 7 nay.

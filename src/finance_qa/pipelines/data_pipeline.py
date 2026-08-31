@@ -23,7 +23,7 @@ Optional stages, off by default:
                            Not read by the live agent (it loads CSVs directly via
                            modules.data.table_store); only scripts/solve.py (an
                            abandoned rule-based prototype) and
-                           scripts/verify_long_format.py use this file.
+                           scripts/dev/verify_long_format.py use this file.
   --with-deepinfra-index   tables_doc_text.parquet -> data/indexes/tables_qwen3_4b.npy
                            Alternative hosted dense backend (dense_backend="qwen3-4b"
                            in CandidateRetriever). Calls a paid API. The live

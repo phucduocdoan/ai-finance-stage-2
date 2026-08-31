@@ -25,7 +25,7 @@ DENSE_INDEX_PATH = INDEXES_DIR / "tables_dense.npy"
 # One file per dense backend, never one file rewritten in place: a second backend must not be
 # able to clobber the first. `tables_dense.npy` was long believed unrebuildable (metadata v1
 # is missing, see docs/HANDOFF.md); it is not -- a rebuild from the current doc_text
-# reproduces it to cos 1.0000 (docs/retrieval_preprocessing_2026-08-21.md §10.1) -- but it is
+# reproduces it to cos 1.0000 (docs/investigations/retrieval_preprocessing_2026-08-21.md §10.1) -- but it is
 # still the artifact every measured number was taken on, so it stays read-only.
 QWEN3_INDEX_PATH = INDEXES_DIR / "tables_qwen3_4b.npy"
 # bge-m3 over `dense_text` instead of `doc_text`. Same encoder as DENSE_INDEX_PATH, different

@@ -249,7 +249,7 @@ def between_two_companies(normalized: str, tickers: Sequence[str]) -> bool:
     """Is this a difference between two companies in a single period?
 
     Kept for the analysis scripts that still reference it
-    (`scripts/gate_sign_replay.py`, `scripts/patch_sign_submission.py`) but no
+    (`scripts/dev/gate_sign_replay.py`, `scripts/dev/patch_sign_submission.py`) but no
     longer consulted by `as_magnitude`: see the "was" paragraph there for why.
     A difference *across periods* is a different shape: q623 ("cuối năm 2023 và
     cuối năm 2022") means 2023 minus 2022, so flipping the sign flips the
@@ -287,7 +287,7 @@ def as_magnitude(question: str, target_row: str, tickers: Sequence[str] = ()) ->
     theory that which company the question names first is arbitrary, so gold
     always wants the magnitude. That was measured against three questions (q774,
     q777, q894) from `artifacts/eval_clean/`, an internal Claude-labeled proxy set
-    whose own docstring (`scripts/score_clean_eval.py`) warns it disagrees with
+    whose own docstring (`scripts/dev/score_clean_eval.py`) warns it disagrees with
     real BTC gold specifically on ambiguous questions. `docs/label_calibration_
     2026-08-23.md` already found q774 to be exactly that: two independent re-label
     passes both read −204503 (VIB minus SHB, the question's own order), against

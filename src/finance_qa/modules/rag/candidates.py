@@ -7,7 +7,7 @@ module existed the good policies lived in `scripts/dump_pools.py` and the
 evaluator quietly ran without them; see docs/HANDOFF.md §4.
 
 Three policies are on by default because each was measured on the 15 table-GT
-questions (docs/v0_retrieval_pipeline.md):
+questions (docs/investigations/v0_retrieval_pipeline.md):
 
 1. **stripped retrieval query** -- the hard filter has already spent ticker,
    year and scope, so those tokens in the query only boost the entity_info
@@ -232,7 +232,7 @@ class CandidateRetriever:
         # narrowing: whatever falls outside top-N is unreachable, so the cut sets a
         # hard ceiling at recall@N of `pool.ranked`. Off by default -- the measured
         # policy feeds the judge the whole pool, because the fused order was not
-        # trustworthy enough to cut on (docs/v0_retrieval_pipeline.md, "union > RRF").
+        # trustworthy enough to cut on (docs/investigations/v0_retrieval_pipeline.md, "union > RRF").
         if judge_top_n is not None and judge_top_n < 1:
             raise ValueError(f"judge_top_n must be >= 1, got {judge_top_n}")
         self.judge_top_n = judge_top_n

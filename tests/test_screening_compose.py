@@ -22,6 +22,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
+sys.path.insert(0, str(Path(__file__).parents[1] / "scripts" / "dev"))
 
 from finance_qa.modules.solve.codegen.screening import compose  # noqa: E402
 from finance_qa.modules.solve.common.screening import (  # noqa: E402

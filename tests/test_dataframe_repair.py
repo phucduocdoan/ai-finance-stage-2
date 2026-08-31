@@ -1,7 +1,7 @@
 """`repair_shifted_multilevel_header` trên các bảng thật đã kiểm bằng tay.
 
 Mọi CSV dưới đây là bản sao nguyên văn vài dòng đầu của một bảng có thật trong
-`data/tables`, ghi rõ id trong docstring. Xem `docs/multiyear_failures_2026-08-22.md` §5
+`data/tables`, ghi rõ id trong docstring. Xem `docs/investigations/multiyear_failures_2026-08-22.md` §5
 cho vì sao lớp lỗi này đắt: cột mang số thật thì tên là `Unnamed:`, còn cột có tên lại
 mang số của kỳ khác, nên câu trả lời sai vẫn trông hợp lý.
 """

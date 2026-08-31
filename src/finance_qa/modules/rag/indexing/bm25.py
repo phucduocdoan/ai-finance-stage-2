@@ -2,7 +2,7 @@
 
 Written directly instead of pulling in `rank_bm25` because of how the pipeline
 is shaped: the hard filter already cuts each question to a median of 226
-candidates (docs/v0_retrieval_pipeline.md Q4), so we never score the full
+candidates (docs/investigations/v0_retrieval_pipeline.md Q4), so we never score the full
 corpus. All we need globally is IDF; term frequencies are computed lazily on
 the shortlist. That means no 146k-document inverted index to build or hold.
 

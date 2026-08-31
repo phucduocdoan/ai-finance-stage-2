@@ -115,7 +115,7 @@ def round_final(item: dict) -> None:
     item["answer"] = round(_coerce_float(item.get("answer")), 2)
     query = str(item.get("pandas_query") or "").strip()
     if query:
-        item["pandas_query"] = f"round({query}, 2)"
+        item["pandas_query"] = f"round(float({query}), 2)"
 
 
 # ------------------------------------------------------------------ validation

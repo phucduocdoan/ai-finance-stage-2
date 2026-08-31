@@ -47,9 +47,9 @@ python3 -m venv .venv_bge
 over the OpenAI-compatible endpoint in `core/llm.py`. Point it at either:
 
 ```bash
-# a local vLLM server serving Qwen3-8B-Instruct (defaults if unset):
+# a local vLLM server serving Qwen3.5-9B (default LLM_MODEL if unset):
 export LLM_ENDPOINT=http://127.0.0.1:8990/v1/chat/completions
-export LLM_MODEL=Qwen/Qwen3-8B-Instruct
+export LLM_MODEL=Qwen/Qwen3.5-9B
 
 # or a hosted backend (no local server needed):
 export LLM_ENDPOINT=https://api.deepinfra.com/v1/openai/chat/completions

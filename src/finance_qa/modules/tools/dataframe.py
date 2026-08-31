@@ -135,7 +135,7 @@ def repair_shifted_multilevel_header(df: pd.DataFrame) -> pd.DataFrame:
     real numbers then comes out named `Unnamed: n`, so reading the table by column
     name returns another period's figure: in `KLB_2019_consolidated|67` the column
     called `Số đầu năm` holds the *closing* fair value, and the opening one has no
-    name at all. See `docs/multiyear_failures_2026-08-22.md` §5.
+    name at all. See `docs/investigations/multiyear_failures_2026-08-22.md` §5.
 
     The old version hard-coded a `số cuối` / `số đầu` pair and then filed every leaf
     under the first group, so the symmetric layout, by far the most common one, came

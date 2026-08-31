@@ -1,6 +1,6 @@
 """Hard filter: cut 146,246 tables down to a per-question shortlist.
 
-Semantics are Q4 of docs/v0_retrieval_pipeline.md:
+Semantics are Q4 of docs/investigations/v0_retrieval_pipeline.md:
 
     keep table if
         table.ticker in q.tickers

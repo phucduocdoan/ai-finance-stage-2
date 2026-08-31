@@ -7,7 +7,7 @@ One row per table, three views because the three consumers want different things
   dense_text  doc_text minus header_flat -- see `build_dense_text`.
   judge_text  statement_label | note_title | first_col_labels -- see `build_judge_text`.
 
-Per docs/v0_retrieval_pipeline.md (Q5+Q6, finalized 2026-08-03):
+Per docs/investigations/v0_retrieval_pipeline.md (Q5+Q6, finalized 2026-08-03):
 context_page_text is deliberately excluded — it has OCR noise, may contain
 cell values, and isn't needed for retrieval routing.
 
@@ -102,7 +102,7 @@ def build_dense_text(rec: dict) -> str:
     14.5% of doc_text's characters and 52.6% of them repeat within their own report. Dropping
     them from the dense index only, BM25 unchanged, over 154 gold questions across two
     independent eval sets: top-3 +7, top-10 +4, top-1 +1, at a cost of pool -1 and top-20 -2.
-    See docs/retrieval_preprocessing_2026-08-21.md §10.3-10.4.
+    See docs/investigations/retrieval_preprocessing_2026-08-21.md §10.3-10.4.
 
     That measurement is for a reranker-off retriever, which is not the production default: a
     rerank re-scores the whole pool and replaces the fused order, leaving only pool membership,
