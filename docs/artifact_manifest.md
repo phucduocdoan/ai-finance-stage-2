@@ -12,8 +12,23 @@ Snapshot luc viet doc nay: `output/` (~1.2G, 40 submission dirs + 40 zip),
 Minimum keep set da ghi trong `docs/refactor_plan.md`:
 
 - `output/submission_v17_unitfix/` + `.zip` - baseline truoc hybrid, dung de doi chieu regression.
-- `output/submission_v22_hybrid_answer_retrieval_with_data/` + `.zip` - baseline hybrid hien tai,
-  co dir `data/` day du (v18-v21 khong co).
+- `output/submission_v22_hybrid_answer_retrieval_with_data/` + `.zip` - **NHIEM GOLD, KHONG BAO
+  GIO NOP**. Xem canh bao ngay duoi.
+
+### Canh bao: v22 nhiem gold
+
+`submission_v22_hybrid_answer_retrieval_with_data` dung dau bang cua
+`scripts/score_unbiased60.py` voi 63/73 (86.3%), cao hon v17_unitfix 13 cau. Con so do la ao.
+
+Do ngay 2026-09-01:
+
+- v22 chi khac v17_unitfix dung **13 cau tren 1012**, va **ca 13 deu nam trong tap gold co nhan**.
+- Dap an khop gold toi 12 chu so thap phan: `4.263610960357`, `36.76031567513054`.
+- Cau 222 co `pandas_query` dung bang `30056924.0`, chinh la con so gold.
+
+Do la bang `{question_id: answer}` gan cung, dung dieu luat cam, va cac cau do bi cham 0. Tren
+leaderboard v22 nhieu nhat hon v17 khoang 1.3 diem truoc khi bi phat. Giu file lai de doi chieu,
+nhung khong nop, va khong dung diem gold73 cua no de so sanh bat cu thu gi.
 
 ## Keep - runs
 

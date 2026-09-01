@@ -301,6 +301,42 @@ By question shape (from `questions_enriched.jsonl` `multi_year`/`multi_company`)
 failure rate is 7.7% for single-cell, 9.6% temporal, 8.0% cross-company, and **24.7% for
 multi-year × multi-company** — the bucket `codegen_max_tables=3` structurally cannot serve.
 
+### Post-Processing Levers That Are Closed
+
+Measured 2026-09-01 against the private leaderboard. Every one of these rearranges the 1,012
+answers already on disk rather than producing new ones, and none of them moves the score. Read
+this before spending another submission on post-processing.
+
+The private round scores the same submitted file on a different split. `v28` (v17 answers plus
+`fill_from_arms`, `rescale_below_floor`, `repair_fact_queries`, `repair_cell_indices`) returned
+metrics identical to v17 in every digit:
+
+```
+TABLES_F2MACRO 0.0003  DOCS_F2MACRO 0.9494  ANSWER_ACCURACY 0.3893  EXECUTION_ACCURACY 0.3874
+```
+
+| lever | result | why it is closed |
+|---|---|---|
+| `relevant_tables` format | `TABLES_F2MACRO` 0.0003 | 12 probes spent, see `docs/tables_metric_probes.md` |
+| `fill_from_arms` on v17 | 3 of 1,012 cells changed | v17 already carries the rescale, so only the `== 0.0` criterion still fires; 2 of the 3 swapped one wrong answer for another |
+| majority vote across runs | 51/73 vs 50/73 on gold | 5 same-day runs changed 61 answers, 10 runs across all eras changed 257; both land inside the ±4-question noise band of a 73-question set |
+| `repair_cell_indices` | 72 -> 22 constant queries, score unchanged | `EXECUTION_ACCURACY` runs the query and compares to `answer`, and a constant executes and matches. The pass buys rule compliance under manual review, not metric. |
+
+The voting probe used `rescale_below_floor` on each donor first so the clusters compare like with
+like, grouped by `rel_tol=1e-4`, required a majority of at least 2, and broke ties toward the
+earlier run in the priority list. It is not committed as a script because it did not clear its
+bar.
+
+The bar for spending another submission, registered before the next attempt: a candidate must beat
+the standing submission by at least 4 questions on the 73-question honest gold set. One sigma on
+that set is about 4 questions, so anything smaller cannot be distinguished from run-to-run
+batching noise.
+
+What is left is `ANSWER_ACCURACY`, and it needs new runs rather than new post-processing. The
+obstacle is in "What the submitted answers came from" in the README: a fresh run of the current
+code lands near 0.37 against the recorded 2026-08-24 run's 0.40, so a fresh run submitted without
+clearing the bar above is more likely to lose three points than gain any.
+
 ## Next Work
 
 1. **Measure raw-table linking across Type 2-5 before expanding it.** Run the current opt-in
@@ -344,9 +380,10 @@ multi-year × multi-company** — the bucket `codegen_max_tables=3` structurally
    `build_data_pipeline.py --with-deepinfra-index` runs with no `--limit`, it can start billing
    immediately with no confirmation prompt, because the orchestrator constructs
    `DeepInfraIndexBuildConfig(yes=True)` directly instead of surfacing the module's own guard.
-8. **`docs/tables_metric_probes.md`** tracks a still-open, separate investigation: the
-   leaderboard's `relevant_tables` scoring format. Read that file before spending another
-   submission probing it — it records 11 already-spent attempts and what each ruled out.
+8. **`docs/tables_metric_probes.md`** records a closed investigation: the leaderboard's
+   `relevant_tables` scoring format. Twelve submissions were spent on it and probe H1 closed it —
+   two disjoint number ranges scored the same recall, so recall tracks list length and not
+   content. Do not spend another submission there.
 
 ## Standing Items
 
