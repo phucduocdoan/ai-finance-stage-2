@@ -77,23 +77,27 @@ PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --run solve=arti
 PYTHONPATH=src .venv_bge/bin/python scripts/repair_fact_queries.py \
     artifacts/runs/full_run.jsonl artifacts/runs/full_run_repaired.jsonl
 
-# 5. (optional, needs step 2 run more than once) fill the certainly-wrong cells of one
+# 5. re-locate cell reads whose row index and column name belong to the pre-merge frame:
+PYTHONPATH=src .venv_bge/bin/python scripts/repair_cell_indices.py \
+    artifacts/runs/full_run_repaired.jsonl artifacts/runs/full_run_cells.jsonl
+
+# 6. (optional, needs step 2 run more than once) fill the certainly-wrong cells of one
 #    run from the others:
 PYTHONPATH=src .venv_bge/bin/python scripts/fill_from_arms.py \
-    artifacts/runs/full_run_repaired.jsonl artifacts/runs/full_run_filled.jsonl \
-    artifacts/runs/full_run_2_repaired.jsonl artifacts/runs/full_run_3_repaired.jsonl
+    artifacts/runs/full_run_cells.jsonl artifacts/runs/full_run_filled.jsonl \
+    artifacts/runs/full_run_2_cells.jsonl artifacts/runs/full_run_3_cells.jsonl
 
-# 6. rescale answers that fall below the floor of the unit they were asked in:
+# 7. rescale answers that fall below the floor of the unit they were asked in:
 PYTHONPATH=src .venv_bge/bin/python scripts/rescale_below_floor.py \
     artifacts/runs/full_run_filled.jsonl artifacts/runs/full_run_rescaled.jsonl
 
-# 7. package a leaderboard submission:
+# 8. package a leaderboard submission:
 PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_rescaled.jsonl --out output/submission
 ```
 
-Steps 4 to 6 are post-processing passes, not solvers, so they sit between `run_graph.py` and
+Steps 4 to 7 are post-processing passes, not solvers, so they sit between `run_graph.py` and
 `build_submission.py` rather than inside `modules/solve/`. Each docstring carries the full
-rationale and the pre-registered bar it was measured against. Skipping step 6 costs roughly
+rationale and the pre-registered bar it was measured against. Skipping step 7 costs roughly
 1.6 leaderboard points.
 
 Step 4 is a compliance repair, and it is only needed for runs recorded before
@@ -101,13 +105,25 @@ Step 4 is a compliance repair, and it is only needed for runs recorded before
 Python from `long_format.parquet` and then write the number itself as `pandas_query`, which
 the rules score as zero. It replays the plan stored in each record's `diag` to recover a real
 `dfN.iloc[r]["col"]` expression, and only overwrites when the replayed answer matches the
-recorded one exactly. Step 5 and 6 must run after it: both rewrite `answer` or wrap
+recorded one exactly. Steps 5 to 7 must run after it: they rewrite `answer` or wrap
 `pandas_query`, so a replay after them would not match.
 
-Step 5 exists because the pipeline is not deterministic. Same code, same server,
+Step 5 is the other compliance repair, and it fixes a different failure. A table with a
+two-level header is read by the solvers while the leaf tier is still an ordinary data row, so
+the recorded row index is one too high and the recorded column name is only the group tier. At
+packaging time `load_frame` merges the tiers into `"group | leaf"` and the leaf row leaves the
+body, so the query raises `KeyError` and `build_submission` substitutes `repr(answer)` for it.
+The answer stays right; the query becomes a constant, which is the shape the rules forbid. The
+pass re-locates each cell from `diag["profile_validate"]["query_cells"]` by its `row_label` and
+`column_index` (for a cell whose label was absorbed into the header it uses the row shift voted
+by the labelled cells of the same frame), then re-runs the whole rewritten query and keeps it
+only if it reproduces the recorded `answer`. It never writes `answer`, so it cannot move
+ANSWER_ACCURACY. On the submitted run it repaired 48 of the 57 broken queries.
+
+Step 6 exists because the pipeline is not deterministic. Same code, same server,
 `temperature=0`: two runs disagree on about 30% of answers, because vLLM batches requests
 continuously and batch composition changes between runs. So no single run is bit-reproducible,
-including the ones already submitted. Step 5 turns that into an advantage by running step 2
+including the ones already submitted. Step 6 turns that into an advantage by running step 2
 several times and replacing only the cells that are wrong on their face (`answer == 0.0`, the
 give-up constant; or outside the plausible band of the unit asked for). Measured twice a week
 apart against a bar registered in advance, it has never turned a right answer into a wrong one.
@@ -118,11 +134,12 @@ below for a one-question smoke test).
 ### What the submitted answers came from
 
 The answers in the final submission were recorded on 2026-08-24 and are preserved verbatim at
-`artifacts/runs/full1012_v17_unitfix.jsonl`, which already carries the step 6 rescale. The
-submission is that file put through steps 4 and 7 above; step 5 was not used. Step 4 changed
-94 of the 1,012 `pandas_query` values and left every `answer` untouched (1,012 of 1,012
-identical), so the submitted answer set is exactly the recorded one. That part is
-deterministic: re-running those two steps on that file reproduces the submitted archive.
+`artifacts/runs/full1012_v17_unitfix.jsonl`, which already carries the step 7 rescale. The
+submission is that file put through steps 4, 5 and 8 above; step 6 was not used. Step 4
+rewrote 94 of the 1,012 `pandas_query` values and step 5 re-located 48 broken cell reads.
+Neither writes `answer`, so every answer is untouched (1,012 of 1,012 identical) and the
+submitted answer set is exactly the recorded one. That part is deterministic: re-running those
+steps on that file reproduces the submitted archive.
 
 Step 2 is not. Because of the batching effect described above, a fresh run of the current code
 against a fresh vLLM server lands about three points lower than the recorded run (0.37 rather
