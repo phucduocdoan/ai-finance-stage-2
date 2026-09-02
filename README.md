@@ -231,3 +231,6 @@ PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --ids 371 --out artifac
 Dense retrieval and index rebuild commands require the GPU environment.
 Corpus rebuild commands under `scripts/` are CLI wrappers over `src/finance_qa/modules/*`
 services. `scripts/extract_tables.py` rewrites corpus artifacts and is not a smoke test.
+Most files under `tests/` are run directly as scripts (as above), not collected by
+`pytest`; `pytest tests/` raises an INTERNALERROR because some tests call `sys.exit()`
+at module level.
