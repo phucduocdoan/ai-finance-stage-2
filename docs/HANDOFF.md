@@ -337,6 +337,28 @@ obstacle is in "What the submitted answers came from" in the README: a fresh run
 code lands near 0.37 against the recorded 2026-08-24 run's 0.40, so a fresh run submitted without
 clearing the bar above is more likely to lose three points than gain any.
 
+### One Lever That Is Open, And Why The Bar Cannot Judge It
+
+`scripts/recount_saturated.py` (step 8) is built, measured, and packaged as
+`output/submission_v30_countfix.zip`, but **not submitted**. Against v27 it changes 4 answers of
+1,012 -- q435 `1.0`->`3.0`, q563 `0.0`->`1.0`, q932 `0.0`->`1.0`, q983 `0.0`->`2.0` -- rewrites 7
+more queries without moving their answers, and leaves the other 1,001 records byte-identical. No
+field other than `answer` and `pandas_query` is touched, `build_submission` emits the same 9
+literal fallbacks as v27, and re-executing all 1,012 queries against the staged CSVs gives 1,005
+consistent / 0 mismatched / 7 non-executing on both versions, the same 7 ids. So it is
+non-negative by measurement rather than by argument.
+
+The bar above cannot judge it: none of the 11 changed ids appears in any of the 94 gold questions.
+That is not a reason to treat the bar as met. It is a reason to note that the bar was registered
+against run-to-run batching noise, and this candidate has none -- it is a deterministic edit of 11
+records, not a new run. The upside is bounded at 4 questions (+0.40pp, 0.3874 -> 0.3914) and the
+floor is the standing score. q563 and q983 have as many conditions as the question has entities,
+so their new values are structurally complete; q435 names 7 entities against 6 conditions and q932
+names 4 banks against 3, so those two may still undercount.
+
+Reproduction: `v27_cells.jsonl` -> step 8 -> step 9. `v27_cells.jsonl` -> step 9 alone reproduces
+the submitted v27 `submission.json` byte for byte, so the delta has exactly one cause.
+
 ## Next Work
 
 1. **Measure raw-table linking across Type 2-5 before expanding it.** Run the current opt-in

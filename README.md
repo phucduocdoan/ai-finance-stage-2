@@ -91,14 +91,23 @@ PYTHONPATH=src .venv_bge/bin/python scripts/fill_from_arms.py \
 PYTHONPATH=src .venv_bge/bin/python scripts/rescale_below_floor.py \
     artifacts/runs/full_run_filled.jsonl artifacts/runs/full_run_rescaled.jsonl
 
-# 8. package a leaderboard submission:
-PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_rescaled.jsonl --out output/submission
+# 8. re-count the counting questions, which the units pass scaled as if they had a unit:
+PYTHONPATH=src .venv_bge/bin/python scripts/recount_saturated.py \
+    artifacts/runs/full_run_rescaled.jsonl artifacts/runs/full_run_recounted.jsonl
+
+# 9. package a leaderboard submission:
+PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_recounted.jsonl --out output/submission
 ```
 
-Steps 4 to 7 are post-processing passes, not solvers, so they sit between `run_graph.py` and
+Steps 4 to 8 are post-processing passes, not solvers, so they sit between `run_graph.py` and
 `build_submission.py` rather than inside `modules/solve/`. Each docstring carries the full
 rationale and the pre-registered bar it was measured against. Skipping step 7 costs roughly
 1.6 leaderboard points.
+
+Step 8 is only needed for runs recorded before `is_count_query` landed in
+`modules/solve/codegen/execute.py`. It has to run after step 7 and before step 9: step 7 writes
+the scale factor this undoes, and step 9 wraps `pandas_query` in `round(float(...), 2)`, which
+puts the factor inside a wrapper `strip_scale_factor` cannot reach.
 
 Step 4 is a compliance repair, and it is only needed for runs recorded before
 `modules/solve/facts/cellexpr.py` existed. The fact solvers used to compute their answer in
@@ -137,9 +146,12 @@ The answers in the final submission were recorded on 2026-08-24 and are preserve
 `artifacts/runs/full1012_v17_unitfix.jsonl`, which already carries the step 7 rescale. The
 submission is that file put through steps 4, 5 and 8 above; step 6 was not used. Step 4
 rewrote 94 of the 1,012 `pandas_query` values and step 5 re-located 48 broken cell reads.
-Neither writes `answer`, so every answer is untouched (1,012 of 1,012 identical) and the
-submitted answer set is exactly the recorded one. That part is deterministic: re-running those
-steps on that file reproduces the submitted archive.
+Neither writes `answer`, so every answer leaves those two steps untouched (1,012 of 1,012
+identical). Packaging then rounds to two decimals, which does change 725 of them, and three
+answers that arrived as `1e-09` left as `0.0` -- indistinguishable from the give-up constant,
+which is how the count bug behind step 8 stayed hidden. That part is deterministic all the
+same: re-running the steps on that file reproduces the submitted archive byte for byte
+(`v27_cells.jsonl` through step 9 gives sha256 `c778c102...`, the submitted `submission.json`).
 
 Step 2 is not. Because of the batching effect described above, a fresh run of the current code
 against a fresh vLLM server lands about three points lower than the recorded run (0.37 rather
