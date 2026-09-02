@@ -285,6 +285,13 @@ base1 it had 4 structured-only wins (q363/q371/q387/q390) and 2 losses, so
 it is a real but small gain. Keep opt-in until the planner/executor can stop
 mis-specifying the remaining hard selection cases.
 
+**Note:** despite defaulting to `False` in code, the submitted run's
+`artifacts/runs/v28_cells.jsonl` has this flag (together with
+`selection_decompose`) on for 706 of 1,012 questions and off for the other
+306 (`v27_cells.jsonl`: 707/305). That split is not a design choice — it is
+the fingerprint of several differently-configured runs concatenated into
+one file.
+
 ### `structured_facts_planner_thinking`
 
 Treatment arm for the structured plan emitter only. The executor remains
@@ -421,6 +428,13 @@ from base1 as often as base2's do (38 vs 42 of 60 identical); the three flips
 are a sign inversion and two iloc slips, i.e. server nondeterminism, on a
 churn floor of 1 measured between the baselines.
 
+**Note:** despite defaulting to `False` in code, the submitted run's
+`artifacts/runs/v28_cells.jsonl` has this flag (together with
+`structured_facts`) on for 706 of 1,012 questions and off for the other 306
+(`v27_cells.jsonl`: 707/305). That split is not a design choice — it is the
+fingerprint of several differently-configured runs concatenated into one
+file.
+
 ### `selection_sub_tables`
 
 Tables shown to one sub-question. Wider than `codegen_max_tables` on purpose:
@@ -486,3 +500,119 @@ not score movement.
 The check costs one call on every question plus two on the ones it rejects,
 so it is a flag: `SOLVE_VERIFY_ANSWER=0` turns the node into a pass-through
 and gives the A/B its control arm without a second code path.
+
+## Reproduction gap: 2026-08-24 budget flags
+
+A plain run at current code defaults is not a reproduction of the run behind
+the best leaderboard score. The env-var overrides recorded for that period
+raise several budgets well above what `FinanceAgentConfig`
+(`src/finance_qa/agents/finance/config.py:94-155`) now defaults to, and flip
+several experiment flags on that now default off.
+
+The source for the recorded values is `full1012_all_on.flags`, a sidecar
+inside `artifacts/runs_archive_2026-08-27.tar.gz`:
+
+```
+SOLVE_METRIC_HINTS=1 SOLVE_METRIC_LOOKUP=1 SOLVE_TABLE_PROFILES=1
+SOLVE_PROFILE_VALIDATE=1 SOLVE_RAW_TABLE_LINKER_RATIO_GROUPS=1
+SOLVE_REPAIR_HISTORY=1 SOLVE_STRUCTURED_FACTS=1 SOLVE_DECOMPOSE=1
+SOLVE_MAX_TABLES_MULTI_COMPANY=12 SOLVE_SUB_TABLES=12 SOLVE_TOOL_TURNS=3
+```
+
+That sidecar belongs to `full1012_all_on`, not to `full1012_v17_unitfix` (the
+run whose score is on the leaderboard). `full1012_v17_unitfix` has no
+`.commit` or `.flags` sidecar of its own. `full1012_all_on` is a sibling in
+the same lineage, same commit (`e2fc313`, matching `full1012_all_on_a.commit`
+in `artifacts/runs/`) and the same day: the archive copy timestamps at
+2026-08-23 23:03 UTC, `full1012_v17_unitfix.jsonl` at 2026-08-24 09:43 UTC.
+The env vars above are the best direct evidence of what that day's runs used,
+not a recorded fact about `v17_unitfix` specifically. The vLLM server-side
+configuration for that day (batching, checkpoint revision, etc.) was not
+recorded anywhere, so this section stops at the flags.
+
+Checked against `src/finance_qa/agents/finance/config.py:94-155`:
+
+| env var | recorded 2026-08-24 | current default |
+|---|---|---|
+| `SOLVE_TOOL_TURNS` (`codegen_tool_turns`) | 3 | 0 |
+| `SOLVE_SUB_TABLES` (`selection_sub_tables`) | 12 | 6 |
+| `SOLVE_MAX_TABLES_MULTI_COMPANY` (`codegen_max_tables_multi_company`) | 12 | 3 |
+| `SOLVE_METRIC_HINTS` (`codegen_metric_hints`) | 1 | False |
+| `SOLVE_METRIC_LOOKUP` (`codegen_metric_lookup`) | 1 | False |
+| `SOLVE_TABLE_PROFILES` (`codegen_table_profiles`) | 1 | False |
+| `SOLVE_PROFILE_VALIDATE` (`profile_validate`) | 1 | False |
+| `SOLVE_RAW_TABLE_LINKER_RATIO_GROUPS` (`raw_table_linker_ratio_groups`) | 1 | False |
+| `SOLVE_REPAIR_HISTORY` (`repair_history`) | 1 | False |
+| `SOLVE_STRUCTURED_FACTS` (`structured_facts`) | 1 | False |
+| `SOLVE_DECOMPOSE` (`selection_decompose`) | 1 | False |
+
+Every value in the "current default" column matches the field's
+`_flag`/`_count` fallback in `config.py` as of this write-up; none needed
+correcting.
+
+### Retracted: the 3.6x latency reading
+
+An earlier version of this section offered per-question latency as independent
+evidence that the 2026-08-24 runs had a larger compute budget:
+
+| run | date | p50 seconds |
+|---|---|---|
+| `full1012_v17_unitfix` | 2026-08-24 | 329 |
+| `full1012_all_on_a` | 2026-08-24 | 361 |
+| `full1012_v16` | 2026-08-24 | 336 |
+| `full1012_headcode_today_w8` | 2026-08-31 | 90 |
+| `full1012_oldcode_today_w8` | 2026-08-31 | 99 |
+
+The numbers are real; the inference from them was not. Two problems:
+
+1. `seconds` is measured at `scripts/run_graph.py:96` as `time.monotonic()`
+   wall clock around the whole per-question solve, so it includes time spent
+   queued behind other workers at the shared vLLM endpoint. Raising
+   `--workers` inflates it without any extra work being done.
+2. `--workers` is not recorded in any sidecar, in `artifacts/runs/` or in
+   `artifacts/runs_archive_2026-08-27.tar.gz`. All twelve `.flags`/`.commit`
+   files were checked; none mentions it. So the two groups above cannot be
+   assumed to have run at the same concurrency.
+
+The A/B below measures the flags' real cost with `--workers` held fixed and
+finds about 10%, not 3.6x. Do not use cross-run p50 `seconds` as a compute
+signal unless the worker count is known for both sides.
+
+### 2026-09-02: A/B of the 2026-08-24 flags on 61 hard questions
+
+Two arms over the same 61 question ids (`artifacts/audits/giveup61_ids.txt`),
+same commit `0e70944`, both `--workers 8`, arm A at current defaults and arm B
+with the eleven env vars above set to their 2026-08-24 values. Driver and
+sidecars: `artifacts/runs/giveup61_arm{A_default,B_full}.{jsonl,log,flags,commit}`.
+
+| | arm A (defaults) | arm B (2026-08-24 flags) |
+|---|---|---|
+| `answer == 0.0` | 22 / 61 | 7 / 61 |
+| `0 < abs(answer) < 1e-6` | 11 | 2 |
+| either | 33 | 9 |
+| p50 seconds | 188 | 206 |
+| total compute | 177 min | 200 min |
+| scored against gold | 0 / 4 | 0 / 4 |
+
+Arm B cleared the pre-registered bar (at least 10 fewer give-ups out of 61) by
+a margin: 15 fewer on the strict count, 24 fewer counting near-zero garbage.
+Sixteen ids that arm A gave up on came back with a number under arm B; one
+(735) went the other way.
+
+The mechanism is visible in the solver mix, so this is not sampling noise.
+Arm A drops 58 of 61 questions through to `codegen`; arm B drops 36, because
+`structured_facts` claims 18 and `raw_table_linker` 3 more.
+
+Two caveats that keep this from being a score result:
+
+- Only 4 of the 61 ids carry a gold label, and **both arms scored 0/4**. A
+  give-up and a wrong number are both worth zero on ANSWER_ACCURACY, so arm
+  B's 24 recovered answers are worth something only if they are right, and the
+  one correctness probe available says nothing good. Four is too small to
+  conclude from, in either direction.
+- The two arms disagree on 49 of 61 answers, so arm B may also have broken
+  questions arm A had right. Unmeasurable without labels.
+
+These 61 ids were selected because an earlier run gave up on them, so absolute
+give-up rates here are not comparable to a full-1012 run. Only the A-vs-B
+contrast is meaningful.
