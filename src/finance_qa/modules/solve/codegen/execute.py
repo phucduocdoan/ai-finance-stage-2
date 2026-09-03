@@ -427,9 +427,60 @@ def project_year(
     pick = min if MIN_MARKER.search(intent_norm(question)) else max
     winner = pick(values, key=lambda term: values[term])
     year = _year_of(winner, names.get(_FRAME_REF.search(winner).group(0), ""))
-    if not year or year not in set(_YEAR_ANYWHERE.findall(question)):
+    asked = set(_YEAR_ANYWHERE.findall(question))
+    if not year or year not in asked:
         return None
-    return f"({winner}) * 0 + {year}", year
+    order = "min" if pick is min else "max"
+    selection = _year_selection(list(values), names, asked, order, frames, year)
+    return (selection or f"({winner}) * 0 + {year}"), year
+
+
+def _year_selection(
+    terms: Sequence[str],
+    names: Mapping[str, str],
+    asked: set[str],
+    order: str,
+    frames: Mapping[str, pd.DataFrame],
+    winning_year: str,
+) -> str | None:
+    """The `max`/`min` above, rewritten to return the year instead of the amount.
+
+    `project_year` used to emit `(<winning term>) * 0 + <year>` and throw the other
+    branches away. Re-executing that reproduces the year, which was the point, but
+    `* 0` annihilates the cell it reads, so the year ships as a stored constant --
+    what the rules score as zero, and what no constant check can see, because the
+    expression still names a frame.
+
+    Keeping every branch keeps the year data-dependent: change a cell and a
+    different tuple wins.
+
+    Returns None unless every term resolves to a distinct year the question itself
+    names, and the rebuilt query runs and lands on the same year the ranking did.
+    The caller falls back to the old shape, so this cannot move an answer -- it can
+    only decline. Declining is the common case for a term whose year comes from the
+    report id rather than the column, which is exactly where `_year_of` is least
+    sure of itself.
+    """
+    if order not in {"max", "min"} or len(terms) < 2:
+        return None
+    by_year: dict[str, str] = {}
+    for term in terms:
+        ref = _FRAME_REF.search(term)
+        year = _year_of(term, names.get(ref.group(0), "")) if ref else None
+        if not year or year not in asked or year in by_year:
+            return None
+        by_year[year] = term
+    if winning_year not in by_year:
+        return None
+
+    body = ", ".join(f"(float({by_year[year]}), {year})" for year in sorted(by_year))
+    query = f"{order}([{body}])[1]"
+    try:
+        if str(int(run_query(query, dict(frames)))) != winning_year:
+            return None
+    except Exception:  # noqa: BLE001 - a rewrite that will not run is simply refused
+        return None
+    return query
 
 
 def _is_data_ratio(query: str) -> bool:

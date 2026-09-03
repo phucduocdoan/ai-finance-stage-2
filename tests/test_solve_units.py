@@ -393,9 +393,11 @@ check(
 
 # ── "năm nào": the answer is a year, not the winning amount ────────────────────
 # All 28 codegen questions asking "năm nào" submitted an amount, which is wrong by
-# definition. `raw_selection_linker` has always answered these with
-# `(<cell>) * 0 + <year>`, keeping the year inside the query so re-execution
-# reproduces it.
+# definition. The first fix kept the year inside the query as `(<cell>) * 0 + <year>`
+# so re-execution reproduced it; the `* 0` made it a stored constant, which the rules
+# score as zero. The query now carries the whole comparison, so the year is chosen by
+# the data. `(<cell>) * 0 + <year>` remains the fallback for the cases below where
+# some branch has no year to name.
 YEARS = {
     "df1": pd.DataFrame({"Chỉ tiêu": ["Doanh thu"], "Số cuối năm": [4e9]}),
     "df2": pd.DataFrame({"Chỉ tiêu": ["Doanh thu"], "Số cuối năm": [7e9]}),
@@ -409,8 +411,18 @@ HIGHEST = "Doanh thu của ABC cao nhất vào năm nào, 2019 hay 2022?"
 
 picked = execute.project_year(f"max({A}, {B})", YEARS, YEAR_NAMES, HIGHEST)
 check("the winning year is projected", picked[1] == "2022")
-check("the year is carried by the query, not the number", picked[0] == f"({B}) * 0 + 2022")
+check(
+    "the query carries the comparison, not the winner's name",
+    picked[0] == f"max([(float({A}), 2019), (float({B}), 2022)])[1]",
+)
 check("re-executing the projected query yields the year", execute.run_query(picked[0], dict(YEARS)) == 2022)
+# The point of the shape: the year follows the cells. Re-executing the *same* query
+# against a frame where 2019 is the larger year answers 2019, which `* 0 + 2022`
+# could never do.
+check(
+    "changing a cell changes the year the query returns",
+    execute.run_query(picked[0], {"df1": pd.DataFrame({"Số cuối năm": [9e9]}), "df2": YEARS["df2"]}) == 2019,
+)
 # q978's shape: the model wraps the arguments in a list, so the commas sit one
 # bracket deep and a naive top-level split sees a single argument.
 check(

@@ -35,6 +35,7 @@ from finance_qa.modules.solve.solvers.table_profiles.schema import (
     RawLinkedCandidate,
     RawScopeSlot,
 )
+from finance_qa.modules.tools.python_exec import run_query
 
 
 SelectionAxis = Literal["year", "ticker"]
@@ -764,6 +765,56 @@ def decision_from_semantic_plan(
     )
 
 
+def year_selection_query(
+    ranking: Sequence[tuple[float, Any, RawLinkedCandidate, RawLinkedCandidate | None]],
+    table_to_var: Mapping[str, str],
+    transform: str,
+    order: str,
+    frames: Mapping[str, pd.DataFrame],
+    winning_year: int,
+) -> str | None:
+    """The year question answered by comparing the years, not by naming the winner.
+
+    This used to emit `(<winning cell>) * 0 + <year>`. Re-executing that does
+    reproduce the year, which was the point, but `* 0` annihilates the only cell
+    it reads, so what ships is the answer stored as a constant -- which the rules
+    score as zero, and which no "is this a constant?" check can see, because the
+    expression does reference a frame.
+
+    The comparison is already here: `ranking` holds every slot's selector, the
+    same ones `_ranking_value` ordered. Emitting it keeps the year data-dependent,
+    since changing a cell changes which tuple wins.
+
+    Returns None whenever the rewrite would not be a year selection -- fewer than
+    two years, two candidates on one year, an order that is neither max nor min --
+    and whenever the rebuilt query does not run or lands on a different year than
+    the ranking did. The caller then keeps the old shape. That check is what makes
+    this incapable of moving an answer.
+    """
+    if order not in {"max", "min"}:
+        return None
+    by_year: dict[int, RawLinkedCandidate] = {}
+    for _, slot, selector, _answer in ranking:
+        year = getattr(slot, "year", None)
+        if not isinstance(year, int) or year in by_year:
+            return None
+        by_year[year] = selector
+    if len(by_year) < 2 or winning_year not in by_year:
+        return None
+
+    terms = ", ".join(
+        f"(float({raw._candidate_query(by_year[year], table_to_var, transform)}), {year})"
+        for year in sorted(by_year)
+    )
+    query = f"{order}([{terms}])[1]"
+    try:
+        if int(run_query(query, dict(frames))) != winning_year:
+            return None
+    except Exception:  # noqa: BLE001 - a rewrite that will not run is simply refused
+        return None
+    return query
+
+
 def build_solution(
     request: RawLinkRequest,
     decision: RawSelectionDecision,
@@ -810,7 +861,14 @@ def build_solution(
 
     expr = raw._candidate_query(query_candidate, table_to_var, request.value_transform)
     if decision.answer_kind == "selected_year":
-        expr = f"({expr}) * 0 + {winning_slot.year}"
+        expr = year_selection_query(
+            ranking,
+            table_to_var,
+            request.value_transform,
+            decision.rank_op,
+            frames,
+            winning_slot.year,
+        ) or f"({expr}) * 0 + {winning_slot.year}"
 
     first_table_id, first_row, first_column = _candidate_first_cell(query_candidate)
     solution = PandasSolution(

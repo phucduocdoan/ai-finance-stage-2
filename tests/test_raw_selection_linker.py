@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 
@@ -455,6 +456,40 @@ check("component-row group selection picks the largest year", winning_slot.key =
 result = asyncio.run(aexecute(solution, "", frames, question=Q_GROUP_YEAR, names=names, max_repairs=0))
 check("component-row group selected-year query executes", result["answer"] == 2024.0)
 check("component-row group query sums real cells", " + " in result["pandas_query"])
+# The year has to come out of the comparison, not out of a constant added to a cell
+# that was multiplied by zero. `* 0 + 2024` also re-executes to 2024, which is how
+# that shape survived; what it cannot do is answer a different year when the cells
+# say so, and that is what the second check below pins.
+check("selected-year query carries every year, not just the winner", all(
+    f", {year})" in solution.pandas_query for year in (2022, 2023, 2024, 2025)
+))
+check("selected-year query annihilates nothing", "* 0" not in solution.pandas_query)
+var_2022 = next(var for var, table_id in names.items() if "_2022_" in table_id)
+bumped = dict(frames)
+bumped[var_2022] = frames[var_2022].assign(
+    **{"Số cuối nămTriệu đồng": frames[var_2022]["Số cuối nămTriệu đồng"] * 1e6}
+)
+check(
+    "raising the 2022 cells moves the answer to 2022",
+    raw_sel.run_query(solution.pandas_query, bumped) == 2022,
+)
+# The safety property the caller relies on: `year_selection_query` returns None
+# rather than a query that lands somewhere other than where the ranking did, and
+# the caller then keeps the old shape. Without this the rewrite could move an
+# answer, which is the one thing it must never do.
+check(
+    "a rewrite landing on the wrong year is refused",
+    raw_sel.year_selection_query(
+        [(0.0, SimpleNamespace(year=2022), c, None) for c in chosen[:1]]
+        + [(0.0, SimpleNamespace(year=2023), c, None) for c in chosen[1:2]],
+        {t: v for v, t in names.items()},
+        group_request.value_transform,
+        "max",
+        frames,
+        winning_year=1999,
+    )
+    is None,
+)
 
 distractor_candidates = [
     raw.RawCellCandidate(
