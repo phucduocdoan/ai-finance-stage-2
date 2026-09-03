@@ -396,6 +396,40 @@ One lead left unexploited on purpose: q946 is the single gold question in this s
 but the gate that makes step 9 riskless is "reproduce the recorded answer exactly", and taking
 that gate off to chase one question turns a guaranteed no-loss edit into a bet.
 
+### The Solvers Now Emit That Comparison, So The Repair Pass Has No Work Left On A Fresh Run
+
+Step 9 had no pipeline counterpart: a fresh run still emitted 33 annihilated years and the repair
+only ran afterwards. Both emit sites now build the comparison themselves, gated the same way --
+execute the rebuilt query, keep the old shape unless it lands on the year the solver picked.
+
+Replaying the 33 affected ids through `run_graph.py --ids` (`/tmp/years33b.jsonl`, verified with
+`scripts/dev/check_years33.py`, untracked because `.gitignore` skips `scripts/dev/`):
+
+- 31 of 33 emit the comparison natively. The 2 left, q832 and q929, are codegen declining to
+  resolve a branch's year, and step 9 cannot rebuild them either, so running it afterwards
+  reports `{'dạng nhân 0': 2, 'không dựng lại được': 2}` and changes nothing.
+- 33 of 33 execute on the frames the package would ship.
+
+What that replay **cannot** show is whether accuracy held. Gold covers 0 of these 33 ids, so
+`run_graph` printed `?` for every expected value, and comparing against v31 conflates the change
+with run-to-run variance: 13 answers differ, and 7 of those changed solver, every one of them
+because the LLM-driven raw selection planner refused where it had not before (`ambiguous row
+groups`, `rank_op mismatch`, `empty slots after retry` -- all three predate this change and all
+three fire at slot resolution, before any query is emitted). v31 itself ran with `retrieve:
+CUDA out of memory -> frozen fallback` on 13 of the 33. Three questions (q501, q860, q884) now
+answer an amount rather than a year, which is codegen's pre-existing give-up path on a question
+whose year it cannot place in the asked set, reached because routing moved.
+
+So the claim this replay supports is the shape claim, not an accuracy claim. The accuracy
+argument rests on the gate being inside the pipeline: the rewrite is only emitted when it
+executes to the same year, so it cannot move an answer, and when it declines the string is
+byte-identical to what the old code produced.
+
+One hole this found and closed: `year_selection_query` renders every year's selector where the
+old shape rendered only the winner, and that call sat outside the try. An unrenderable loser
+would have raised out of `build_solution` and dropped the question to codegen, which is an answer
+change dressed as a shape fix (`19171c5`).
+
 ## Next Work
 
 1. **Measure raw-table linking across Type 2-5 before expanding it.** Run the current opt-in
