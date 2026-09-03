@@ -802,15 +802,20 @@ def year_selection_query(
     if len(by_year) < 2 or winning_year not in by_year:
         return None
 
-    terms = ", ".join(
-        f"(float({raw._candidate_query(by_year[year], table_to_var, transform)}), {year})"
-        for year in sorted(by_year)
-    )
-    query = f"{order}([{terms}])[1]"
+    # Rendering the *losing* years is new work: the old shape only ever rendered the
+    # winner. So this has to be inside the same try as the execution check -- a loser
+    # that `_candidate_query` cannot render must cost the caller its old shape, not
+    # its whole solve, or the solver would fall through to codegen on questions it
+    # used to answer.
     try:
+        terms = ", ".join(
+            f"(float({raw._candidate_query(by_year[year], table_to_var, transform)}), {year})"
+            for year in sorted(by_year)
+        )
+        query = f"{order}([{terms}])[1]"
         if int(run_query(query, dict(frames))) != winning_year:
             return None
-    except Exception:  # noqa: BLE001 - a rewrite that will not run is simply refused
+    except Exception:  # noqa: BLE001 - a rewrite that will not build or run is refused
         return None
     return query
 
