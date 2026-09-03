@@ -95,19 +95,33 @@ PYTHONPATH=src .venv_bge/bin/python scripts/rescale_below_floor.py \
 PYTHONPATH=src .venv_bge/bin/python scripts/recount_saturated.py \
     artifacts/runs/full_run_rescaled.jsonl artifacts/runs/full_run_recounted.jsonl
 
-# 9. package a leaderboard submission:
-PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_recounted.jsonl --out output/submission
+# 9. let the "năm nào" questions pick their year from the data instead of a constant:
+PYTHONPATH=src .venv_bge/bin/python scripts/deliteralize_years.py \
+    artifacts/runs/full_run_recounted.jsonl artifacts/runs/full_run_years.jsonl
+
+# 10. package a leaderboard submission:
+PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_years.jsonl --out output/submission
 ```
 
-Steps 4 to 8 are post-processing passes, not solvers, so they sit between `run_graph.py` and
+Steps 4 to 9 are post-processing passes, not solvers, so they sit between `run_graph.py` and
 `build_submission.py` rather than inside `modules/solve/`. Each docstring carries the full
 rationale and the pre-registered bar it was measured against. Skipping step 7 costs roughly
 1.6 leaderboard points.
 
 Step 8 is only needed for runs recorded before `is_count_query` landed in
-`modules/solve/codegen/execute.py`. It has to run after step 7 and before step 9: step 7 writes
-the scale factor this undoes, and step 9 wraps `pandas_query` in `round(float(...), 2)`, which
+`modules/solve/codegen/execute.py`. It has to run after step 7 and before step 10: step 7 writes
+the scale factor this undoes, and step 10 wraps `pandas_query` in `round(float(...), 2)`, which
 puts the factor inside a wrapper `strip_scale_factor` cannot reach.
+
+Step 9 is a compliance repair for a bug in this repo, not in the model. `raw_selection_linker`
+and `project_year` both answer a "năm nào" question with `(<winning cell>) * 0 + <year>`, which
+the rules read as a stored result: the `* 0` annihilates the only data the query touches. The
+selection those solvers actually performed survives in `diag`, so the step rebuilds it as
+`max([(float(<cell 2016>), 2016), ...])[1]` and ships every candidate year's table as evidence.
+It only overwrites when the rebuilt query runs on the shipped frames and reproduces the recorded
+answer, so it moves no answer and cannot cost execution accuracy. On the v27 run it converts 22
+of the 33 such questions; the other 11 came through codegen, which does not record the branches
+of its own `max`. It must run before step 10 for the same reason step 8 does.
 
 Step 4 is a compliance repair, and it is only needed for runs recorded before
 `modules/solve/facts/cellexpr.py` existed. The fact solvers used to compute their answer in

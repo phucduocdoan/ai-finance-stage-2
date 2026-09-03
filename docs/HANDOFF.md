@@ -356,8 +356,45 @@ floor is the standing score. q563 and q983 have as many conditions as the questi
 so their new values are structurally complete; q435 names 7 entities against 6 conditions and q932
 names 4 banks against 3, so those two may still undercount.
 
-Reproduction: `v27_cells.jsonl` -> step 8 -> step 9. `v27_cells.jsonl` -> step 9 alone reproduces
+Reproduction: `v27_cells.jsonl` -> step 8 -> step 10. `v27_cells.jsonl` -> step 10 alone reproduces
 the submitted v27 `submission.json` byte for byte, so the delta has exactly one cause.
+
+### 57 Of 1,012 Submitted Queries Are In The Shape The Rules Score As Zero
+
+Found while dissecting the gold failures, and present identically in v27 and v30, so it predates
+both and neither patch causes it. A structural scan of the packaged `submission.json` (literal-zero
+multiplication anywhere in the AST; no `ast.Subscript` anywhere in the AST) returns:
+
+- **33 queries multiply a real cell read by literal `0` and add a year.** All 33 are "năm nào"
+  questions. Example: `(df3.iloc[13]['Đơn vị tính: VND']) * 0 + 2019`. The answer is a constant;
+  the cell read is decorative. No "is this query a constant?" test can see it, because it does
+  reference a dataframe.
+- **24 queries read no cell at all.** q221 is `10.6`; q823 is `round(float(4915.48), 2)`, for a
+  counting question.
+
+The `* 0` shape comes from this repo, not from the model: `raw_selection_linker.py:813` and
+`project_year` in `codegen/execute.py:432`. `project_year`'s own docstring states the intent --
+keep the year inside the query so re-execution reproduces the answer -- which is right, but the
+annihilation makes the result a stored constant instead.
+
+`scripts/deliteralize_years.py` (step 9) closes 22 of the 33. `diag.raw_selection_linker.chosen`
+still holds every candidate year's cell, so the comparison the solver performed and discarded is
+rebuildable as `max([(float(<cell 2016>), 2016), ...])[1]`. Measured against v30: 22 queries
+rewritten, **0 answers changed**, evidence extended on those 22 and `relevant_tables` unchanged on
+all 1,012 (the candidate tables were already listed; only evidence had been narrowed to the
+winner), same 9 literal fallbacks, and re-executing all 1,012 queries against the staged CSVs
+gives 1,012 consistent / 0 mismatched / 0 non-executing on both v30 and v31. Packaged as
+`output/submission_v31_years.zip`, **not submitted**. Exposure drops 57 -> 35.
+
+The 11 it cannot close: 9 came through codegen, which records no branches for its own `max`, and
+q890/q946 have diag coordinates that predate the header merge (`Tại ngày 31 tháng 12 năm` against a
+shipped column `Tại ngày 31 tháng 12 năm | 2017 VND`), so the rebuilt query raises `KeyError` and
+the gate skips it. The 24 pure constants need grounding, not a rewrite.
+
+One lead left unexploited on purpose: q946 is the single gold question in this set and is wrong
+(ours 2018, gold 2022). A genuine argmax over its three candidate cells might well land on 2022,
+but the gate that makes step 9 riskless is "reproduce the recorded answer exactly", and taking
+that gate off to chase one question turns a guaranteed no-loss edit into a bet.
 
 ## Next Work
 
