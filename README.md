@@ -73,7 +73,8 @@ PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --all --out artifacts/r
 PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --run solve=artifacts/runs/full_run.jsonl --right solve
 
 # 4. (only for runs produced before the cellexpr fix) rewrite the fact solvers'
-#    hardcoded pandas_query into a real cell read:
+#    hardcoded pandas_query into a real cell read. On a run from the current code it
+#    reports `{}`, because the solvers now decline instead of emitting a constant:
 PYTHONPATH=src .venv_bge/bin/python scripts/repair_fact_queries.py \
     artifacts/runs/full_run.jsonl artifacts/runs/full_run_repaired.jsonl
 
@@ -99,8 +100,10 @@ PYTHONPATH=src .venv_bge/bin/python scripts/recount_saturated.py \
 PYTHONPATH=src .venv_bge/bin/python scripts/deliteralize_years.py \
     artifacts/runs/full_run_recounted.jsonl artifacts/runs/full_run_years.jsonl
 
-# 10. package a leaderboard submission:
-PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_years.jsonl --out output/submission
+# 10. package a leaderboard submission. `--no-literal-on-error` is required: without it
+#     a query that fails to execute is replaced by `repr(answer)`, which is the hardcoded
+#     shape the rules score as zero.
+PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_years.jsonl --out output/submission --no-literal-on-error
 ```
 
 Steps 4 to 9 are post-processing passes, not solvers, so they sit between `run_graph.py` and
@@ -140,8 +143,10 @@ Step 5 is the other compliance repair, and it fixes a different failure. A table
 two-level header is read by the solvers while the leaf tier is still an ordinary data row, so
 the recorded row index is one too high and the recorded column name is only the group tier. At
 packaging time `load_frame` merges the tiers into `"group | leaf"` and the leaf row leaves the
-body, so the query raises `KeyError` and `build_submission` substitutes `repr(answer)` for it.
-The answer stays right; the query becomes a constant, which is the shape the rules forbid. The
+body, so the query raises `KeyError`. Packaged with `--literal-on-error` that becomes
+`repr(answer)`: the answer stays right, the query becomes a constant, and the rules score it
+zero. Packaged without it the question simply ships a broken query, which is a wrong answer
+rather than a violation. Either way the fix belongs here, in step 5. The
 pass re-locates each cell from `diag["profile_validate"]["query_cells"]` by its `row_label` and
 `column_index` (for a cell whose label was absorbed into the header it uses the row shift voted
 by the labelled cells of the same frame), then re-runs the whole rewritten query and keeps it
