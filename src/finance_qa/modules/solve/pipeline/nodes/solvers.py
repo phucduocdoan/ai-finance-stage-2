@@ -215,6 +215,16 @@ async def _run_fact_solver(
             errors=[f"{solver_name}: {reason}"],
         )
 
+    if not str(result["pandas_query"]).strip():
+        # Không fact nào trong phép tính định vị được ô, nên cách duy nhất để
+        # trình bày đáp án là một hằng số -- đúng thứ luật chấm 0. Nhường câu
+        # hỏi cho solver sau, nơi codegen còn sinh được query đọc ô thật.
+        reason = "không dựng được biểu thức đọc ô cho đáp án"
+        return declined(
+            state, solver_name, reason,
+            errors=[f"{solver_name}: {reason}"],
+        )
+
     return answered(
         state,
         solver_name,

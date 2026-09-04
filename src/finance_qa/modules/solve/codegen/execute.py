@@ -204,6 +204,29 @@ async def _arepair(
     return result
 
 
+def multiplies_by_zero(query: str) -> bool:
+    """Query nhân một ô với 0 rồi cộng hằng số vào: gán cứng đội lốt đọc ô.
+
+    Dạng codegen tự nghĩ ra khi nó biết đáp án nhưng không tìm được ô nào cho ra
+    đáp án đó, ví dụ `(df2.iloc[9]["Cộng"]) * 0 + 2020`. Query chạy được, đọc một
+    ô thật, và trả về đúng hằng số đã viết sẵn. Luật (`final_submission.md`) cấm
+    gán cứng kết quả, nên đây vẫn là câu bị chấm 0.
+    """
+    try:
+        tree = ast.parse(query, mode="eval")
+    except SyntaxError:
+        return False
+    return any(
+        isinstance(node, ast.BinOp)
+        and isinstance(node.op, ast.Mult)
+        and any(
+            isinstance(side, ast.Constant) and side.value == 0
+            for side in (node.left, node.right)
+        )
+        for node in ast.walk(tree)
+    )
+
+
 async def arun_with_repair(
     solution: PandasSolution,
     prompt: str,
@@ -229,6 +252,13 @@ async def arun_with_repair(
         if not query:
             errors.append("codegen: pandas_query rỗng")
             attempts.append((query, "Truy vấn rỗng — hãy viết một biểu thức pandas."))
+        elif multiplies_by_zero(query):
+            errors.append(f"execute[{attempt}]: query nhân ô với 0, đáp án bị gán cứng")
+            attempts.append((query, (
+                "Truy vấn nhân một ô với 0 rồi cộng hằng số, nên kết quả là hằng số "
+                "đó chứ không phải số đọc từ bảng. Luật cấm gán cứng kết quả. Hãy "
+                "tính đáp án từ các ô thật, hoặc để trống nếu không tính được."
+            )))
         else:
             try:
                 return solution, float(run_query(query, dict(frames))), errors

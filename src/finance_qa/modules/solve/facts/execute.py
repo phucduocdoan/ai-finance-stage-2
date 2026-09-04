@@ -309,15 +309,16 @@ _DF_VAR = re.compile(r"\bdf\d+\b")
 
 
 def _query_and_evidence(scaled: Any, ctx: _EvalContext) -> tuple[str, list[dict]]:
-    """Biểu thức đọc ô cùng evidence của nó, hoặc hằng số cũ nếu không truy nguyên được.
+    """Biểu thức đọc ô cùng evidence của nó, hoặc `("", [])` nếu không dựng được.
 
-    Rơi về hằng số khi bất kỳ fact nào trong phép tính không định vị được ô: câu đó
-    vẫn giữ đáp án nhưng vẫn vi phạm luật gán cứng, còn hơn là ship một biểu thức
-    đọc nhầm ô rồi sai cả đáp án lẫn `EXECUTION_ACCURACY`.
+    Fact nào trong phép tính không định vị được ô thì đáp án chỉ còn cách trình
+    bày bằng một hằng số, mà luật (`final_submission.md`) chấm 0 cho câu gán
+    cứng. Hàm này báo "không có biểu thức" bằng chuỗi rỗng; `_run_fact_solver`
+    là nơi quyết định nhường câu đó cho solver sau.
     """
     expr = scaled.expr if isinstance(scaled, Num) else None
     if not expr:
-        return repr(float(scaled)), []
+        return "", []
     read = set(_DF_VAR.findall(expr))
     evidence = [
         {"variable": var, "csv_path": f"data/{submission_csv_name(table_id)}"}

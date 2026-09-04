@@ -63,8 +63,8 @@ check(
     ],
 )
 check(
-    "an opaque result falls back to the constant with no evidence",
-    execute_mod._query_and_evidence(OPAQUE, _Ctx()) == ("3.0", []),
+    "an opaque result reports no expression instead of a constant",
+    execute_mod._query_and_evidence(OPAQUE, _Ctx()) == ("", []),
 )
 
 print("tất cả PASS")

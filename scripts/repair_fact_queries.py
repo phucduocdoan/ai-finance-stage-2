@@ -96,7 +96,9 @@ def main() -> int:
         if old is None or not math.isclose(result["answer"], old, rel_tol=1e-9):
             stats["đáp án lệch"] += 1
             continue
-        if is_constant(result["pandas_query"]):
+        if not str(result["pandas_query"]).strip() or is_constant(result["pandas_query"]):
+            # Chuỗi rỗng là cách `execute_plan` báo không định vị được ô; hằng số
+            # là cách các run cũ báo điều đó. Cả hai đều giữ nguyên query cũ.
             stats["không định vị được ô"] += 1
             continue
         item["pandas_query"] = result["pandas_query"]
