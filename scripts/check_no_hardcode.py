@@ -29,8 +29,14 @@ from pathlib import Path
 
 
 def reads_a_frame(tree: ast.AST) -> bool:
-    """Biểu thức có chạm vào một DataFrame nào không."""
-    return any(isinstance(node, (ast.Subscript, ast.Attribute, ast.Call)) for node in ast.walk(tree))
+    """Biểu thức có chạm vào một DataFrame nào không.
+
+    `Subscript` (`df.iloc[9]`, `df["Cộng"]`) và `Attribute` (`df.iloc`) là đọc dữ
+    liệu thật. `Call` không được tính: `round(...)` và `float(...)` cũng là `Call`,
+    nên `round(float(0.59), 2)` sẽ lọt qua nếu tính cả `Call` -- đúng kẽ hở BTC bắt
+    được trên các câu 368/390/694/719/770/778/959.
+    """
+    return any(isinstance(node, (ast.Subscript, ast.Attribute)) for node in ast.walk(tree))
 
 
 def multiplies_by_zero(tree: ast.AST) -> bool:
