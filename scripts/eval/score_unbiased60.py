@@ -5,11 +5,11 @@ inside ids 363-440 — the band we tuned — so it ranks v5 above Flow A while t
 leaderboard says the opposite. This scores the seeded, untuned samples instead:
 the 59-question unbiased set plus the 15 manually solved questions (disjoint ids).
 
-    PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py
-    PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --tol 0.001
+    PYTHONPATH=src .venv_bge/bin/python scripts/eval/score_unbiased60.py
+    PYTHONPATH=src .venv_bge/bin/python scripts/eval/score_unbiased60.py --tol 0.001
 
     # a run_graph.py JSONL scored next to the packaged submissions
-    PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py \
+    PYTHONPATH=src .venv_bge/bin/python scripts/eval/score_unbiased60.py \
         --run solve=artifacts/runs/solve_gold74.jsonl --right solve
 """
 

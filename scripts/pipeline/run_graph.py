@@ -4,18 +4,18 @@ Runs arun_question() (understand -> retrieve[LIVE] -> generate_pandas ->
 execute_and_repair -> verify_answer) for each requested id, converts the final
 SolveState into the submission `item` shape (reusing pipeline.submission.submission_item),
 and appends one record per question. The JSONL it writes is consumed directly by
-scripts/build_submission.py (it reads record["item"] / record["table_ids"]).
+scripts/pipeline/build_submission.py (it reads record["item"] / record["table_ids"]).
 
 Usage:
   # gate: mixed labeled set (lookup + formula + multi-step), scored vs gold
-  PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --measure \
+  PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/run_graph.py --measure \
       --out artifacts/runs/graph_measure.jsonl
 
   # explicit ids
-  PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --ids 1,17,40 --out /tmp/r.jsonl
+  PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/run_graph.py --ids 1,17,40 --out /tmp/r.jsonl
 
   # full submission run (~1012)
-  PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --all \
+  PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/run_graph.py --all \
       --out artifacts/runs/graph_1012.jsonl
 """
 from __future__ import annotations

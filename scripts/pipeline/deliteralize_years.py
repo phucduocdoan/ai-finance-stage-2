@@ -35,7 +35,7 @@ gói thì `round_final` đã bọc truy vấn lại. Rời nhau với các bư�
 chạm câu có `answer_kind == "selected_year"`.
 
 Dùng:
-    PYTHONPATH=src .venv_bge/bin/python scripts/deliteralize_years.py \
+    PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/deliteralize_years.py \
         artifacts/runs/full1012_recounted.jsonl artifacts/runs/full1012_years.jsonl
 """
 from __future__ import annotations

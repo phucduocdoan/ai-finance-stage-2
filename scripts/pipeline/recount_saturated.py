@@ -29,7 +29,7 @@ chỉ chạm query hằng số, còn bước này chỉ chạm cây cộng so s�
 bước không quan trọng.
 
 Dùng:
-    PYTHONPATH=src .venv_bge/bin/python scripts/recount_saturated.py \
+    PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/recount_saturated.py \
         artifacts/runs/full1012_cells.jsonl artifacts/runs/full1012_recounted.jsonl
 """
 from __future__ import annotations

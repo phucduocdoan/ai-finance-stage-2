@@ -18,7 +18,7 @@ from finance_qa.modules.solve.common.columns import column_years, names_a_period
 from finance_qa.modules.solve.common.context import meta_for, page_text
 from finance_qa.modules.solve.common.lookup import label_column
 from finance_qa.modules.solve.common.units import detect_column_unit, detect_table_unit
-from finance_qa.modules.solve.solvers.table_profiles.schema import (
+from finance_qa.modules.solve.solvers.table_profiles.link_schema import (
     RawCellRef,
     RawGroupCandidate,
     RawScopeSlot,

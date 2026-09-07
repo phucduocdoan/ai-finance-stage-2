@@ -18,7 +18,7 @@ from finance_qa.modules.solve.solvers.table_profiles.columns import (
     build_column_profiles,
 )
 from finance_qa.modules.solve.solvers.table_profiles.rows import build_row_profiles
-from finance_qa.modules.solve.solvers.table_profiles.schema import (
+from finance_qa.modules.solve.solvers.table_profiles.link_schema import (
     RawCellCandidate,
     RawGroupCandidate,
     RawLinkRequest,

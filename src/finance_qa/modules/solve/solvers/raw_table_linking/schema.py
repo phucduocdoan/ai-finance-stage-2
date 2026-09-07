@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from finance_qa.modules.solve.common.intent import norm as _norm
 from finance_qa.modules.solve.common.solution import Unit
-from finance_qa.modules.solve.solvers.table_profiles.schema import RawOperation
+from finance_qa.modules.solve.solvers.table_profiles.link_schema import RawOperation
 
 
 class RawLinkerDecision(BaseModel):

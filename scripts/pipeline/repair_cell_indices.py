@@ -29,7 +29,7 @@ cũ.
 Chạy sau `repair_fact_queries.py`, trước `build_submission.py`.
 
 Dùng:
-    PYTHONPATH=src .venv_bge/bin/python scripts/repair_cell_indices.py \
+    PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/repair_cell_indices.py \
         artifacts/runs/full1012_repaired.jsonl artifacts/runs/full1012_cells.jsonl
 """
 from __future__ import annotations

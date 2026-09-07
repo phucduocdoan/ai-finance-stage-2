@@ -51,7 +51,7 @@ chưa đủ chặt: có 3 trên 1012 đáp án vàng thật sự bằng 0, và s
 có nhãn qua rổ với 0 lần đúng thành sai, tức chặn trên 95% của tỷ lệ hỏng vẫn khoảng 10%.
 Người sau đừng đọc docstring đó như một bảo đảm.
 
-Không xoá `scripts/fill_from_arms.py`. Chỉ bỏ nó khỏi chuỗi được ghi trong README và khỏi
+Không xoá `scripts/pipeline/fill_from_arms.py`. Chỉ bỏ nó khỏi chuỗi được ghi trong README và khỏi
 mọi hướng dẫn dựng lại bài nộp.
 
 Ba hệ quả kéo theo:
@@ -151,7 +151,7 @@ Mỗi `artifacts/runs/*.jsonl` phải đi kèm `<tên>.provenance.json` ghi:
 }
 ```
 
-`scripts/run_graph.py` ghi nó tự động. Script nào trộn hoặc bầu thì phải điền `merged_from` và
+`scripts/pipeline/run_graph.py` ghi nó tự động. Script nào trộn hoặc bầu thì phải điền `merged_from` và
 `merge_rule`.
 
 Nếp cũ để lại nợ: `full1012_v16.jsonl` cũng trộn (69 bật / 943 tắt). Không cần truy ngược mọi
@@ -187,8 +187,8 @@ Không xoá gì trong nhóm này. `.gitignore` đã ghi rõ lý do giữ từng 
 tác giả, kèm ngày. Đó là bằng chứng tốt hơn bất cứ suy luận nào từ đồ thị import.
 
 Một chỗ cần cẩn thận: `scripts/dev/rescale_below_floor.py` trùng tên với
-`scripts/rescale_below_floor.py` nhưng khác nội dung. Bản dev là bản đo cũ có
-`import score_clean_eval` để đọc nhãn gold; bản `scripts/` là bản đã gỡ gold. Tách là đúng, chỉ
+`scripts/pipeline/rescale_below_floor.py` nhưng khác nội dung. Bản dev là bản đo cũ có
+`import score_clean_eval` để đọc nhãn gold; bản `scripts/pipeline/` là bản đã gỡ gold. Tách là đúng, chỉ
 cần đổi tên bản dev (ví dụ `rescale_below_floor_measure.py`) để nó không tranh chỗ trên
 `sys.path`.
 
@@ -229,7 +229,7 @@ Bốn mâu thuẫn mã/tài liệu E4 tìm ra, nên vá cùng lúc vì chúng l�
   `agents/finance/retrieve.py:19-23` luôn truyền `judge_top_n=20`. Chú thích cũ hơn số đo mới.
 - Ba ngưỡng "có tái tạo đúng đáp án không" khác nhau mà không chỗ nào giải thích:
   `build_submission.py` dùng `rel_tol=1e-6`, `repair_cell_indices.py` dùng `1e-4`.
-- `scripts/diag_pool_variants.py` ghim `CHANNEL_K=50`, giá trị trước khi đo, còn production
+- `scripts/diagnostics/diag_pool_variants.py` ghim `CHANNEL_K=50`, giá trị trước khi đo, còn production
   dùng 20.
 
 Nghiệm thu: đọc `config.yml` xong dựng lại được đúng `FinanceAgentConfig` mặc định, và
@@ -246,7 +246,7 @@ nhận `http_async_client: httpx.AsyncClient` tiêm vào, nên **một lớp tra
 cả 23**.
 
 Chặn đường: artifact hiện có không bootstrap được. `diag` trung bình 6.262 B/câu và chỉ chứa
-quyết định đã parse; `scripts/run_graph.py:100` nói rõ `codegen_prompt` cố ý không ghi. Phải
+quyết định đã parse; `scripts/pipeline/run_graph.py:100` nói rõ `codegen_prompt` cố ý không ghi. Phải
 chạy một lượt capture mới, ước tính 15-80 MB (suy từ `max_tokens` và cách dựng prompt, chưa đo
 thật).
 

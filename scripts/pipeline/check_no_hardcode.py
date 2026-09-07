@@ -17,7 +17,7 @@ Truy vấn sai cú pháp KHÔNG bị tính là vi phạm: nó là một câu tr�
 phải một đáp án gán cứng. Script báo riêng để khỏi lẫn hai thứ.
 
 Dùng:
-    .venv_bge/bin/python scripts/check_no_hardcode.py output/submission_v36.zip
+    .venv_bge/bin/python scripts/pipeline/check_no_hardcode.py output/submission_v36.zip
 """
 from __future__ import annotations
 

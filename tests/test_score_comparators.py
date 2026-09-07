@@ -14,10 +14,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts" / "dev"))
+sys.path.insert(0, str(Path(__file__).parents[1] / "scripts" / "eval"))
 
 from score_clean_eval import correct  # noqa: E402
 
-# `scripts/score_gold75.py` is gitignored as unreviewed WIP, so a clean clone does not
+# `scripts/eval/score_gold75.py` is gitignored as unreviewed WIP, so a clean clone does not
 # have it. The rule below has to hold in both bộ chấm, hence the skip rather than a
 # second copy of the assertions.
 close = getattr(pytest.importorskip("score_gold75"), "close")

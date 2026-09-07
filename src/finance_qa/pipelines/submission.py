@@ -1,7 +1,7 @@
 """The submission item shape shared by the pipeline runners.
 
-`scripts/run_graph.py` builds one of these per question from the solve_qa graph's
-final state; `scripts/build_submission.py` packages a run's items into the
+`scripts/pipeline/run_graph.py` builds one of these per question from the solve_qa graph's
+final state; `scripts/pipeline/build_submission.py` packages a run's items into the
 leaderboard ZIP.
 """
 

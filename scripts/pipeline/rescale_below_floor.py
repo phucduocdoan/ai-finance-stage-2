@@ -32,7 +32,7 @@ KHÔNG bắt được: q284, q139, q748 lệch lũy thừa 10 nhưng vẫn nằm
 đơn vị chúng. Muốn bắt phải so đáp án với ô gốc trong `pandas_query`.
 
 Dùng:
-    PYTHONPATH=src .venv_bge/bin/python scripts/rescale_below_floor.py \
+    PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/rescale_below_floor.py \
         artifacts/runs/full1012.jsonl artifacts/runs/full1012_rescaled.jsonl
 """
 from __future__ import annotations

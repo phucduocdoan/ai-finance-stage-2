@@ -3,7 +3,7 @@
 This is the single implementation of the retrieval pool. Both the evaluator
 (`finance_qa.evaluation.retrieval`) and the batch runner go through it, so a
 policy measured on the eval set is the policy production runs. Before this
-module existed the good policies lived in `scripts/dump_pools.py` and the
+module existed the good policies lived in `scripts/diagnostics/dump_pools.py` and the
 evaluator quietly ran without them; see docs/HANDOFF.md §4.
 
 Three policies are on by default because each was measured on the 15 table-GT
@@ -318,7 +318,7 @@ class CandidateRetriever:
         if not index_path.exists():
             raise FileNotFoundError(
                 f"dense backend {self.embedder.name!r} needs {index_path}; "
-                "build it first (scripts/build_deepinfra_index.py for qwen3-4b)"
+                "build it first (scripts/data_build/build_deepinfra_index.py for qwen3-4b)"
             )
         vectors = np.load(index_path)
         if len(vectors) != len(keys):

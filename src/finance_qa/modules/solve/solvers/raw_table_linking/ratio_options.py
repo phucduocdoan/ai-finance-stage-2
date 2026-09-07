@@ -14,7 +14,7 @@ from finance_qa.modules.solve.solvers.raw_table_linking.schema import (
     RawRatioOptionDecision,
     RawRatioOptionSlotDecision,
 )
-from finance_qa.modules.solve.solvers.table_profiles.schema import (
+from finance_qa.modules.solve.solvers.table_profiles.link_schema import (
     RawCellCandidate,
     RawGroupCandidate,
     RawLinkRequest,

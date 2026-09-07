@@ -21,7 +21,7 @@ The item shape and the CSV name/source mapping are the pipeline's own
 `source_csv`) -- nothing is reimplemented here, only assembled and zipped.
 
 Run:
-  PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py \
+  PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/build_submission.py \
       --run artifacts/runs/pipeline_XXXX.jsonl --out output/submission
 
   # test on a partial run (skip the all-1012 completeness gate):
@@ -37,6 +37,8 @@ import shutil
 import zipfile
 from pathlib import Path
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import _bootstrap  # noqa: F401
 import pandas as pd
 

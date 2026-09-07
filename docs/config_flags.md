@@ -97,7 +97,7 @@ retrieve node: use frozen cache on failure.
 The five flags below (`cell_locator`, `formula_facts`, `raw_table_linker`,
 `raw_table_linker_planner`, `selection_facts`) default True as of 2026-08-21, and these
 numbers are why. Measured over the 73 hand-labeled gold questions
-(`scripts/score_gold75.py`), checkpoint Qwen3.5-9B, against a churn floor of 2 questions
+(`scripts/eval/score_gold75.py`), checkpoint Qwen3.5-9B, against a churn floor of 2 questions
 -- the 08-18 run scored 54 and then 52 on a byte-identical config, so 2 is what noise
 alone buys:
 
@@ -565,7 +565,7 @@ evidence that the 2026-08-24 runs had a larger compute budget:
 
 The numbers are real; the inference from them was not. Two problems:
 
-1. `seconds` is measured at `scripts/run_graph.py:96` as `time.monotonic()`
+1. `seconds` is measured at `scripts/pipeline/run_graph.py:96` as `time.monotonic()`
    wall clock around the whole per-question solve, so it includes time spent
    queued behind other workers at the shared vLLM endpoint. Raising
    `--workers` inflates it without any extra work being done.

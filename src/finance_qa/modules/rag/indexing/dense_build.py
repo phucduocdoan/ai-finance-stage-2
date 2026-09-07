@@ -40,7 +40,7 @@ class DenseIndexBuilder:
         if cfg.column not in df.columns:
             raise SystemExit(
                 f"{cfg.parquet_path} has no {cfg.column!r} column "
-                f"(has {list(df.columns)}); rebuild it with scripts/build_doc_text.py"
+                f"(has {list(df.columns)}); rebuild it with scripts/data_build/build_doc_text.py"
             )
         if cfg.limit:
             df = df.head(cfg.limit)

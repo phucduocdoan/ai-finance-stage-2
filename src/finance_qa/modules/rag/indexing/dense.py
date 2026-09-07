@@ -8,7 +8,7 @@ docs/investigations/v0_retrieval_pipeline.md).
 Must run under .venv_bge: the base conda env's torch is cu130 against a
 CUDA-12.7 driver and cannot use the GPU at all.
 
-  .venv_bge/bin/python scripts/build_dense_index.py
+  .venv_bge/bin/python scripts/data_build/build_dense_index.py
 
 Output: data/indexes/tables_dense.npy, fp16 [n_tables, 1024], row order identical to
 data/indexes/tables_doc_text.parquet (the key for row i is that parquet's

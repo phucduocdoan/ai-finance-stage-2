@@ -23,23 +23,23 @@ R="artifacts/runs/${NAME}"
 
 run() { echo "+ $*" >&2; eval "$*"; }
 
-run "$PY scripts/run_graph.py --all --out ${R}.jsonl --workers ${WORKERS}"
+run "$PY scripts/pipeline/run_graph.py --all --out ${R}.jsonl --workers ${WORKERS}"
 
 n=$(grep -c . "${R}.jsonl")
 if [ "$n" -ne 1012 ]; then
     echo "chỉ có ${n}/1012 câu: run bị đứt giữa chừng (thường là vLLM chết)." >&2
-    echo "bật lại server rồi chạy tiếp bằng: $PY scripts/run_graph.py --all --out ${R}.jsonl --resume --workers ${WORKERS}" >&2
+    echo "bật lại server rồi chạy tiếp bằng: $PY scripts/pipeline/run_graph.py --all --out ${R}.jsonl --resume --workers ${WORKERS}" >&2
     exit 1
 fi
 
-run "$PY scripts/repair_fact_queries.py  ${R}.jsonl           ${R}_repaired.jsonl"
-run "$PY scripts/repair_cell_indices.py  ${R}_repaired.jsonl  ${R}_cells.jsonl"
-run "$PY scripts/rescale_below_floor.py  ${R}_cells.jsonl     ${R}_rescaled.jsonl"
-run "$PY scripts/recount_saturated.py    ${R}_rescaled.jsonl  ${R}_recounted.jsonl"
-run "$PY scripts/deliteralize_years.py   ${R}_recounted.jsonl ${R}_years.jsonl"
-run "$PY scripts/build_submission.py --run ${R}_years.jsonl --out output/${NAME} --no-literal-on-error"
+run "$PY scripts/pipeline/repair_fact_queries.py  ${R}.jsonl           ${R}_repaired.jsonl"
+run "$PY scripts/pipeline/repair_cell_indices.py  ${R}_repaired.jsonl  ${R}_cells.jsonl"
+run "$PY scripts/pipeline/rescale_below_floor.py  ${R}_cells.jsonl     ${R}_rescaled.jsonl"
+run "$PY scripts/pipeline/recount_saturated.py    ${R}_rescaled.jsonl  ${R}_recounted.jsonl"
+run "$PY scripts/pipeline/deliteralize_years.py   ${R}_recounted.jsonl ${R}_years.jsonl"
+run "$PY scripts/pipeline/build_submission.py --run ${R}_years.jsonl --out output/${NAME} --no-literal-on-error"
 
-run "$PY scripts/check_no_hardcode.py output/${NAME}.zip"
+run "$PY scripts/pipeline/check_no_hardcode.py output/${NAME}.zip"
 
 git rev-parse HEAD > "${R}.commit"
 printf '%s\n' "--all --workers ${WORKERS}" "(mặc định, không đặt biến SOLVE_* nào)" > "${R}.flags"

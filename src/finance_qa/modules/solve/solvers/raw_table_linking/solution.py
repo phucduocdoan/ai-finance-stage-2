@@ -18,7 +18,7 @@ from finance_qa.modules.solve.solvers.raw_table_linking.validate import (
     validate_decision,
     validate_ratio_decision,
 )
-from finance_qa.modules.solve.solvers.table_profiles.schema import (
+from finance_qa.modules.solve.solvers.table_profiles.link_schema import (
     RawCellCandidate,
     RawLinkRequest,
     RawLinkedCandidate,

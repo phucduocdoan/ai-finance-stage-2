@@ -27,7 +27,7 @@ the judge prompt) can be switched off with --no-strip / --no-primary to reproduc
 the older measurements.
 
 Run:
-  .venv_bge/bin/python scripts/evaluate_retrieval.py --stage rrf
+  .venv_bge/bin/python scripts/eval/evaluate_retrieval.py --stage rrf
 """
 
 from __future__ import annotations

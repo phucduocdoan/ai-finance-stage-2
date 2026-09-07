@@ -29,7 +29,7 @@ Chạy script này TRƯỚC `rescale_below_floor.py`: rescale dọn nốt các �
 không arm nào cứu được.
 
 Dùng:
-    PYTHONPATH=src .venv_bge/bin/python scripts/fill_from_arms.py \
+    PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/fill_from_arms.py \
         artifacts/runs/run_a.jsonl artifacts/runs/filled.jsonl \
         artifacts/runs/run_b.jsonl artifacts/runs/run_c.jsonl
 """

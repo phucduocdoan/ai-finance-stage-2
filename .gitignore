@@ -25,9 +25,9 @@ output/
 # unreviewed WIP from the retrieval-gold-quality thread (build_gold_candidates.py's
 # gold100/semantic-selection investigation) -- separate from the codegen rewrite,
 # not yet reviewed for correctness or overlap with score_unbiased60.py.
-scripts/extract_question_targets.py
-scripts/semantic_filter_gold.py
-scripts/score_gold75.py
+scripts/one_off/extract_question_targets.py
+scripts/one_off/semantic_filter_gold.py
+scripts/eval/score_gold75.py
 data/eval/question_targets.json
 
 # stale artifacts describing/measuring the deleted planner/IR/REPL architecture,
@@ -54,30 +54,30 @@ SKILL (3).md
 # one-off diagnostic/probe/prototype scripts kept locally for reference, not
 # part of the maintained pipeline -- several probe/test the deleted formula
 # solver and REPL prototype directly and are stale even as reference code.
-scripts/audit_tier1.py
-scripts/classify_ops.py
-scripts/demo_option_b.py
-scripts/diag_intra_report.py
-scripts/diag_pool_variants.py
-scripts/diag_repr.py
-scripts/diag_repr_dense.py
-scripts/dump_pools.py
-scripts/estimate_question_class.py
+scripts/diagnostics/audit_tier1.py
+scripts/data_build/classify_ops.py
+scripts/prototypes/demo_option_b.py
+scripts/diagnostics/diag_intra_report.py
+scripts/diagnostics/diag_pool_variants.py
+scripts/diagnostics/diag_repr.py
+scripts/diagnostics/diag_repr_dense.py
+scripts/diagnostics/dump_pools.py
+scripts/diagnostics/estimate_question_class.py
 scripts/eval_gold.py
-scripts/eval_graph20.py
-scripts/eval_submitted_retrieval.py
-scripts/gold_acceptance_test.py
-scripts/judge_ab.py
-scripts/probe_accessor_coverage.py
-scripts/probe_formula_coverage.py
-scripts/probe_note_detail_split.py
-scripts/prototype_mode_a.py
-scripts/prototype_repl.py
-scripts/solve.py
-scripts/solve_coverage.py
-scripts/table_numbering_audit.py
-scripts/test_formula_solver.py
-scripts/test_graph.py
+scripts/eval/eval_graph20.py
+scripts/eval/eval_submitted_retrieval.py
+scripts/one_off/gold_acceptance_test.py
+scripts/diagnostics/judge_ab.py
+scripts/diagnostics/probe_accessor_coverage.py
+scripts/diagnostics/probe_formula_coverage.py
+scripts/diagnostics/probe_note_detail_split.py
+scripts/prototypes/prototype_mode_a.py
+scripts/prototypes/prototype_repl.py
+scripts/diagnostics/solve.py
+scripts/diagnostics/solve_coverage.py
+scripts/diagnostics/table_numbering_audit.py
+scripts/prototypes/test_formula_solver.py
+scripts/prototypes/test_graph.py
 
 # report outputs of the scripts above (no longer have a tracked generator),
 # plus an early data-exploration doc with no generating script at all

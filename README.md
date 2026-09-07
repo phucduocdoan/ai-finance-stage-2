@@ -10,8 +10,8 @@ For operational cautions, benchmark notes, and current next work, read
 
 - Corpus snapshot: 146,246 tables from 1,973 OCR files and 1,012 enriched questions.
 - Interactive and batch flows both run the same graph: `finance_qa.agents.finance.run_question`
-  for one question, `scripts/run_graph.py` to drive it over many and write a submission-ready
-  JSONL, packaged by `scripts/build_submission.py`.
+  for one question, `scripts/pipeline/run_graph.py` to drive it over many and write a submission-ready
+  JSONL, packaged by `scripts/pipeline/build_submission.py`.
 - Core code is organized as modules and services. The graph's nodes and topology live in
   `agents.finance.graph`; pipelines compose that graph (or module service APIs) into a runnable
   job instead of importing implementation internals directly.
@@ -64,46 +64,46 @@ With the inputs above in place:
 
 ```bash
 # 1. (only if data/indexes/* are missing) rebuild derived data from the raw dataset:
-PYTHONPATH=src .venv_bge/bin/python scripts/build_data_pipeline.py
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/build_data_pipeline.py
 
 # 2. run the graph over questions, writing one JSONL record per question:
-PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --all --out artifacts/runs/full_run.jsonl
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/run_graph.py --all --out artifacts/runs/full_run.jsonl
 
 # 3. score against the honest gold set (73 questions, see docs/HANDOFF.md):
-PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --run solve=artifacts/runs/full_run.jsonl --right solve
+PYTHONPATH=src .venv_bge/bin/python scripts/eval/score_unbiased60.py --run solve=artifacts/runs/full_run.jsonl --right solve
 
 # 4. (only for runs produced before the cellexpr fix) rewrite the fact solvers'
 #    hardcoded pandas_query into a real cell read. On a run from the current code it
 #    reports `{}`, because the solvers now decline instead of emitting a constant:
-PYTHONPATH=src .venv_bge/bin/python scripts/repair_fact_queries.py \
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/repair_fact_queries.py \
     artifacts/runs/full_run.jsonl artifacts/runs/full_run_repaired.jsonl
 
 # 5. re-locate cell reads whose row index and column name belong to the pre-merge frame:
-PYTHONPATH=src .venv_bge/bin/python scripts/repair_cell_indices.py \
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/repair_cell_indices.py \
     artifacts/runs/full_run_repaired.jsonl artifacts/runs/full_run_cells.jsonl
 
 # 6. (optional, needs step 2 run more than once) fill the certainly-wrong cells of one
 #    run from the others:
-PYTHONPATH=src .venv_bge/bin/python scripts/fill_from_arms.py \
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/fill_from_arms.py \
     artifacts/runs/full_run_cells.jsonl artifacts/runs/full_run_filled.jsonl \
     artifacts/runs/full_run_2_cells.jsonl artifacts/runs/full_run_3_cells.jsonl
 
 # 7. rescale answers that fall below the floor of the unit they were asked in:
-PYTHONPATH=src .venv_bge/bin/python scripts/rescale_below_floor.py \
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/rescale_below_floor.py \
     artifacts/runs/full_run_filled.jsonl artifacts/runs/full_run_rescaled.jsonl
 
 # 8. re-count the counting questions, which the units pass scaled as if they had a unit:
-PYTHONPATH=src .venv_bge/bin/python scripts/recount_saturated.py \
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/recount_saturated.py \
     artifacts/runs/full_run_rescaled.jsonl artifacts/runs/full_run_recounted.jsonl
 
 # 9. let the "năm nào" questions pick their year from the data instead of a constant:
-PYTHONPATH=src .venv_bge/bin/python scripts/deliteralize_years.py \
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/deliteralize_years.py \
     artifacts/runs/full_run_recounted.jsonl artifacts/runs/full_run_years.jsonl
 
 # 10. package a leaderboard submission. `--no-literal-on-error` is required: without it
 #     a query that fails to execute is replaced by `repr(answer)`, which is the hardcoded
 #     shape the rules score as zero.
-PYTHONPATH=src .venv_bge/bin/python scripts/build_submission.py --run artifacts/runs/full_run_years.jsonl --out output/submission --no-literal-on-error
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/build_submission.py --run artifacts/runs/full_run_years.jsonl --out output/submission --no-literal-on-error
 ```
 
 Steps 4 to 9 are post-processing passes, not solvers, so they sit between `run_graph.py` and
@@ -217,7 +217,7 @@ itself a chain of retrieval steps — `judge.py` is the last of those steps, not
 
 ```mermaid
 flowchart TD
-    subgraph Batch["scripts/run_graph.py (loops over question ids)"]
+    subgraph Batch["scripts/pipeline/run_graph.py (loops over question ids)"]
         Q["ViFinQA/questions/questions.jsonl"] --> RG[run one question at a time]
     end
 
@@ -245,9 +245,9 @@ flowchart TD
 
     V --> OUT["pipelines.submission.submission_item<br/>(per-question JSON)"]
     OUT --> JSONL["JSONL run (artifacts/runs/*.jsonl)"]
-    JSONL --> BS["scripts/build_submission.py"]
+    JSONL --> BS["scripts/pipeline/build_submission.py"]
     BS --> ZIP["output/submission.zip"]
-    JSONL --> SC["scripts/score_unbiased60.py<br/>(scored against data/eval/*.jsonl gold)"]
+    JSONL --> SC["scripts/eval/score_unbiased60.py<br/>(scored against data/eval/*.jsonl gold)"]
 ```
 
 ## Common Commands
@@ -261,12 +261,12 @@ PYTHONPATH=src .venv_bge/bin/python tests/test_candidate_pool.py
 PYTHONPATH=src .venv_bge/bin/python tests/test_solve_units.py
 PYTHONPATH=src .venv_bge/bin/python tests/test_cell_expression.py
 PYTHONPATH=src .venv_bge/bin/python tests/test_understand.py
-PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --ids 371 --out artifacts/runs/smoke_q371.jsonl
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/run_graph.py --ids 371 --out artifacts/runs/smoke_q371.jsonl
 ```
 
 Dense retrieval and index rebuild commands require the GPU environment.
 Corpus rebuild commands under `scripts/` are CLI wrappers over `src/finance_qa/modules/*`
-services. `scripts/extract_tables.py` rewrites corpus artifacts and is not a smoke test.
+services. `scripts/data_build/extract_tables.py` rewrites corpus artifacts and is not a smoke test.
 Most files under `tests/` are run directly as scripts (as above), not collected by
 `pytest`; `pytest tests/` raises an INTERNALERROR because some tests call `sys.exit()`
 at module level.

@@ -8,7 +8,7 @@ detailed than this file.
 ## Active Architecture
 
 The graph is the only answer flow, for both interactive (`run_question`) and batch
-(`scripts/run_graph.py`) use. The default path is still the grounded pandas-codegen path:
+(`scripts/pipeline/run_graph.py`) use. The default path is still the grounded pandas-codegen path:
 
 ```text
 understand -> retrieve -> generate_pandas -> execute_and_repair -> verify_answer
@@ -160,15 +160,15 @@ rebuilt today because the v1 metadata file it was built from no longer exists on
 
 | Stage | Service owner | CLI wrapper |
 |---|---|---|
-| OCR TXT/HTML -> raw CSVs | `modules.data.preprocessing.extract_tables.TableExtractor` | `scripts/extract_tables.py` |
-| raw questions -> enriched metadata | `modules.data.preprocessing.questions.QuestionEnricher` | `scripts/enrich_questions.py` |
-| metadata -> retrieval text parquet | `modules.data.preprocessing.document_text.DocumentTextBuilder` | `scripts/build_doc_text.py` |
-| table metadata/CSV -> long format | `modules.data.preprocessing.long_format.LongFormatBuilder` | `scripts/build_long_format.py` |
-| retrieval text -> local dense index | `modules.rag.indexing.dense.DenseIndexBuilder` | `scripts/build_dense_index.py` |
-| retrieval text -> hosted dense index (paid) | `modules.rag.indexing.deepinfra_build.DeepInfraIndexBuilder` | `scripts/build_deepinfra_index.py` |
-| `statement_type=="unknown"` rows -> reclassification patch | `modules.data.preprocessing.offline.statement_type_classifier.StatementTypeClassifier` | `scripts/classify_statement_type.py` |
+| OCR TXT/HTML -> raw CSVs | `modules.data.preprocessing.extract_tables.TableExtractor` | `scripts/data_build/extract_tables.py` |
+| raw questions -> enriched metadata | `modules.data.preprocessing.questions.QuestionEnricher` | `scripts/data_build/enrich_questions.py` |
+| metadata -> retrieval text parquet | `modules.data.preprocessing.document_text.DocumentTextBuilder` | `scripts/data_build/build_doc_text.py` |
+| table metadata/CSV -> long format | `modules.data.preprocessing.long_format.LongFormatBuilder` | `scripts/data_build/build_long_format.py` |
+| retrieval text -> local dense index | `modules.rag.indexing.dense.DenseIndexBuilder` | `scripts/data_build/build_dense_index.py` |
+| retrieval text -> hosted dense index (paid) | `modules.rag.indexing.deepinfra_build.DeepInfraIndexBuilder` | `scripts/data_build/build_deepinfra_index.py` |
+| `statement_type=="unknown"` rows -> reclassification patch | `modules.data.preprocessing.offline.statement_type_classifier.StatementTypeClassifier` | `scripts/data_build/classify_statement_type.py` |
 
-`src/finance_qa/pipelines/data_pipeline.py` (+ `scripts/build_data_pipeline.py`) chains the
+`src/finance_qa/pipelines/data_pipeline.py` (+ `scripts/pipeline/build_data_pipeline.py`) chains the
 required rebuild order (`enrich_questions -> build_doc_text -> build_dense_index`); the other
 stages are explicit, off-by-default flags on that same CLI.
 
@@ -225,7 +225,7 @@ PYTHONPATH=src .venv_bge/bin/python tests/test_understand.py
 Graph smoke (one live LLM call chain):
 
 ```bash
-PYTHONPATH=src .venv_bge/bin/python scripts/run_graph.py --ids 371 --out artifacts/runs/smoke_q371.jsonl
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/run_graph.py --ids 371 --out artifacts/runs/smoke_q371.jsonl
 ```
 
 ## Current Benchmark State
@@ -235,7 +235,7 @@ questions with confidence >= medium, disjoint from the 363-440 band the old arch
 tuned against). Score any run or packaged submission against it with:
 
 ```bash
-PYTHONPATH=src .venv_bge/bin/python scripts/score_unbiased60.py --run solve=<run.jsonl> --right solve
+PYTHONPATH=src .venv_bge/bin/python scripts/eval/score_unbiased60.py --run solve=<run.jsonl> --right solve
 ```
 
 Current number: **38/73 (52.1%)** at 1% relative tolerance, from
@@ -339,7 +339,7 @@ clearing the bar above is more likely to lose three points than gain any.
 
 ### One Lever That Is Open, And Why The Bar Cannot Judge It
 
-`scripts/recount_saturated.py` (step 8) is built, measured, and packaged as
+`scripts/pipeline/recount_saturated.py` (step 8) is built, measured, and packaged as
 `output/submission_v30_countfix.zip`, but **not submitted**. Against v27 it changes 4 answers of
 1,012 -- q435 `1.0`->`3.0`, q563 `0.0`->`1.0`, q932 `0.0`->`1.0`, q983 `0.0`->`2.0` -- rewrites 7
 more queries without moving their answers, and leaves the other 1,001 records byte-identical. No
@@ -377,7 +377,7 @@ The `* 0` shape comes from this repo, not from the model: `raw_selection_linker.
 keep the year inside the query so re-execution reproduces the answer -- which is right, but the
 annihilation makes the result a stored constant instead.
 
-`scripts/deliteralize_years.py` (step 9) closes 22 of the 33. `diag.raw_selection_linker.chosen`
+`scripts/pipeline/deliteralize_years.py` (step 9) closes 22 of the 33. `diag.raw_selection_linker.chosen`
 still holds every candidate year's cell, so the comparison the solver performed and discarded is
 rebuildable as `max([(float(<cell 2016>), 2016), ...])[1]`. Measured against v30: 22 queries
 rewritten, **0 answers changed**, evidence extended on those 22 and `relevant_tables` unchanged on
@@ -453,7 +453,7 @@ change dressed as a shape fix (`19171c5`).
    the 35 misses, is every gold table sitting in front of the model with the wrong cell read out
    of it, and single-cell questions are 43% of the corpus. Cheapest lever, and it touches neither
    retrieval nor the evidence budget.
-5. **Run the statement-type classifier at full scale.** `scripts/classify_statement_type.py` has
+5. **Run the statement-type classifier at full scale.** `scripts/data_build/classify_statement_type.py` has
    only been run on two ~10-row samples (`artifacts/audits/sample_title_only.jsonl`,
    `sample_with_llm.jsonl`) to check output shape. The real ~2,600-row "unknown" backlog has
    never been classified, and no patch has been reviewed or merged into

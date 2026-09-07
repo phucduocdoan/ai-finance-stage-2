@@ -26,7 +26,7 @@ a constant string to the 124,279 `note` rows would carry no information, and
 would burn the same 30 chars in every candidate the LLM judge reads.
 
 Run:
-  .venv_bge/bin/python scripts/build_doc_text.py [--limit N]
+  .venv_bge/bin/python scripts/data_build/build_doc_text.py [--limit N]
 
 Output:
   data/indexes/tables_doc_text.parquet  (report_id, table_pos, doc_text)

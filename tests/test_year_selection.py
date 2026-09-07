@@ -1,4 +1,4 @@
-"""Checks for the year-selection rewrite in scripts/deliteralize_years.py.
+"""Checks for the year-selection rewrite in scripts/pipeline/deliteralize_years.py.
 
   .venv_bge/bin/python tests/test_year_selection.py
 
@@ -22,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
+sys.path.insert(0, str(Path(__file__).parents[1] / "scripts" / "pipeline"))
 
 from deliteralize_years import annihilated_year, rebuilt
 from finance_qa.modules.tools.python_exec import run_query

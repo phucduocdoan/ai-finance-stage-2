@@ -18,7 +18,7 @@ Minimum keep set da ghi trong `docs/refactor_plan.md`:
 ### Canh bao: v22 nhiem gold
 
 `submission_v22_hybrid_answer_retrieval_with_data` dung dau bang cua
-`scripts/score_unbiased60.py` voi 63/73 (86.3%), cao hon v17_unitfix 13 cau. Con so do la ao.
+`scripts/eval/score_unbiased60.py` voi 63/73 (86.3%), cao hon v17_unitfix 13 cau. Con so do la ao.
 
 Do ngay 2026-09-01:
 

@@ -21,7 +21,7 @@ Optional stages, off by default:
                            data/tables/, so it is opt-in even on a fresh checkout.
   --with-long-format       tables_metadata_v2.jsonl -> data/derived/long_format.parquet
                            Not read by the live agent (it loads CSVs directly via
-                           modules.data.table_store); only scripts/solve.py (an
+                           modules.data.table_store); only scripts/diagnostics/solve.py (an
                            abandoned rule-based prototype) and
                            scripts/dev/verify_long_format.py use this file.
   --with-deepinfra-index   tables_doc_text.parquet -> data/indexes/tables_qwen3_4b.npy
@@ -31,9 +31,9 @@ Optional stages, off by default:
                            is not required.
 
 Usage:
-  PYTHONPATH=src .venv_bge/bin/python scripts/build_data_pipeline.py
-  PYTHONPATH=src .venv_bge/bin/python scripts/build_data_pipeline.py --skip build_dense_index
-  PYTHONPATH=src .venv_bge/bin/python scripts/build_data_pipeline.py --extract-tables --with-long-format
+  PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/build_data_pipeline.py
+  PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/build_data_pipeline.py --skip build_dense_index
+  PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/build_data_pipeline.py --extract-tables --with-long-format
 """
 from __future__ import annotations
 

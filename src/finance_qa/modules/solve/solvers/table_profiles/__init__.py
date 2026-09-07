@@ -11,7 +11,7 @@ from finance_qa.modules.solve.solvers.table_profiles.rows import (
     LinkedRowProfile,
     build_row_profiles,
 )
-from finance_qa.modules.solve.solvers.table_profiles.schema import (
+from finance_qa.modules.solve.solvers.table_profiles.link_schema import (
     DocType,
     RatioAggregate,
     RawCandidateKind,

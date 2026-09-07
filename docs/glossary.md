@@ -18,17 +18,17 @@ accuracy is the share of `pandas_query` values that both run and return the
 right number — it can differ from answer accuracy when a post-processing step
 (see `below-floor rescale`) edits both `answer` and `pandas_query` by the same
 factor, since execution accuracy re-runs the query independently
-(`scripts/rescale_below_floor.py:26-28`).
+(`scripts/pipeline/rescale_below_floor.py:26-28`).
 
 ### arm
 
 Used in two related but distinct senses. In `docs/config_flags.md` (e.g.
 `docs/config_flags.md:124`, `docs/config_flags.md:130`, `docs/config_flags.md:297`)
 an arm is one side of a measured A/B comparison — "treatment arm" or "control
-arm" for a single config flag. In `scripts/fill_from_arms.py:9-10,25-26` an arm
+arm" for a single config flag. In `scripts/pipeline/fill_from_arms.py:9-10,25-26` an arm
 is one candidate run file passed to the script, ranked by trust order; the
 first arm whose answer is not "certainly wrong" wins that cell
-(`scripts/fill_from_arms.py:25-26`). Both senses mean "one variant among
+(`scripts/pipeline/fill_from_arms.py:25-26`). Both senses mean "one variant among
 several being compared," but the comparison is a flag's on/off state in the
 first case and a whole run's output in the second — worth keeping apart when
 reading either file.
@@ -46,18 +46,18 @@ when both are plural (`decompose.py:141`). Consumed by `selection_decompose`
 
 ### below-floor rescale
 
-A post-processing pass, `scripts/rescale_below_floor.py`, that runs on a
+A post-processing pass, `scripts/pipeline/rescale_below_floor.py`, that runs on a
 completed run file between `run_graph.py` and `build_submission.py`
-(`scripts/rescale_below_floor.py:3-4`). It multiplies an answer by a power of
+(`scripts/pipeline/rescale_below_floor.py:3-4`). It multiplies an answer by a power of
 ten when it falls below a unit-specific floor (e.g. an answer in `tỷ` below
-`0.1`, `scripts/rescale_below_floor.py:46-53`) — the fix for one specific
+`0.1`, `scripts/pipeline/rescale_below_floor.py:46-53`) — the fix for one specific
 failure shape (mantissa plausible, exponent off by a power of ten), not for
 the unrelated "vượt trần" (over ceiling) failures, whose gold deltas are not
-power-of-ten multiples (`scripts/rescale_below_floor.py:7-9`). One-directional:
+power-of-ten multiples (`scripts/pipeline/rescale_below_floor.py:7-9`). One-directional:
 it only touches values that are already almost-certainly wrong, so a
 wrong-to-wrong change cannot lose points
-(`scripts/rescale_below_floor.py:23-25`). It edits `pandas_query` too, not
-just `answer` (`scripts/rescale_below_floor.py:27`).
+(`scripts/pipeline/rescale_below_floor.py:23-25`). It edits `pandas_query` too, not
+just `answer` (`scripts/pipeline/rescale_below_floor.py:27`).
 
 ### capability trace / capability router
 
@@ -114,8 +114,8 @@ docstrings, e.g. `src/finance_qa/modules/solve/solvers/selection_facts.py:6`
 
 The 73-question subset of the two hand-checked gold sets (`unbiased60_gold.jsonl`,
 60 questions, plus `manual15_gold.jsonl`, 15 questions — 75 total) used by
-`scripts/score_gold75.py`, after dropping rows whose `confidence` is below
-`medium` (`scripts/score_gold75.py:5-6`; despite the "75" in the script name,
+`scripts/eval/score_gold75.py`, after dropping rows whose `confidence` is below
+`medium` (`scripts/eval/score_gold75.py:5-6`; despite the "75" in the script name,
 the scored denominator is 73). `docs/config_flags.md:97-99` describes this
 measurement; `docs/config_flags.md:125` and `:189` use "gold73" as the name
 for the scored set. It is described elsewhere in the same doc as partially
@@ -220,10 +220,10 @@ the clean eval where the rest of a run scores 45/90.
 
 The 60-question set at `data/eval/unbiased60_gold.jsonl`, sampled without bias
 (as opposed to the tuned 363-440 id band), scored by
-`scripts/score_unbiased60.py` (docstring at lines 1-13). Used alone or unioned
+`scripts/eval/score_unbiased60.py` (docstring at lines 1-13). Used alone or unioned
 with `manual15_gold.jsonl` (disjoint ids) to form `gold73`/gold75. A third,
 opt-in set of 20 formula questions inside the 363-440 tuned band is not scored
-by default for that reason (`scripts/score_unbiased60.py:22-25`).
+by default for that reason (`scripts/eval/score_unbiased60.py:22-25`).
 
 ### Vietnamese scale words: `ngàn`, `nghìn`, `triệu`, `tỷ`
 

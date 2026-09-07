@@ -182,11 +182,11 @@ Active implementation: `src/finance_qa/pipelines/submission.py`, now trimmed to
 Decision:
 
 - The graph (`agents.finance.graph.arun_question`, driven over many questions by
-  `scripts/run_graph.py`) is the only flow that answers questions.
+  `scripts/pipeline/run_graph.py`) is the only flow that answers questions.
 - `submission_item()` stays as a standalone function because packaging (turning a solved
   question into the leaderboard item shape) was never duplicated code — only the two old
   drivers' *answering* logic was.
-- `scripts/build_submission.py` packages a `run_graph.py` JSONL into `output/submission.zip`.
+- `scripts/pipeline/build_submission.py` packages a `run_graph.py` JSONL into `output/submission.zip`.
 
 ## 8. Data Pipeline And Protected Artifacts
 
@@ -194,13 +194,13 @@ Decision:
 
 - Corpus-build logic lives in module services (`modules/data/preprocessing/`,
   `modules/rag/indexing/`); `scripts/*.py` are thin CLI wrappers.
-- `src/finance_qa/pipelines/data_pipeline.py` (+ `scripts/build_data_pipeline.py`) chains the
-  required rebuild order — `enrich_questions -> build_doc_text -> build_dense_index` — with
+- `src/finance_qa/pipelines/data_pipeline.py` (+ `scripts/pipeline/build_data_pipeline.py`) chains
+  the required rebuild order — `enrich_questions -> build_doc_text -> build_dense_index` — with
   `extract_tables`, `build_long_format`, and the paid `build_deepinfra_index` as explicit,
   off-by-default stages.
 - Treat `tables_metadata_v2.jsonl`, `tables_doc_text.parquet`, and `tables_dense.npy` as
   protected artifacts. Rebuilds go through staging paths, not in place.
-- `scripts/extract_tables.py` rewrites corpus artifacts and is not a diagnostic command.
+- `scripts/data_build/extract_tables.py` rewrites corpus artifacts and is not a diagnostic command.
 
 Rationale:
 

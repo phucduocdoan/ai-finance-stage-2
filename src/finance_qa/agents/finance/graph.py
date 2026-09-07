@@ -37,7 +37,7 @@ would throw away recall. It can *grow* it — a table `find_rows` surfaced and t
 final query actually reads is added in `_emit`, because evidence pointing at a
 CSV outside `relevant_tables` is not a valid submission item.
 
-State is `FinanceState` plus two internal keys, so `scripts/build_submission.py`
+State is `FinanceState` plus two internal keys, so `scripts/pipeline/build_submission.py`
 and `submission_item()` consume this flow's records unchanged.
 """
 from __future__ import annotations

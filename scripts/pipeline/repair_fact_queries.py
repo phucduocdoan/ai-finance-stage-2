@@ -21,7 +21,7 @@ Chạy TRƯỚC `fill_from_arms.py` và `rescale_below_floor.py`: cả hai sửa
 hoặc bọc `pandas_query`, phát lại sau đó sẽ lệch.
 
 Dùng:
-    PYTHONPATH=src .venv_bge/bin/python scripts/repair_fact_queries.py \
+    PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/repair_fact_queries.py \
         artifacts/runs/full1012.jsonl artifacts/runs/full1012_repaired.jsonl
 """
 from __future__ import annotations

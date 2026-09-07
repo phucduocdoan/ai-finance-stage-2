@@ -19,7 +19,7 @@ from finance_qa.modules.solve.common.intent import (
 )
 from finance_qa.modules.solve.common.units import unit_from_hint
 from finance_qa.modules.solve.solvers.cell_locator import period_intent, value_transform
-from finance_qa.modules.solve.solvers.table_profiles.schema import (
+from finance_qa.modules.solve.solvers.table_profiles.link_schema import (
     RawLinkRequest,
     RawOperation,
     RawScopeSlot,
