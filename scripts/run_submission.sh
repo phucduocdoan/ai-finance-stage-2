@@ -5,8 +5,9 @@
 # chứ không phải tuỳ chọn:
 #   - bước 4 và 5 phải chạy trước 7 và 8, vì hai bước sau sửa `answer` hoặc bọc
 #     `pandas_query`, phát lại sau đó sẽ lệch;
-#   - `--no-literal-on-error` ở bước đóng gói là bắt buộc. Thiếu nó thì truy vấn nào
-#     chạy hỏng sẽ bị thay bằng `repr(answer)`, đúng dạng gán cứng mà luật chấm 0.
+#   - bước đóng gói KHÔNG được truyền `--literalize-broken-queries`. Cờ đó (mặc
+#     định tắt) thay truy vấn hỏng bằng `repr(answer)`, đúng dạng gán cứng mà
+#     luật chấm 0 -- chỉ dùng khi debug, không phải cho bài nộp thật.
 #
 # Cần vLLM phục vụ model ở cổng 8990 trước khi chạy.
 #
@@ -37,7 +38,7 @@ run "$PY scripts/pipeline/repair_cell_indices.py  ${R}_repaired.jsonl  ${R}_cell
 run "$PY scripts/pipeline/rescale_below_floor.py  ${R}_cells.jsonl     ${R}_rescaled.jsonl"
 run "$PY scripts/pipeline/recount_saturated.py    ${R}_rescaled.jsonl  ${R}_recounted.jsonl"
 run "$PY scripts/pipeline/deliteralize_years.py   ${R}_recounted.jsonl ${R}_years.jsonl"
-run "$PY scripts/pipeline/build_submission.py --run ${R}_years.jsonl --out output/${NAME} --no-literal-on-error"
+run "$PY scripts/pipeline/build_submission.py --run ${R}_years.jsonl --out output/${NAME}"
 
 run "$PY scripts/pipeline/check_no_hardcode.py output/${NAME}.zip"
 

@@ -164,11 +164,12 @@ def _literalize_query(item: dict) -> None:
 
 
 def make_query_exec_safe(item: dict, data_dir: Path) -> str | None:
-    """Replace a failing query with a numeric literal.
+    """Replace a failing query with a numeric literal -- i.e. hardcode the answer.
 
-    This is a packaging guard, not a solver. It preserves the submitted answer
-    and retrieval lists, but prevents leaderboard execution from zeroing a row
-    because the trace query no longer runs on the shipped CSV.
+    This is a debug/rescue path, not something to ship: it preserves the answer
+    number and drops the query and evidence that were supposed to compute it,
+    which is exactly the hardcoding the competition's no-hardcode rule forbids.
+    Only call this when `literalize_broken_queries` was explicitly requested.
     """
     query = str(item.get("pandas_query") or "").strip()
     if not query:
@@ -200,7 +201,7 @@ def make_query_exec_safe(item: dict, data_dir: Path) -> str | None:
     return None
 
 
-def stage(items: list[dict], out_dir: Path, *, literal_on_error: bool = False) -> tuple[int, list[str]]:
+def stage(items: list[dict], out_dir: Path, *, literalize_broken_queries: bool = False) -> tuple[int, list[str]]:
     """Write submission.json + copy every referenced CSV into out_dir/data/.
 
     Returns (n_csv_copied, warnings). A table whose source CSV is missing is
@@ -246,12 +247,12 @@ def stage(items: list[dict], out_dir: Path, *, literal_on_error: bool = False) -
             ev for ev in (it.get("evidence") or [])
             if (data_dir / str(ev.get("csv_path", "")).split("/")[-1]).exists()
         ]
-        if literal_on_error:
+        if literalize_broken_queries:
             reason = make_query_exec_safe(it, data_dir)
             if reason:
                 warnings.append(f"#{it['id']}: pandas_query literal fallback ({reason})")
 
-    if literal_on_error:
+    if literalize_broken_queries:
         for _ in range(3):
             changed = 0
             for it in items:
@@ -284,17 +285,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=Path("output/submission"))
     ap.add_argument("--zip", type=Path, help="ZIP path (default: <out>.zip)")
     ap.add_argument(
-        "--literal-on-error",
+        "--literalize-broken-queries",
         action="store_true",
-        help="deprecated; exec-safe packaging is now the default",
+        help=(
+            "DANGEROUS, off by default: replace a pandas_query that fails to run "
+            "or mismatches the recorded answer with a bare numeric literal "
+            "(repr(answer)). That is hardcoding the answer instead of computing "
+            "it, which violates the competition's no-hardcode rule. Only ever "
+            "for debugging a partial/broken run, never for a real submission."
+        ),
     )
-    ap.add_argument(
-        "--no-literal-on-error",
-        dest="literal_on_error",
-        action="store_false",
-        help="debug mode: keep the original pandas_query even when it fails or mismatches answer",
-    )
-    ap.set_defaults(literal_on_error=True)
+    ap.set_defaults(literalize_broken_queries=False)
     ap.add_argument(
         "--no-round-final",
         dest="round_final",
@@ -320,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
             round_final(it)
 
     fmt_errs = validate_format(items, expected)
-    n_csv, warns = stage(items, args.out, literal_on_error=args.literal_on_error)
+    n_csv, warns = stage(items, args.out, literalize_broken_queries=args.literalize_broken_queries)
     # re-validate paths after staging may have pruned missing-CSV tables
     fmt_errs += validate_format(items, expected)
 

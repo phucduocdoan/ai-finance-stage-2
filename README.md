@@ -100,10 +100,10 @@ PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/recount_saturated.py \
 PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/deliteralize_years.py \
     artifacts/runs/full_run_recounted.jsonl artifacts/runs/full_run_years.jsonl
 
-# 10. package a leaderboard submission. `--no-literal-on-error` is required: without it
-#     a query that fails to execute is replaced by `repr(answer)`, which is the hardcoded
-#     shape the rules score as zero.
-PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/build_submission.py --run artifacts/runs/full_run_years.jsonl --out output/submission --no-literal-on-error
+# 10. package a leaderboard submission. Do NOT pass `--literalize-broken-queries`:
+#     that flag (off by default) replaces a query that fails to execute with
+#     `repr(answer)`, which is the hardcoded shape the rules score as zero.
+PYTHONPATH=src .venv_bge/bin/python scripts/pipeline/build_submission.py --run artifacts/runs/full_run_years.jsonl --out output/submission
 ```
 
 Steps 4 to 9 are post-processing passes, not solvers, so they sit between `run_graph.py` and
@@ -143,10 +143,10 @@ Step 5 is the other compliance repair, and it fixes a different failure. A table
 two-level header is read by the solvers while the leaf tier is still an ordinary data row, so
 the recorded row index is one too high and the recorded column name is only the group tier. At
 packaging time `load_frame` merges the tiers into `"group | leaf"` and the leaf row leaves the
-body, so the query raises `KeyError`. Packaged with `--literal-on-error` that becomes
+body, so the query raises `KeyError`. Packaged with `--literalize-broken-queries` that becomes
 `repr(answer)`: the answer stays right, the query becomes a constant, and the rules score it
-zero. Packaged without it the question simply ships a broken query, which is a wrong answer
-rather than a violation. Either way the fix belongs here, in step 5. The
+zero. Packaged without it (the default) the question simply ships a broken query, which is a
+wrong answer rather than a violation. Either way the fix belongs here, in step 5. The
 pass re-locates each cell from `diag["profile_validate"]["query_cells"]` by its `row_label` and
 `column_index` (for a cell whose label was absorbed into the header it uses the row shift voted
 by the labelled cells of the same frame), then re-runs the whole rewritten query and keeps it
